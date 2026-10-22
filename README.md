@@ -96,6 +96,8 @@ The generated code uses actual numbers (`nn.Linear(256, 512)`). Tick "named size
 
 ## Shaping connections
 
+The automatic path avoids other layers and keeps connections apart. A connection that would cross a layer goes around it in a clear lane. Connections from different layers that would share a line are spaced apart; connections from the same layer stay together. A loss that reads the same tensor as an output arrow is drawn coming from that arrow, so the last layer doesn't look like it has two outputs. The connection itself still comes from the layer, and so does the code. `node tools/route_check.js` (needs Playwright) counts any overlaps and lines through layers in every example.
+
 Connections can be styled without touching the code:
 
 - **Move one:** drag any segment of a connection; it stays square-cornered, and a segment that meets a layer gets a short jog so the line still leaves and enters the layer the same way. The bends are saved with the network; the ends follow the layers when you move them. Double-click a connection (or right-click → Reset route) to put it back on the automatic path. Auto layout resets all routes.

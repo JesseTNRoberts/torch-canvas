@@ -4101,8 +4101,16 @@ function route(e) {
   const L = mid[mid.length - 1]; if (e.route.o1 === 'v') L[0] = B[0]; else L[1] = B[1];
   return finish([A, ...mid, B], e);
 }
-function autoRoute(e) {
-  let s = byId(e.from); const t = byId(e.to); if (!s || !t) return null;
+// A loss that reads the same tensor as an output arrow is drawn from that arrow, so the layer before them doesn't look
+// like it has two outputs. Only the drawing changes: the connection (and the code) still comes from the layer.
+function drawFrom(e) {
+  const s = byId(e.from), t = byId(e.to);
+  if (!s || !t || t.type !== 'loss' || s.type === 'output') return s;
+  const o = S.g.edges.find(x => x.id !== e.id && x.from === e.from && (x.out || 0) === (e.out || 0) && (byId(x.to) || {}).type === 'output');
+  return (o && byId(o.to)) || s;
+}
+function baseRoute(e) {
+  let s = drawFrom(e); const t = byId(e.to); if (!s || !t) return null;
   if (nOutOf(s) > 1) s = Object.assign({}, s, { x: outX(s, e.out) }); // leave from this output's dot
   const A = box(s), B = box(t);
   const pts = [];
@@ -4149,12 +4157,14 @@ function autoRoute(e) {
   const dx = t.x - s.x, dy = t.y - s.y;
   const near = Math.abs(dy) < (A.h + B.h) / 2 + 8;
   let so, sp, to, tp;
-  if (NN.isCircle(s) ? Math.abs(dx) > Math.abs(dy) : near) { so = 'H'; sp = [s.x + Math.sign(dx || 1) * A.w / 2, s.y]; }
+  // a circle leaves from its side facing the target, unless a connection already comes in on that side
+  const sideTaken = NN.isCircle(s) && S.g.edges.some(x => x.to === s.id && byId(x.from) && entrySide(byId(x.from), s) === (dx > 0 ? 'R' : 'L'));
+  if (NN.isCircle(s) ? Math.abs(dx) > Math.abs(dy) && !sideTaken : near) { so = 'H'; sp = [s.x + Math.sign(dx || 1) * A.w / 2, s.y]; }
   else { so = 'V'; sp = [s.x, dy < 0 ? A.y : A.y + A.h]; }
   // Each input gets its own entry point: arrows arriving on the same side of a node enter side by side,
   // ordered by where they come from so they don't cross, and turn at staggered distances.
   const side = entrySide(s, t);
-  const sibs = S.g.edges.filter(x => x.to === t.id && byId(x.from) && entrySide(byId(x.from), t) === side);
+  const sibs = S.g.edges.filter(x => x.to === t.id && drawFrom(x) && entrySide(drawFrom(x), t) === side);
   let off = 0, gap = 16;
   if (sibs.length > 1) {
     const vert = side === 'B' || side === 'T';
@@ -4184,6 +4194,94 @@ function autoRoute(e) {
   else pts.push([tp[0], sp[1]]);
   pts.push(tp);
   return finish(pts, e);
+}
+// ── routing the whole graph together ──
+// Each connection first gets its own route (baseRoute). A route that would run through another box is moved to a
+// clear lane beside the boxes in the way, and connections from different layers that end up along the same line
+// are spread a few pixels apart (connections from the same layer stay together, like a bus).
+let routeCache = null;
+const routeSig = () => S.g.nodes.map(n => n.id + ':' + n.x + ',' + n.y).join(';') + '|' + S.g.edges.map(e => e.id + e.from + e.to + e.port + (e.out || '') + (e.route ? 'r' : '')).join(';');
+function autoRoute(e) {
+  if (!routeCache || routeCache.g !== S.g || routeCache.sig !== routeSig()) routeCache = { g: S.g, sig: routeSig(), map: routeAll() };
+  const r = routeCache.map.get(e.id);
+  return r ? finish(r.map(p => p.slice()), e) : baseRoute(e);
+}
+function routeAll() {
+  const boxes = S.g.nodes.map(n => ({ id: n.id, b: box(n) }));
+  const hits = (P, e) => { const d = drawFrom(e).id; let c = 0; for (let i = 1; i < P.length; i++) for (const { id, b } of boxes) if (id !== e.from && id !== d && id !== e.to && segHitsBox(P[i - 1], P[i], b)) c++; return c; };
+  const map = new Map();
+  for (const e of S.g.edges) {
+    const r = baseRoute(e); if (!r) continue;
+    let P = r.pts;
+    if (hits(P, e)) P = detour(e, P, boxes, hits) || P;
+    map.set(e.id, P);
+  }
+  spreadLanes(map);
+  return map;
+}
+function segHitsBox(a, b, q, pad = 3) {
+  const x0 = Math.min(a[0], b[0]), x1 = Math.max(a[0], b[0]), y0 = Math.min(a[1], b[1]), y1 = Math.max(a[1], b[1]);
+  return x1 > q.x + pad && x0 < q.x + q.w - pad && y1 > q.y + pad && y0 < q.y + q.h - pad;
+}
+// A route around the boxes in the way: leave and enter the same way as before, with a vertical lane beside the
+// boxes (left or right) or a horizontal one above / below them; the shortest route that hits nothing wins.
+function detour(e, P, boxes, hits) {
+  const sp = P[0], tp = P[P.length - 1], s1 = P[1], t1 = P[P.length - 2];
+  const dir = (a, b) => [Math.sign(b[0] - a[0]), Math.sign(b[1] - a[1])];
+  const ds = dir(sp, s1), dt = dir(t1, tp);
+  const a = [sp[0] + ds[0] * 14, sp[1] + ds[1] * 14], z = [tp[0] - dt[0] * 16, tp[1] - dt[1] * 16];
+  const d = drawFrom(e).id, others = boxes.filter(o => o.id !== e.from && o.id !== d && o.id !== e.to).map(o => o.b);
+  const ylo = Math.min(a[1], z[1]), yhi = Math.max(a[1], z[1]), xlo = Math.min(a[0], z[0]), xhi = Math.max(a[0], z[0]);
+  // a vertical lane at x clear of every box spanning [ylo, yhi], stepping outward from `from`
+  const laneX = (from, side) => { let x = from; for (let k = 0; k < 40; k++) { const q = others.find(b => b.y < yhi && b.y + b.h > ylo && x > b.x - 8 && x < b.x + b.w + 8); if (!q) return x; x = side < 0 ? q.x - 14 : q.x + q.w + 14; } return x; };
+  const laneY = (from, side) => { let y = from; for (let k = 0; k < 40; k++) { const q = others.find(b => b.x < xhi && b.x + b.w > xlo && y > b.y - 8 && y < b.y + b.h + 8); if (!q) return y; y = side < 0 ? q.y - 14 : q.y + q.h + 14; } return y; };
+  const cands = [];
+  for (const x of [laneX(xlo, -1), laneX(xhi, 1)]) cands.push([sp, a, [x, a[1]], [x, z[1]], z, tp]);
+  for (const y of [laneY(ylo, -1), laneY(yhi, 1)]) cands.push([sp, a, [a[0], y], [z[0], y], z, tp]);
+  let best = null, bc = Infinity;
+  for (const C of cands) {
+    let L = 0; for (let i = 1; i < C.length; i++) L += Math.abs(C[i][0] - C[i - 1][0]) + Math.abs(C[i][1] - C[i - 1][1]);
+    const c = L + hits(C, e) * 4000;
+    if (c < bc) { bc = c; best = C; }
+  }
+  return best && hits(best, e) < hits(P, e) ? best : null;
+}
+// Segments of different connections along the same line (overlapping by more than a few pixels) are moved apart,
+// 7px per connection, centred on the line. Only middle segments move; the first and last stay on their dots.
+function spreadLanes(map) {
+  const segs = [];
+  for (const e of S.g.edges) {
+    const P = map.get(e.id); if (!P || e.route) continue;
+    for (let i = 1; i < P.length; i++) {
+      const a = P[i - 1], b = P[i], v = Math.abs(a[0] - b[0]) < 0.5, h = Math.abs(a[1] - b[1]) < 0.5; if (v === h) continue;
+      // a segment can only slide sideways if the segments either side of it turn (otherwise it would leave a slant)
+      const turns = j => j < 1 || j >= P.length || (v ? Math.abs(P[j][1] - P[j - 1][1]) < 0.5 : Math.abs(P[j][0] - P[j - 1][0]) < 0.5);
+      segs.push({ e, P, i, v, src: keyOf(e), at: v ? a[0] : a[1], lo: v ? Math.min(a[1], b[1]) : Math.min(a[0], b[0]), hi: v ? Math.max(a[1], b[1]) : Math.max(a[0], b[0]), fixed: i === 1 || i === P.length - 1 || !turns(i - 1) || !turns(i + 1) });
+    }
+  }
+  for (const v of [true, false]) {
+    const L = segs.filter(x => x.v === v).sort((p, q) => p.at - q.at);
+    // clusters: same line (within 2px) and overlapping, joined transitively
+    const par = L.map((_, i) => i), find = i => (par[i] === i ? i : (par[i] = find(par[i])));
+    for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length && L[j].at - L[i].at < 2; j++)
+      if (L[i].src !== L[j].src && Math.min(L[i].hi, L[j].hi) - Math.max(L[i].lo, L[j].lo) > 6) par[find(j)] = find(i);
+    const groups = new Map(); L.forEach((x, i) => { const r = find(i); if (!groups.has(r)) groups.set(r, []); groups.get(r).push(x); });
+    for (const G of groups.values()) {
+      const srcs = [...new Set(G.map(x => x.src))]; if (srcs.length < 2) continue;
+      // order by where each connection comes from / goes to across the line, so neighbours don't cross
+      const side = src => { const xs = G.filter(x => x.src === src).flatMap(x => [x.P[x.i - 2], x.P[x.i + 1]].filter(Boolean).map(p => (v ? p[0] : p[1]))); return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0; };
+      srcs.sort((p, q) => side(p) - side(q));
+      const off = new Map(srcs.map((s, k) => [s, (k - (srcs.length - 1) / 2) * 7]));
+      const fixed = [...new Set(G.filter(x => x.fixed).map(x => x.src))];
+      if (fixed.length > 1) continue;
+      if (fixed.length) { const d = off.get(fixed[0]); for (const k of off.keys()) off.set(k, off.get(k) - d); }
+      const moved = new Set();
+      for (const x of G) {
+        const d = off.get(x.src); if (!d || x.fixed) continue;
+        for (const p of [x.P[x.i - 1], x.P[x.i]]) { if (moved.has(p)) continue; moved.add(p); if (v) p[0] += d; else p[1] += d; }
+      }
+    }
+  }
 }
 // Which side of node t an arrow from s comes in on: L/R (from the side) or B/T (from below / above)
 function entrySide(s, t) {
@@ -4250,7 +4348,7 @@ function edgeClass(e) {
 
 // ── render ──
 function render() {
-  analyze();
+  analyze(); routeCache = null;
   const { ix, shapes, errors } = S.info;
   $('#vp').setAttribute('transform', `translate(${S.view.x},${S.view.y}) scale(${S.view.k})`);
   $('#emptyMsg').hidden = S.g.nodes.length > 0;
@@ -7074,5 +7172,7 @@ renderProject();
 idb.get('last').then(r => { if (r && (r.dir || r.file)) { S.remembered = r; if (!S.dir) renderProject(); } }).catch(() => {});
 requestAnimationFrame(fit);
 window.addEventListener('resize', () => render());
+// for the routing checks in tools/ (read-only access to the open graph and the router)
+window.__tc = { S, route, drawFrom, box, keyOf, byId, switchTo, openLibrary, findLibEntry, render };
 })();
 </script>
