@@ -1,0 +1,501 @@
+{
+ "title": "Residual MLP with a block",
+ "description": "The same network with the gated branch defined once as GatedBlock and repeated 3 times.",
+ "graph": {
+  "name": "ResidualMLP",
+  "symbols": {
+   "e": 8,
+   "d_in": 784,
+   "f": 256,
+   "h1": 512,
+   "h_o": 256,
+   "o": 10
+  },
+  "nodes": [
+   {
+    "id": "n2wyx6w",
+    "type": "input",
+    "x": 90,
+    "y": 300,
+    "params": {
+     "name": "x",
+     "shape": "e, d_in",
+     "title": ""
+    }
+   },
+   {
+    "id": "n2x767m",
+    "type": "linear",
+    "x": 230,
+    "y": 300,
+    "params": {
+     "in": "d_in",
+     "out": "f",
+     "bias": false,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "name": "down",
+     "title": "",
+     "var": "x"
+    }
+   },
+   {
+    "id": "n2z45tb",
+    "type": "block",
+    "x": 450,
+    "y": 300,
+    "params": {
+     "block": "b2v34uv",
+     "args": {
+      "h": "h1"
+     },
+     "nIn": 1,
+     "repeat": 3,
+     "name": "blocks",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n31hfdr",
+    "type": "norm",
+    "x": 680,
+    "y": 300,
+    "params": {
+     "kind": "RMSNorm",
+     "dim": "f",
+     "groups": 8,
+     "eps": "",
+     "name": "final_norm",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n32eju6",
+    "type": "linear",
+    "x": 624,
+    "y": 380,
+    "params": {
+     "in": "f",
+     "out": "h_o",
+     "bias": false,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "name": "head_w",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n33hrbp",
+    "type": "linear",
+    "x": 736,
+    "y": 380,
+    "params": {
+     "in": "f",
+     "out": "h_o",
+     "bias": false,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "name": "head_v",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n34uv87",
+    "type": "act",
+    "x": 680,
+    "y": 445,
+    "params": {
+     "fn": "sigmoid",
+     "dim": "-1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n35wv98",
+    "type": "binop",
+    "x": 624,
+    "y": 485,
+    "params": {
+     "op": "*",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n365ouw",
+    "type": "binop",
+    "x": 680,
+    "y": 535,
+    "params": {
+     "op": "*",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n37bl4g",
+    "type": "linear",
+    "x": 680,
+    "y": 600,
+    "params": {
+     "in": "h_o",
+     "out": "o",
+     "bias": false,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "name": "out_proj",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n38ypby",
+    "type": "act",
+    "x": 680,
+    "y": 665,
+    "params": {
+     "fn": "softmax",
+     "dim": "-1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n39z0pb",
+    "type": "output",
+    "x": 680,
+    "y": 730,
+    "params": {
+     "name": "p_hat",
+     "title": ""
+    }
+   }
+  ],
+  "edges": [
+   {
+    "id": "e2yg5qq",
+    "from": "n2wyx6w",
+    "to": "n2x767m",
+    "port": 0
+   },
+   {
+    "id": "e30mxpi",
+    "from": "n2x767m",
+    "to": "n2z45tb",
+    "port": 0
+   },
+   {
+    "id": "e3a956j",
+    "from": "n2z45tb",
+    "to": "n31hfdr",
+    "port": 0
+   },
+   {
+    "id": "e3bwzb7",
+    "from": "n31hfdr",
+    "to": "n32eju6",
+    "port": 0
+   },
+   {
+    "id": "e3ce81n",
+    "from": "n31hfdr",
+    "to": "n33hrbp",
+    "port": 0
+   },
+   {
+    "id": "e3dmqpb",
+    "from": "n32eju6",
+    "to": "n34uv87",
+    "port": 0
+   },
+   {
+    "id": "e3e8xu8",
+    "from": "n34uv87",
+    "to": "n35wv98",
+    "port": 0
+   },
+   {
+    "id": "e3fpste",
+    "from": "n32eju6",
+    "to": "n35wv98",
+    "port": 1
+   },
+   {
+    "id": "e3go5r3",
+    "from": "n35wv98",
+    "to": "n365ouw",
+    "port": 0
+   },
+   {
+    "id": "e3hyyfh",
+    "from": "n33hrbp",
+    "to": "n365ouw",
+    "port": 1
+   },
+   {
+    "id": "e3ipusb",
+    "from": "n365ouw",
+    "to": "n37bl4g",
+    "port": 0
+   },
+   {
+    "id": "e3j4shy",
+    "from": "n37bl4g",
+    "to": "n38ypby",
+    "port": 0
+   },
+   {
+    "id": "e3kc4g5",
+    "from": "n38ypby",
+    "to": "n39z0pb",
+    "port": 0
+   }
+  ],
+  "groups": [],
+  "blocks": {
+   "b2v34uv": {
+    "id": "b2v34uv",
+    "name": "GatedBlock",
+    "graph": {
+     "name": "GatedBlock",
+     "symbols": {
+      "e": 8,
+      "d": 256,
+      "h": 512
+     },
+     "nodes": [
+      {
+       "id": "n293pwn",
+       "type": "input",
+       "x": 60,
+       "y": 650,
+       "params": {
+        "name": "x",
+        "shape": "e, d",
+        "title": ""
+       }
+      },
+      {
+       "id": "n2arcrs",
+       "type": "norm",
+       "x": 200,
+       "y": 600,
+       "params": {
+        "kind": "RMSNorm",
+        "dim": "d",
+        "groups": 8,
+        "eps": "",
+        "name": "norm",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n2bh5dt",
+       "type": "linear",
+       "x": 146,
+       "y": 515,
+       "params": {
+        "in": "d",
+        "out": "h",
+        "bias": false,
+        "init": "default",
+        "init_arg": "",
+        "zero_bias": true,
+        "name": "w",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n2cq2u4",
+       "type": "linear",
+       "x": 258,
+       "y": 515,
+       "params": {
+        "in": "d",
+        "out": "h",
+        "bias": false,
+        "init": "default",
+        "init_arg": "",
+        "zero_bias": true,
+        "name": "v",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n2dhirc",
+       "type": "act",
+       "x": 100,
+       "y": 430,
+       "params": {
+        "fn": "sigmoid",
+        "dim": "-1",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n2emvag",
+       "type": "binop",
+       "x": 146,
+       "y": 380,
+       "params": {
+        "op": "*",
+        "const": "",
+        "rev": false,
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n2f2pwz",
+       "type": "binop",
+       "x": 200,
+       "y": 325,
+       "params": {
+        "op": "*",
+        "const": "",
+        "rev": false,
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n2guyof",
+       "type": "linear",
+       "x": 200,
+       "y": 270,
+       "params": {
+        "in": "h",
+        "out": "d",
+        "bias": false,
+        "init": "default",
+        "init_arg": "",
+        "zero_bias": true,
+        "name": "w_out",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n2h925r",
+       "type": "binop",
+       "x": 200,
+       "y": 205,
+       "params": {
+        "op": "+",
+        "const": "",
+        "rev": false,
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n2iauvj",
+       "type": "output",
+       "x": 200,
+       "y": 140,
+       "params": {
+        "name": "out",
+        "title": ""
+       }
+      }
+     ],
+     "edges": [
+      {
+       "id": "e2jsbpi",
+       "from": "n293pwn",
+       "to": "n2arcrs",
+       "port": 0
+      },
+      {
+       "id": "e2kiidn",
+       "from": "n2arcrs",
+       "to": "n2bh5dt",
+       "port": 0
+      },
+      {
+       "id": "e2l91bv",
+       "from": "n2arcrs",
+       "to": "n2cq2u4",
+       "port": 0
+      },
+      {
+       "id": "e2mg9pa",
+       "from": "n2bh5dt",
+       "to": "n2dhirc",
+       "port": 0
+      },
+      {
+       "id": "e2nolih",
+       "from": "n2dhirc",
+       "to": "n2emvag",
+       "port": 0
+      },
+      {
+       "id": "e2oeors",
+       "from": "n2bh5dt",
+       "to": "n2emvag",
+       "port": 1
+      },
+      {
+       "id": "e2py1gs",
+       "from": "n2emvag",
+       "to": "n2f2pwz",
+       "port": 0
+      },
+      {
+       "id": "e2q6wp6",
+       "from": "n2cq2u4",
+       "to": "n2f2pwz",
+       "port": 1
+      },
+      {
+       "id": "e2rtm1g",
+       "from": "n2f2pwz",
+       "to": "n2guyof",
+       "port": 0
+      },
+      {
+       "id": "e2sqdos",
+       "from": "n293pwn",
+       "to": "n2h925r",
+       "port": 0
+      },
+      {
+       "id": "e2tz16o",
+       "from": "n2guyof",
+       "to": "n2h925r",
+       "port": 1
+      },
+      {
+       "id": "e2u6vsn",
+       "from": "n2h925r",
+       "to": "n2iauvj",
+       "port": 0
+      }
+     ],
+     "groups": []
+    },
+    "labels": {
+     "h": "hidden"
+    }
+   }
+  }
+ }
+}

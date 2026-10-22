@@ -1,0 +1,638 @@
+{
+ "title": "Qwen2_5_VLDecoderLayer",
+ "description": "Qwen2.5 decoder layer: pre-RMSNorm causal self-attention with M-RoPE positions (time, row, column; sections 16/24/24, base 1e6) where 16 query heads share 2 key/value heads (bias on q, k, v), then a SwiGLU MLP, each with a residual. Inputs: hidden states and the 3-D positions.",
+ "graph": {
+  "name": "Qwen2_5_VLDecoderLayer",
+  "symbols": {
+   "e": 2,
+   "t": 76,
+   "d": 2048,
+   "n_head": 16,
+   "n_kv": 2,
+   "d_kv": 256,
+   "ff": 11008
+  },
+  "nodes": [
+   {
+    "id": "n2ora80",
+    "type": "input",
+    "x": 237,
+    "y": 600,
+    "params": {
+     "name": "x",
+     "shape": "e, t, d",
+     "title": ""
+    }
+   },
+   {
+    "id": "n2p3up2",
+    "type": "input",
+    "x": 440,
+    "y": 600,
+    "params": {
+     "name": "pos",
+     "shape": "3, e, t",
+     "title": ""
+    }
+   },
+   {
+    "id": "n2qwsqo",
+    "type": "norm",
+    "x": 339,
+    "y": 526,
+    "params": {
+     "kind": "RMSNorm",
+     "dim": "d",
+     "groups": 8,
+     "eps": "1e-6",
+     "name": "input_layernorm",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n2sly8v",
+    "type": "linear",
+    "x": 112,
+    "y": 452,
+    "params": {
+     "in": "d",
+     "out": "d",
+     "bias": true,
+     "init": "normal",
+     "init_arg": "0.02",
+     "zero_bias": true,
+     "tie": "",
+     "name": "q_proj",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n2txbap",
+    "type": "linear",
+    "x": 339,
+    "y": 452,
+    "params": {
+     "in": "d",
+     "out": "d_kv",
+     "bias": true,
+     "init": "normal",
+     "init_arg": "0.02",
+     "zero_bias": true,
+     "tie": "",
+     "name": "k_proj",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n2u2crx",
+    "type": "linear",
+    "x": 565,
+    "y": 452,
+    "params": {
+     "in": "d",
+     "out": "d_kv",
+     "bias": true,
+     "init": "normal",
+     "init_arg": "0.02",
+     "zero_bias": true,
+     "tie": "",
+     "name": "v_proj",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n2ytlc7",
+    "type": "heads",
+    "x": 112,
+    "y": 378,
+    "params": {
+     "heads": "n_head",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n2zjoon",
+    "type": "heads",
+    "x": 339,
+    "y": 378,
+    "params": {
+     "heads": "n_kv",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n303po8",
+    "type": "heads",
+    "x": 565,
+    "y": 378,
+    "params": {
+     "heads": "n_kv",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n34r5rf",
+    "type": "rope",
+    "x": 112,
+    "y": 304,
+    "params": {
+     "base": "1000000",
+     "mode": "mrope",
+     "sections": "16, 24, 24",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n357d22",
+    "type": "rope",
+    "x": 339,
+    "y": 304,
+    "params": {
+     "base": "1000000",
+     "mode": "mrope",
+     "sections": "16, 24, 24",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n3a0c0v",
+    "type": "func",
+    "x": 452,
+    "y": 230,
+    "params": {
+     "fn": ".repeat_interleave",
+     "extra": "8, dim=1",
+     "n": 1,
+     "init": "",
+     "name": "",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n3bkjoo",
+    "type": "func",
+    "x": 565,
+    "y": 304,
+    "params": {
+     "fn": ".repeat_interleave",
+     "extra": "8, dim=1",
+     "n": 1,
+     "init": "",
+     "name": "",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n3ehwkw",
+    "type": "scale",
+    "x": 225,
+    "y": 230,
+    "params": {
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n3fdp0c",
+    "type": "transpose",
+    "x": 339,
+    "y": 156,
+    "params": {
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n3ixb84",
+    "type": "binop",
+    "x": 339,
+    "y": 82,
+    "params": {
+     "op": "@",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n3lztlg",
+    "type": "mask",
+    "x": 339,
+    "y": 8,
+    "params": {
+     "mode": "causal",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n3nvllr",
+    "type": "act",
+    "x": 339,
+    "y": -66,
+    "params": {
+     "fn": "softmax",
+     "dim": "-1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n3piix7",
+    "type": "binop",
+    "x": 1095,
+    "y": -66,
+    "params": {
+     "op": "@",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n3sfnxg",
+    "type": "merge",
+    "x": 1095,
+    "y": 8,
+    "params": {
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n3uf2ti",
+    "type": "linear",
+    "x": 1095,
+    "y": 82,
+    "params": {
+     "in": "d",
+     "out": "d",
+     "bias": false,
+     "init": "normal",
+     "init_arg": "0.02",
+     "zero_bias": true,
+     "tie": "",
+     "name": "o_proj",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n3w3wjv",
+    "type": "binop",
+    "x": 1095,
+    "y": 156,
+    "params": {
+     "op": "+",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n3zajfi",
+    "type": "norm",
+    "x": 1095,
+    "y": 230,
+    "params": {
+     "kind": "RMSNorm",
+     "dim": "d",
+     "groups": 8,
+     "eps": "1e-6",
+     "name": "post_attention_layernorm",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n41byrp",
+    "type": "binop",
+    "x": 1095,
+    "y": 600,
+    "params": {
+     "op": "+",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n433w51",
+    "type": "linear",
+    "x": 981,
+    "y": 304,
+    "params": {
+     "in": "d",
+     "out": "ff",
+     "bias": false,
+     "init": "normal",
+     "init_arg": "0.02",
+     "zero_bias": true,
+     "tie": "",
+     "name": "gate_proj",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n4415np",
+    "type": "linear",
+    "x": 1208,
+    "y": 304,
+    "params": {
+     "in": "d",
+     "out": "ff",
+     "bias": false,
+     "init": "normal",
+     "init_arg": "0.02",
+     "zero_bias": true,
+     "tie": "",
+     "name": "up_proj",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n475k81",
+    "type": "act",
+    "x": 1095,
+    "y": 378,
+    "params": {
+     "fn": "silu",
+     "dim": "-1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n49kgga",
+    "type": "binop",
+    "x": 1095,
+    "y": 452,
+    "params": {
+     "op": "*",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n4c55lp",
+    "type": "linear",
+    "x": 1095,
+    "y": 526,
+    "params": {
+     "in": "ff",
+     "out": "d",
+     "bias": false,
+     "init": "normal",
+     "init_arg": "0.02",
+     "zero_bias": true,
+     "tie": "",
+     "name": "down_proj",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n4fwbk8",
+    "type": "output",
+    "x": 1851,
+    "y": 600,
+    "params": {
+     "name": "out",
+     "title": ""
+    }
+   }
+  ],
+  "edges": [
+   {
+    "id": "e2rontn",
+    "from": "n2ora80",
+    "to": "n2qwsqo",
+    "port": 0
+   },
+   {
+    "id": "e2vocj2",
+    "from": "n2qwsqo",
+    "to": "n2sly8v",
+    "port": 0
+   },
+   {
+    "id": "e2wr82z",
+    "from": "n2qwsqo",
+    "to": "n2txbap",
+    "port": 0
+   },
+   {
+    "id": "e2x5baa",
+    "from": "n2qwsqo",
+    "to": "n2u2crx",
+    "port": 0
+   },
+   {
+    "id": "e31i615",
+    "from": "n2sly8v",
+    "to": "n2ytlc7",
+    "port": 0
+   },
+   {
+    "id": "e32x1gc",
+    "from": "n2txbap",
+    "to": "n2zjoon",
+    "port": 0
+   },
+   {
+    "id": "e33voi8",
+    "from": "n2u2crx",
+    "to": "n303po8",
+    "port": 0
+   },
+   {
+    "id": "e36x4kj",
+    "from": "n2ytlc7",
+    "to": "n34r5rf",
+    "port": 0
+   },
+   {
+    "id": "e37fxxt",
+    "from": "n2p3up2",
+    "to": "n34r5rf",
+    "port": 1
+   },
+   {
+    "id": "e38g1pg",
+    "from": "n2zjoon",
+    "to": "n357d22",
+    "port": 0
+   },
+   {
+    "id": "e39th74",
+    "from": "n2p3up2",
+    "to": "n357d22",
+    "port": 1
+   },
+   {
+    "id": "e3cs7od",
+    "from": "n357d22",
+    "to": "n3a0c0v",
+    "port": 0
+   },
+   {
+    "id": "e3di9cf",
+    "from": "n303po8",
+    "to": "n3bkjoo",
+    "port": 0
+   },
+   {
+    "id": "e3g6cu2",
+    "from": "n34r5rf",
+    "to": "n3ehwkw",
+    "port": 0
+   },
+   {
+    "id": "e3h4dk9",
+    "from": "n3a0c0v",
+    "to": "n3fdp0c",
+    "port": 0
+   },
+   {
+    "id": "e3jrhmj",
+    "from": "n3ehwkw",
+    "to": "n3ixb84",
+    "port": 0
+   },
+   {
+    "id": "e3ka7ua",
+    "from": "n3fdp0c",
+    "to": "n3ixb84",
+    "port": 1
+   },
+   {
+    "id": "e3m1d52",
+    "from": "n3ixb84",
+    "to": "n3lztlg",
+    "port": 0
+   },
+   {
+    "id": "e3ou64u",
+    "from": "n3lztlg",
+    "to": "n3nvllr",
+    "port": 0
+   },
+   {
+    "id": "e3qomal",
+    "from": "n3nvllr",
+    "to": "n3piix7",
+    "port": 0
+   },
+   {
+    "id": "e3rq7qj",
+    "from": "n3bkjoo",
+    "to": "n3piix7",
+    "port": 1
+   },
+   {
+    "id": "e3tx9x0",
+    "from": "n3piix7",
+    "to": "n3sfnxg",
+    "port": 0
+   },
+   {
+    "id": "e3vvyqs",
+    "from": "n3sfnxg",
+    "to": "n3uf2ti",
+    "port": 0
+   },
+   {
+    "id": "e3x98fr",
+    "from": "n2ora80",
+    "to": "n3w3wjv",
+    "port": 0
+   },
+   {
+    "id": "e3ybmhb",
+    "from": "n3uf2ti",
+    "to": "n3w3wjv",
+    "port": 1
+   },
+   {
+    "id": "e40vhxn",
+    "from": "n3w3wjv",
+    "to": "n3zajfi",
+    "port": 0
+   },
+   {
+    "id": "e42p9q6",
+    "from": "n3w3wjv",
+    "to": "n41byrp",
+    "port": 0
+   },
+   {
+    "id": "e45om2b",
+    "from": "n3zajfi",
+    "to": "n433w51",
+    "port": 0
+   },
+   {
+    "id": "e46697g",
+    "from": "n3zajfi",
+    "to": "n4415np",
+    "port": 0
+   },
+   {
+    "id": "e48ph6e",
+    "from": "n433w51",
+    "to": "n475k81",
+    "port": 0
+   },
+   {
+    "id": "e4a6eap",
+    "from": "n475k81",
+    "to": "n49kgga",
+    "port": 0
+   },
+   {
+    "id": "e4b9edp",
+    "from": "n4415np",
+    "to": "n49kgga",
+    "port": 1
+   },
+   {
+    "id": "e4dl6cc",
+    "from": "n49kgga",
+    "to": "n4c55lp",
+    "port": 0
+   },
+   {
+    "id": "e4eq08y",
+    "from": "n4c55lp",
+    "to": "n41byrp",
+    "port": 1
+   },
+   {
+    "id": "e4g8izu",
+    "from": "n41byrp",
+    "to": "n4fwbk8",
+    "port": 0
+   }
+  ],
+  "groups": []
+ }
+}

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Torch Canvas">
+  <rect x="4" y="4" width="120" height="120" rx="28" fill="#24232e"/>
+  <!-- the paint stroke: a tapered sweep from left to the brush tip -->
+  <path d="M14 88 C 26 70, 44 70, 58 82 C 70 92, 78 74, 82 58 L 87 61 C 84 82, 70 102, 54 92 C 42 84, 28 84, 16 94 Z" fill="#7467d4" opacity=".45"/>
+  <!-- a small network painted in the stroke -->
+  <g stroke="#a197f0" stroke-width="3.4" stroke-linecap="round">
+    <line x1="24" y1="86" x2="42" y2="74"/><line x1="24" y1="86" x2="44" y2="96"/>
+    <line x1="42" y1="74" x2="62" y2="86"/><line x1="44" y1="96" x2="62" y2="86"/>
+  </g>
+  <g fill="#efedfb"><circle cx="24" cy="86" r="6.5"/><circle cx="42" cy="74" r="6"/><circle cx="44" cy="96" r="6"/><circle cx="62" cy="86" r="6.5"/></g>
+  <!-- where the brush is still painting, the stroke has become code -->
+  <g stroke="#f0a35e" stroke-width="4.5" stroke-linecap="round">
+    <line x1="74" y1="88" x2="90" y2="88"/><line x1="80" y1="99" x2="106" y2="99"/><line x1="80" y1="110" x2="96" y2="110"/>
+  </g>
+  <!-- the brush -->
+  <g transform="rotate(35 101 40)">
+    <rect x="95" y="2" width="12" height="36" rx="6" fill="#c8641a"/>
+    <rect x="94" y="36" width="14" height="9" rx="2" fill="#dfdee8"/>
+    <path d="M94 45 h14 c0 9 -4 15 -7 20 c-3 -5 -7 -11 -7 -20z" fill="#a197f0"/>
+  </g>
+</svg>

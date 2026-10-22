@@ -1,0 +1,12 @@
+{
+  "name": "torch-canvas",
+  "version": "0.1.0",
+  "description": "Visual neural-network editor that writes PyTorch code and imports PyTorch models back into diagrams.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "build": "node build.js",
+    "test": "node test.js"
+  },
+  "license": "MIT"
+}

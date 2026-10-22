@@ -1,0 +1,740 @@
+{
+ "title": "Llama 2 7B",
+ "description": "Llama 2 7B as LlamaForCausalLM: token embedding, 32 × LlamaDecoderLayer (pre-norm with RMSNorm; causal self-attention with rotary position embeddings on q and k; a SwiGLU MLP, down(silu(gate(x)) · up(x))), a final RMSNorm and an untied LM head. No biases. 6,738,415,616 parameters, initialization N(0, 0.02). The code builds the full model, about 27 GB in float32.",
+ "graph": {
+  "name": "LlamaForCausalLM",
+  "symbols": {
+   "e": 8,
+   "t": 64,
+   "vocab": 32000,
+   "d": 4096,
+   "n_head": 32,
+   "ff": 11008
+  },
+  "nodes": [
+   {
+    "id": "n185k9ow",
+    "type": "input",
+    "x": 135,
+    "y": 470,
+    "params": {
+     "name": "input_ids",
+     "shape": "e, t",
+     "title": ""
+    }
+   },
+   {
+    "id": "n186ymgh",
+    "type": "embed",
+    "x": 135,
+    "y": 385,
+    "params": {
+     "num": "vocab",
+     "dim": "d",
+     "positions": false,
+     "init": "normal",
+     "init_arg": "0.02",
+     "tie": "",
+     "name": "embed_tokens",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n187mzl6",
+    "type": "block",
+    "x": 135,
+    "y": 280,
+    "params": {
+     "block": "b18478ll",
+     "args": {
+      "n_head": "n_head",
+      "ff": "ff"
+     },
+     "nIn": 1,
+     "repeat": 32,
+     "name": "layers",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1881tkb",
+    "type": "norm",
+    "x": 135,
+    "y": 170,
+    "params": {
+     "kind": "RMSNorm",
+     "dim": "d",
+     "groups": 8,
+     "eps": "1e-5",
+     "name": "norm",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n189jeju",
+    "type": "linear",
+    "x": 135,
+    "y": 100,
+    "params": {
+     "in": "d",
+     "out": "vocab",
+     "bias": false,
+     "init": "normal",
+     "init_arg": "0.02",
+     "zero_bias": true,
+     "tie": "",
+     "name": "lm_head",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n18a2g51",
+    "type": "output",
+    "x": 135,
+    "y": 30,
+    "params": {
+     "name": "logits",
+     "title": ""
+    }
+   },
+   {
+    "id": "n18gt8kl",
+    "type": "loss",
+    "x": 400,
+    "y": 30,
+    "params": {
+     "fn": "cross_entropy",
+     "mode": "next",
+     "label_smoothing": "",
+     "ignore_index": "",
+     "delta": "1.0",
+     "weight": "1",
+     "mask_prob": "0.15",
+     "mask_id": "",
+     "title": ""
+    }
+   }
+  ],
+  "edges": [
+   {
+    "id": "e18bmnu9",
+    "from": "n185k9ow",
+    "to": "n186ymgh",
+    "port": 0
+   },
+   {
+    "id": "e18c31qg",
+    "from": "n186ymgh",
+    "to": "n187mzl6",
+    "port": 0
+   },
+   {
+    "id": "e18degba",
+    "from": "n187mzl6",
+    "to": "n1881tkb",
+    "port": 0
+   },
+   {
+    "id": "e18egh6s",
+    "from": "n1881tkb",
+    "to": "n189jeju",
+    "port": 0
+   },
+   {
+    "id": "e18frwls",
+    "from": "n189jeju",
+    "to": "n18a2g51",
+    "port": 0
+   },
+   {
+    "id": "e18h5i82",
+    "from": "n189jeju",
+    "to": "n18gt8kl",
+    "port": 0
+   },
+   {
+    "id": "e18iund2",
+    "from": "n185k9ow",
+    "to": "n18gt8kl",
+    "port": 1
+   }
+  ],
+  "groups": [],
+  "blocks": {
+   "b18478ll": {
+    "id": "b18478ll",
+    "name": "LlamaDecoderLayer",
+    "graph": {
+     "name": "LlamaDecoderLayer",
+     "symbols": {
+      "e": 8,
+      "t": 64,
+      "d": 4096,
+      "n_head": 32,
+      "ff": 11008
+     },
+     "nodes": [
+      {
+       "id": "n16ild7a",
+       "type": "input",
+       "x": 70,
+       "y": 868,
+       "params": {
+        "name": "x",
+        "shape": "e, t, d",
+        "title": ""
+       }
+      },
+      {
+       "id": "n16jen4g",
+       "type": "norm",
+       "x": 380,
+       "y": 848,
+       "params": {
+        "kind": "RMSNorm",
+        "dim": "d",
+        "groups": 8,
+        "eps": "1e-5",
+        "name": "input_layernorm",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n16k7and",
+       "type": "linear",
+       "x": 235,
+       "y": 790,
+       "params": {
+        "in": "d",
+        "out": "d",
+        "bias": false,
+        "init": "normal",
+        "init_arg": "0.02",
+        "zero_bias": true,
+        "tie": "",
+        "name": "q_proj",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n16lco62",
+       "type": "linear",
+       "x": 380,
+       "y": 790,
+       "params": {
+        "in": "d",
+        "out": "d",
+        "bias": false,
+        "init": "normal",
+        "init_arg": "0.02",
+        "zero_bias": true,
+        "tie": "",
+        "name": "k_proj",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n16m8b4b",
+       "type": "linear",
+       "x": 525,
+       "y": 790,
+       "params": {
+        "in": "d",
+        "out": "d",
+        "bias": false,
+        "init": "normal",
+        "init_arg": "0.02",
+        "zero_bias": true,
+        "tie": "",
+        "name": "v_proj",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n16n144p",
+       "type": "heads",
+       "x": 235,
+       "y": 732,
+       "params": {
+        "heads": "n_head",
+        "title": "",
+        "var": "q"
+       }
+      },
+      {
+       "id": "n16ogcxw",
+       "type": "heads",
+       "x": 380,
+       "y": 732,
+       "params": {
+        "heads": "n_head",
+        "title": "",
+        "var": "k"
+       }
+      },
+      {
+       "id": "n16pevuz",
+       "type": "heads",
+       "x": 525,
+       "y": 732,
+       "params": {
+        "heads": "n_head",
+        "title": "",
+        "var": "v"
+       }
+      },
+      {
+       "id": "n16q2b5g",
+       "type": "rope",
+       "x": 235,
+       "y": 674,
+       "params": {
+        "base": "10000",
+        "title": "",
+        "var": "q"
+       }
+      },
+      {
+       "id": "n16rivad",
+       "type": "rope",
+       "x": 380,
+       "y": 674,
+       "params": {
+        "base": "10000",
+        "title": "",
+        "var": "k"
+       }
+      },
+      {
+       "id": "n16siz89",
+       "type": "scale",
+       "x": 235,
+       "y": 616,
+       "params": {
+        "title": "",
+        "var": "q"
+       }
+      },
+      {
+       "id": "n16t7we3",
+       "type": "transpose",
+       "x": 380,
+       "y": 616,
+       "params": {
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n16ujg1d",
+       "type": "binop",
+       "x": 308,
+       "y": 558,
+       "params": {
+        "op": "@",
+        "const": "",
+        "rev": false,
+        "title": "",
+        "var": "att"
+       }
+      },
+      {
+       "id": "n16vrnxg",
+       "type": "mask",
+       "x": 308,
+       "y": 500,
+       "params": {
+        "title": "",
+        "var": "att"
+       }
+      },
+      {
+       "id": "n16wltn0",
+       "type": "act",
+       "x": 308,
+       "y": 442,
+       "params": {
+        "fn": "softmax",
+        "dim": "-1",
+        "title": "",
+        "var": "att"
+       }
+      },
+      {
+       "id": "n16x5uc2",
+       "type": "binop",
+       "x": 416,
+       "y": 346,
+       "params": {
+        "op": "@",
+        "const": "",
+        "rev": false,
+        "title": "",
+        "var": "y"
+       }
+      },
+      {
+       "id": "n16ycwyj",
+       "type": "merge",
+       "x": 416,
+       "y": 288,
+       "params": {
+        "title": "",
+        "var": "y"
+       }
+      },
+      {
+       "id": "n16zsqw6",
+       "type": "linear",
+       "x": 416,
+       "y": 230,
+       "params": {
+        "in": "d",
+        "out": "d",
+        "bias": false,
+        "init": "normal",
+        "init_arg": "0.02",
+        "zero_bias": true,
+        "tie": "",
+        "name": "o_proj",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n170wzn4",
+       "type": "binop",
+       "x": 416,
+       "y": 100,
+       "params": {
+        "op": "+",
+        "const": "",
+        "rev": false,
+        "title": "",
+        "var": "x"
+       }
+      },
+      {
+       "id": "n17m16k8",
+       "type": "norm",
+       "x": 740,
+       "y": 500,
+       "params": {
+        "kind": "RMSNorm",
+        "dim": "d",
+        "groups": 8,
+        "eps": "1e-5",
+        "name": "post_attention_layernorm",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n17n2pp8",
+       "type": "linear",
+       "x": 670,
+       "y": 442,
+       "params": {
+        "in": "d",
+        "out": "ff",
+        "bias": false,
+        "init": "normal",
+        "init_arg": "0.02",
+        "zero_bias": true,
+        "tie": "",
+        "name": "gate_proj",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n17ouxh1",
+       "type": "linear",
+       "x": 810,
+       "y": 442,
+       "params": {
+        "in": "d",
+        "out": "ff",
+        "bias": false,
+        "init": "normal",
+        "init_arg": "0.02",
+        "zero_bias": true,
+        "tie": "",
+        "name": "up_proj",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n17p0ydo",
+       "type": "act",
+       "x": 670,
+       "y": 384,
+       "params": {
+        "fn": "silu",
+        "dim": "-1",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n17qgvk3",
+       "type": "binop",
+       "x": 740,
+       "y": 326,
+       "params": {
+        "op": "*",
+        "const": "",
+        "rev": false,
+        "title": "",
+        "var": "h"
+       }
+      },
+      {
+       "id": "n17rf8bl",
+       "type": "linear",
+       "x": 740,
+       "y": 268,
+       "params": {
+        "in": "ff",
+        "out": "d",
+        "bias": false,
+        "init": "normal",
+        "init_arg": "0.02",
+        "zero_bias": true,
+        "tie": "",
+        "name": "down_proj",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n17srl2x",
+       "type": "binop",
+       "x": 740,
+       "y": 100,
+       "params": {
+        "op": "+",
+        "const": "",
+        "rev": false,
+        "title": "",
+        "var": "x"
+       }
+      },
+      {
+       "id": "n17ts5zl",
+       "type": "output",
+       "x": 900,
+       "y": 100,
+       "params": {
+        "name": "out",
+        "title": ""
+       }
+      }
+     ],
+     "edges": [
+      {
+       "id": "e171ycn9",
+       "from": "n16ild7a",
+       "to": "n16jen4g",
+       "port": 0
+      },
+      {
+       "id": "e172171w",
+       "from": "n16jen4g",
+       "to": "n16k7and",
+       "port": 0
+      },
+      {
+       "id": "e173x2ek",
+       "from": "n16jen4g",
+       "to": "n16lco62",
+       "port": 0
+      },
+      {
+       "id": "e174iisn",
+       "from": "n16jen4g",
+       "to": "n16m8b4b",
+       "port": 0
+      },
+      {
+       "id": "e175xsoj",
+       "from": "n16k7and",
+       "to": "n16n144p",
+       "port": 0
+      },
+      {
+       "id": "e17678av",
+       "from": "n16lco62",
+       "to": "n16ogcxw",
+       "port": 0
+      },
+      {
+       "id": "e1776l4i",
+       "from": "n16m8b4b",
+       "to": "n16pevuz",
+       "port": 0
+      },
+      {
+       "id": "e178o35k",
+       "from": "n16n144p",
+       "to": "n16q2b5g",
+       "port": 0
+      },
+      {
+       "id": "e179my97",
+       "from": "n16ogcxw",
+       "to": "n16rivad",
+       "port": 0
+      },
+      {
+       "id": "e17a9qm4",
+       "from": "n16q2b5g",
+       "to": "n16siz89",
+       "port": 0
+      },
+      {
+       "id": "e17bzpqv",
+       "from": "n16rivad",
+       "to": "n16t7we3",
+       "port": 0
+      },
+      {
+       "id": "e17cf9zu",
+       "from": "n16siz89",
+       "to": "n16ujg1d",
+       "port": 0
+      },
+      {
+       "id": "e17dtv0h",
+       "from": "n16t7we3",
+       "to": "n16ujg1d",
+       "port": 1
+      },
+      {
+       "id": "e17el2ih",
+       "from": "n16ujg1d",
+       "to": "n16vrnxg",
+       "port": 0
+      },
+      {
+       "id": "e17f9vxt",
+       "from": "n16vrnxg",
+       "to": "n16wltn0",
+       "port": 0
+      },
+      {
+       "id": "e17ga7fj",
+       "from": "n16wltn0",
+       "to": "n16x5uc2",
+       "port": 0
+      },
+      {
+       "id": "e17h3qo2",
+       "from": "n16pevuz",
+       "to": "n16x5uc2",
+       "port": 1
+      },
+      {
+       "id": "e17ib64x",
+       "from": "n16x5uc2",
+       "to": "n16ycwyj",
+       "port": 0
+      },
+      {
+       "id": "e17j2klt",
+       "from": "n16ycwyj",
+       "to": "n16zsqw6",
+       "port": 0
+      },
+      {
+       "id": "e17kl4gm",
+       "from": "n16ild7a",
+       "to": "n170wzn4",
+       "port": 0
+      },
+      {
+       "id": "e17lrk1l",
+       "from": "n16zsqw6",
+       "to": "n170wzn4",
+       "port": 1
+      },
+      {
+       "id": "e17uonjz",
+       "from": "n170wzn4",
+       "to": "n17m16k8",
+       "port": 0
+      },
+      {
+       "id": "e17vrs8b",
+       "from": "n17m16k8",
+       "to": "n17n2pp8",
+       "port": 0
+      },
+      {
+       "id": "e17wp5w8",
+       "from": "n17m16k8",
+       "to": "n17ouxh1",
+       "port": 0
+      },
+      {
+       "id": "e17xo6iv",
+       "from": "n17n2pp8",
+       "to": "n17p0ydo",
+       "port": 0
+      },
+      {
+       "id": "e17ya43m",
+       "from": "n17p0ydo",
+       "to": "n17qgvk3",
+       "port": 0
+      },
+      {
+       "id": "e17zhqvl",
+       "from": "n17ouxh1",
+       "to": "n17qgvk3",
+       "port": 1
+      },
+      {
+       "id": "e180lj77",
+       "from": "n17qgvk3",
+       "to": "n17rf8bl",
+       "port": 0
+      },
+      {
+       "id": "e181er5h",
+       "from": "n170wzn4",
+       "to": "n17srl2x",
+       "port": 0
+      },
+      {
+       "id": "e182qx6x",
+       "from": "n17rf8bl",
+       "to": "n17srl2x",
+       "port": 1
+      },
+      {
+       "id": "e183rghe",
+       "from": "n17srl2x",
+       "to": "n17ts5zl",
+       "port": 0
+      }
+     ],
+     "groups": []
+    },
+    "labels": {
+     "n_head": "heads",
+     "ff": "MLP width"
+    }
+   }
+  }
+ }
+}

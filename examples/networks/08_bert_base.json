@@ -1,0 +1,885 @@
+{
+ "title": "BERT-base (masked LM)",
+ "description": "BERT-base as BertForMaskedLM: word, position and token-type embeddings with a LayerNorm, 12 × BertLayer (post-norm: bidirectional self-attention, then a GELU feed-forward, each followed by add & LayerNorm), and the masked-LM head whose decoder shares its weights with the word embedding. 109,514,298 parameters, BERT initialization N(0, 0.02).",
+ "graph": {
+  "name": "BertForMaskedLM",
+  "symbols": {
+   "e": 8,
+   "t": 64,
+   "vocab": 30522,
+   "d": 768,
+   "max_pos": 512,
+   "types": 2,
+   "n_head": 12,
+   "ff": 3072
+  },
+  "nodes": [
+   {
+    "id": "n1jyma0",
+    "type": "input",
+    "x": 135,
+    "y": 640,
+    "params": {
+     "name": "input_ids",
+     "shape": "e, t",
+     "title": ""
+    }
+   },
+   {
+    "id": "n1kfvyc",
+    "type": "input",
+    "x": 470,
+    "y": 640,
+    "params": {
+     "name": "token_type_ids",
+     "shape": "e, t",
+     "title": ""
+    }
+   },
+   {
+    "id": "n1lvhu1",
+    "type": "embed",
+    "x": 40,
+    "y": 550,
+    "params": {
+     "num": "vocab",
+     "dim": "d",
+     "positions": false,
+     "init": "normal",
+     "init_arg": "0.02",
+     "tie": "",
+     "name": "word_emb",
+     "title": "Word embedding",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1mopgm",
+    "type": "embed",
+    "x": 240,
+    "y": 550,
+    "params": {
+     "num": "max_pos",
+     "dim": "d",
+     "positions": true,
+     "init": "normal",
+     "init_arg": "0.02",
+     "tie": "",
+     "name": "pos_emb",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1nrzgs",
+    "type": "embed",
+    "x": 470,
+    "y": 550,
+    "params": {
+     "num": "types",
+     "dim": "d",
+     "positions": false,
+     "init": "normal",
+     "init_arg": "0.02",
+     "tie": "",
+     "name": "type_emb",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1o2vm3",
+    "type": "binop",
+    "x": 135,
+    "y": 470,
+    "params": {
+     "op": "+",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": "x"
+    }
+   },
+   {
+    "id": "n1pl9ii",
+    "type": "binop",
+    "x": 135,
+    "y": 410,
+    "params": {
+     "op": "+",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": "x"
+    }
+   },
+   {
+    "id": "n1q8nh2",
+    "type": "norm",
+    "x": 135,
+    "y": 350,
+    "params": {
+     "kind": "LayerNorm",
+     "dim": "d",
+     "groups": 8,
+     "eps": "1e-12",
+     "name": "emb_norm",
+     "title": "",
+     "var": "x"
+    }
+   },
+   {
+    "id": "n1rmb0w",
+    "type": "dropout",
+    "x": 135,
+    "y": 290,
+    "params": {
+     "p": 0.1,
+     "name": "emb_drop",
+     "title": "",
+     "var": "x"
+    }
+   },
+   {
+    "id": "n1sfflt",
+    "type": "block",
+    "x": 135,
+    "y": 200,
+    "params": {
+     "block": "b1ikzgu",
+     "args": {
+      "n_head": "n_head",
+      "ff": "ff"
+     },
+     "nIn": 1,
+     "repeat": 12,
+     "name": "layer",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1t02hm",
+    "type": "linear",
+    "x": 135,
+    "y": 95,
+    "params": {
+     "in": "d",
+     "out": "d",
+     "bias": true,
+     "init": "normal",
+     "init_arg": "0.02",
+     "zero_bias": true,
+     "tie": "",
+     "name": "mlm_dense",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1ut6vt",
+    "type": "act",
+    "x": 135,
+    "y": 35,
+    "params": {
+     "fn": "gelu",
+     "dim": "-1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1v3cq7",
+    "type": "norm",
+    "x": 135,
+    "y": -25,
+    "params": {
+     "kind": "LayerNorm",
+     "dim": "d",
+     "groups": 8,
+     "eps": "1e-12",
+     "name": "mlm_norm",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1wn6bs",
+    "type": "linear",
+    "x": 135,
+    "y": -95,
+    "params": {
+     "in": "d",
+     "out": "vocab",
+     "bias": true,
+     "init": "normal",
+     "init_arg": "0.02",
+     "zero_bias": true,
+     "tie": "n1lvhu1",
+     "name": "decoder",
+     "title": "MLM decoder",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1xhcfk",
+    "type": "output",
+    "x": 135,
+    "y": -170,
+    "params": {
+     "name": "logits",
+     "title": ""
+    }
+   },
+   {
+    "id": "n2dpugm",
+    "type": "loss",
+    "x": 760,
+    "y": -170,
+    "params": {
+     "fn": "cross_entropy",
+     "mode": "masked",
+     "label_smoothing": "",
+     "ignore_index": "",
+     "delta": "1.0",
+     "weight": "1",
+     "mask_prob": "0.15",
+     "mask_id": "103",
+     "title": ""
+    }
+   }
+  ],
+  "edges": [
+   {
+    "id": "e1ynqkh",
+    "from": "n1jyma0",
+    "to": "n1lvhu1",
+    "port": 0
+   },
+   {
+    "id": "e1zziqc",
+    "from": "n1jyma0",
+    "to": "n1mopgm",
+    "port": 0
+   },
+   {
+    "id": "e20sbw7",
+    "from": "n1kfvyc",
+    "to": "n1nrzgs",
+    "port": 0
+   },
+   {
+    "id": "e21f0de",
+    "from": "n1lvhu1",
+    "to": "n1o2vm3",
+    "port": 0
+   },
+   {
+    "id": "e226rqv",
+    "from": "n1mopgm",
+    "to": "n1o2vm3",
+    "port": 1
+   },
+   {
+    "id": "e23rri5",
+    "from": "n1o2vm3",
+    "to": "n1pl9ii",
+    "port": 0
+   },
+   {
+    "id": "e24dqe5",
+    "from": "n1nrzgs",
+    "to": "n1pl9ii",
+    "port": 1
+   },
+   {
+    "id": "e25s3v0",
+    "from": "n1pl9ii",
+    "to": "n1q8nh2",
+    "port": 0
+   },
+   {
+    "id": "e26emh7",
+    "from": "n1q8nh2",
+    "to": "n1rmb0w",
+    "port": 0
+   },
+   {
+    "id": "e272shq",
+    "from": "n1rmb0w",
+    "to": "n1sfflt",
+    "port": 0
+   },
+   {
+    "id": "e28ns82",
+    "from": "n1sfflt",
+    "to": "n1t02hm",
+    "port": 0
+   },
+   {
+    "id": "e295xu9",
+    "from": "n1t02hm",
+    "to": "n1ut6vt",
+    "port": 0
+   },
+   {
+    "id": "e2aaia9",
+    "from": "n1ut6vt",
+    "to": "n1v3cq7",
+    "port": 0
+   },
+   {
+    "id": "e2bbp7k",
+    "from": "n1v3cq7",
+    "to": "n1wn6bs",
+    "port": 0
+   },
+   {
+    "id": "e2chqly",
+    "from": "n1wn6bs",
+    "to": "n1xhcfk",
+    "port": 0
+   },
+   {
+    "id": "e2e7hyi",
+    "from": "n1wn6bs",
+    "to": "n2dpugm",
+    "port": 0
+   },
+   {
+    "id": "e2ft23q",
+    "from": "n1jyma0",
+    "to": "n2dpugm",
+    "port": 1
+   }
+  ],
+  "groups": [],
+  "blocks": {
+   "b1ikzgu": {
+    "id": "b1ikzgu",
+    "name": "BertLayer",
+    "graph": {
+     "name": "BertLayer",
+     "symbols": {
+      "e": 8,
+      "t": 64,
+      "d": 768,
+      "n_head": 12,
+      "ff": 3072
+     },
+     "nodes": [
+      {
+       "id": "n1qteb",
+       "type": "input",
+       "x": 70,
+       "y": 830,
+       "params": {
+        "name": "x",
+        "shape": "e, t, d",
+        "title": ""
+       }
+      },
+      {
+       "id": "n2twha",
+       "type": "linear",
+       "x": 235,
+       "y": 732,
+       "params": {
+        "in": "d",
+        "out": "d",
+        "bias": true,
+        "init": "normal",
+        "init_arg": "0.02",
+        "zero_bias": true,
+        "tie": "",
+        "name": "query",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n3n27w",
+       "type": "linear",
+       "x": 380,
+       "y": 732,
+       "params": {
+        "in": "d",
+        "out": "d",
+        "bias": true,
+        "init": "normal",
+        "init_arg": "0.02",
+        "zero_bias": true,
+        "tie": "",
+        "name": "key",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n4k9uw",
+       "type": "linear",
+       "x": 525,
+       "y": 732,
+       "params": {
+        "in": "d",
+        "out": "d",
+        "bias": true,
+        "init": "normal",
+        "init_arg": "0.02",
+        "zero_bias": true,
+        "tie": "",
+        "name": "value",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n5ov8d",
+       "type": "heads",
+       "x": 235,
+       "y": 674,
+       "params": {
+        "heads": "n_head",
+        "title": "",
+        "var": "q"
+       }
+      },
+      {
+       "id": "n6l35y",
+       "type": "heads",
+       "x": 380,
+       "y": 674,
+       "params": {
+        "heads": "n_head",
+        "title": "",
+        "var": "k"
+       }
+      },
+      {
+       "id": "n7gqp6",
+       "type": "heads",
+       "x": 525,
+       "y": 674,
+       "params": {
+        "heads": "n_head",
+        "title": "",
+        "var": "v"
+       }
+      },
+      {
+       "id": "n8eznl",
+       "type": "scale",
+       "x": 235,
+       "y": 616,
+       "params": {
+        "title": "",
+        "var": "q"
+       }
+      },
+      {
+       "id": "n97y4y",
+       "type": "transpose",
+       "x": 380,
+       "y": 616,
+       "params": {
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "naf7qe",
+       "type": "binop",
+       "x": 308,
+       "y": 558,
+       "params": {
+        "op": "@",
+        "const": "",
+        "rev": false,
+        "title": "",
+        "var": "att"
+       }
+      },
+      {
+       "id": "nboc1r",
+       "type": "act",
+       "x": 308,
+       "y": 500,
+       "params": {
+        "fn": "softmax",
+        "dim": "-1",
+        "title": "",
+        "var": "att"
+       }
+      },
+      {
+       "id": "nc8kv3",
+       "type": "dropout",
+       "x": 308,
+       "y": 442,
+       "params": {
+        "p": 0.1,
+        "name": "attn_drop",
+        "title": "",
+        "var": "att"
+       }
+      },
+      {
+       "id": "ndc77g",
+       "type": "binop",
+       "x": 416,
+       "y": 384,
+       "params": {
+        "op": "@",
+        "const": "",
+        "rev": false,
+        "title": "",
+        "var": "y"
+       }
+      },
+      {
+       "id": "nentpy",
+       "type": "merge",
+       "x": 416,
+       "y": 326,
+       "params": {
+        "title": "",
+        "var": "y"
+       }
+      },
+      {
+       "id": "nfrbrc",
+       "type": "linear",
+       "x": 416,
+       "y": 268,
+       "params": {
+        "in": "d",
+        "out": "d",
+        "bias": true,
+        "init": "normal",
+        "init_arg": "0.02",
+        "zero_bias": true,
+        "tie": "",
+        "name": "attn_out",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "ng3zez",
+       "type": "dropout",
+       "x": 416,
+       "y": 210,
+       "params": {
+        "p": 0.1,
+        "name": "attn_out_drop",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "nhoq2a",
+       "type": "binop",
+       "x": 416,
+       "y": 100,
+       "params": {
+        "op": "+",
+        "const": "",
+        "rev": false,
+        "title": "",
+        "var": "x"
+       }
+      },
+      {
+       "id": "niksuy",
+       "type": "norm",
+       "x": 550,
+       "y": 100,
+       "params": {
+        "kind": "LayerNorm",
+        "dim": "d",
+        "groups": 8,
+        "eps": "1e-12",
+        "name": "attn_norm",
+        "title": "",
+        "var": "x"
+       }
+      },
+      {
+       "id": "n13jlwe",
+       "type": "linear",
+       "x": 760,
+       "y": 384,
+       "params": {
+        "in": "d",
+        "out": "ff",
+        "bias": true,
+        "init": "normal",
+        "init_arg": "0.02",
+        "zero_bias": true,
+        "tie": "",
+        "name": "ff_in",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n145do8",
+       "type": "act",
+       "x": 760,
+       "y": 326,
+       "params": {
+        "fn": "gelu",
+        "dim": "-1",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n15972x",
+       "type": "linear",
+       "x": 760,
+       "y": 268,
+       "params": {
+        "in": "ff",
+        "out": "d",
+        "bias": true,
+        "init": "normal",
+        "init_arg": "0.02",
+        "zero_bias": true,
+        "tie": "",
+        "name": "ff_out",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n16xtah",
+       "type": "dropout",
+       "x": 760,
+       "y": 210,
+       "params": {
+        "p": 0.1,
+        "name": "ff_drop",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n17z3a3",
+       "type": "binop",
+       "x": 760,
+       "y": 100,
+       "params": {
+        "op": "+",
+        "const": "",
+        "rev": false,
+        "title": "",
+        "var": "x"
+       }
+      },
+      {
+       "id": "n18yqt0",
+       "type": "norm",
+       "x": 900,
+       "y": 100,
+       "params": {
+        "kind": "LayerNorm",
+        "dim": "d",
+        "groups": 8,
+        "eps": "1e-12",
+        "name": "ff_norm",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n19ojaj",
+       "type": "output",
+       "x": 1040,
+       "y": 100,
+       "params": {
+        "name": "out",
+        "title": ""
+       }
+      }
+     ],
+     "edges": [
+      {
+       "id": "ej91r7",
+       "from": "n1qteb",
+       "to": "n2twha",
+       "port": 0
+      },
+      {
+       "id": "eknrhv",
+       "from": "n1qteb",
+       "to": "n3n27w",
+       "port": 0
+      },
+      {
+       "id": "el4xd9",
+       "from": "n1qteb",
+       "to": "n4k9uw",
+       "port": 0
+      },
+      {
+       "id": "emyd8b",
+       "from": "n2twha",
+       "to": "n5ov8d",
+       "port": 0
+      },
+      {
+       "id": "en7dhg",
+       "from": "n3n27w",
+       "to": "n6l35y",
+       "port": 0
+      },
+      {
+       "id": "eog224",
+       "from": "n4k9uw",
+       "to": "n7gqp6",
+       "port": 0
+      },
+      {
+       "id": "epzq0o",
+       "from": "n5ov8d",
+       "to": "n8eznl",
+       "port": 0
+      },
+      {
+       "id": "eqp4iq",
+       "from": "n6l35y",
+       "to": "n97y4y",
+       "port": 0
+      },
+      {
+       "id": "erok8t",
+       "from": "n8eznl",
+       "to": "naf7qe",
+       "port": 0
+      },
+      {
+       "id": "esllfw",
+       "from": "n97y4y",
+       "to": "naf7qe",
+       "port": 1
+      },
+      {
+       "id": "ethwp9",
+       "from": "naf7qe",
+       "to": "nboc1r",
+       "port": 0
+      },
+      {
+       "id": "eu1gj0",
+       "from": "nboc1r",
+       "to": "nc8kv3",
+       "port": 0
+      },
+      {
+       "id": "ev3hjx",
+       "from": "nc8kv3",
+       "to": "ndc77g",
+       "port": 0
+      },
+      {
+       "id": "ewu7l1",
+       "from": "n7gqp6",
+       "to": "ndc77g",
+       "port": 1
+      },
+      {
+       "id": "ex3jn4",
+       "from": "ndc77g",
+       "to": "nentpy",
+       "port": 0
+      },
+      {
+       "id": "eyst8k",
+       "from": "nentpy",
+       "to": "nfrbrc",
+       "port": 0
+      },
+      {
+       "id": "ezeo6q",
+       "from": "nfrbrc",
+       "to": "ng3zez",
+       "port": 0
+      },
+      {
+       "id": "e10qxij",
+       "from": "n1qteb",
+       "to": "nhoq2a",
+       "port": 0
+      },
+      {
+       "id": "e11c549",
+       "from": "ng3zez",
+       "to": "nhoq2a",
+       "port": 1
+      },
+      {
+       "id": "e12e016",
+       "from": "nhoq2a",
+       "to": "niksuy",
+       "port": 0
+      },
+      {
+       "id": "e1a5nde",
+       "from": "niksuy",
+       "to": "n13jlwe",
+       "port": 0
+      },
+      {
+       "id": "e1bjb7l",
+       "from": "n13jlwe",
+       "to": "n145do8",
+       "port": 0
+      },
+      {
+       "id": "e1c2yus",
+       "from": "n145do8",
+       "to": "n15972x",
+       "port": 0
+      },
+      {
+       "id": "e1d435w",
+       "from": "n15972x",
+       "to": "n16xtah",
+       "port": 0
+      },
+      {
+       "id": "e1ek3dp",
+       "from": "niksuy",
+       "to": "n17z3a3",
+       "port": 0
+      },
+      {
+       "id": "e1f26ge",
+       "from": "n16xtah",
+       "to": "n17z3a3",
+       "port": 1
+      },
+      {
+       "id": "e1g9p3e",
+       "from": "n17z3a3",
+       "to": "n18yqt0",
+       "port": 0
+      },
+      {
+       "id": "e1h1acq",
+       "from": "n18yqt0",
+       "to": "n19ojaj",
+       "port": 0
+      }
+     ],
+     "groups": []
+    },
+    "labels": {
+     "n_head": "heads",
+     "ff": "FFN width"
+    }
+   }
+  }
+ }
+}

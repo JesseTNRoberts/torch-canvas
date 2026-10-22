@@ -1,0 +1,155 @@
+{
+ "title": "Qwen2_5_VLVisionStage",
+ "description": "Eight Qwen2.5-VL vision blocks: seven attending within 112-pixel windows (window_mask), then one attending over each whole frame (frame_mask). Four of these make the 32-block vision encoder.",
+ "graph": {
+  "name": "Qwen2_5_VLVisionStage",
+  "symbols": {
+   "e": 2,
+   "t": 512,
+   "d": 1280,
+   "n_head": 16,
+   "ff": 3420
+  },
+  "nodes": [
+   {
+    "id": "n1tla6x",
+    "type": "input",
+    "x": 105,
+    "y": 600,
+    "params": {
+     "name": "x",
+     "shape": "1, t, d",
+     "title": ""
+    }
+   },
+   {
+    "id": "n1u7hv5",
+    "type": "input",
+    "x": 269,
+    "y": 600,
+    "params": {
+     "name": "window_mask",
+     "shape": "t, t",
+     "title": ""
+    }
+   },
+   {
+    "id": "n1vmsxn",
+    "type": "input",
+    "x": 432,
+    "y": 600,
+    "params": {
+     "name": "frame_mask",
+     "shape": "t, t",
+     "title": ""
+    }
+   },
+   {
+    "id": "n1wcreb",
+    "type": "input",
+    "x": 596,
+    "y": 600,
+    "params": {
+     "name": "pos",
+     "shape": "t, 2",
+     "title": ""
+    }
+   },
+   {
+    "id": "n1xde45",
+    "type": "block",
+    "x": 350,
+    "y": 526,
+    "params": {
+     "block": "b1sjucf",
+     "args": {
+      "n_head": "n_head",
+      "ff": "ff"
+     },
+     "nIn": 3,
+     "repeat": 7,
+     "name": "blocks",
+     "title": "",
+     "var": "",
+     "lib": "blocks/qwen2_5_vl_vision_block.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n214a4h",
+    "type": "block",
+    "x": 350,
+    "y": 452,
+    "params": {
+     "block": "b1sjucf",
+     "args": {
+      "n_head": "n_head",
+      "ff": "ff"
+     },
+     "nIn": 3,
+     "repeat": 1,
+     "name": "full",
+     "title": "",
+     "var": "",
+     "lib": "blocks/qwen2_5_vl_vision_block.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n255fzq",
+    "type": "output",
+    "x": 350,
+    "y": 378,
+    "params": {
+     "name": "out",
+     "title": ""
+    }
+   }
+  ],
+  "edges": [
+   {
+    "id": "e1ywodh",
+    "from": "n1tla6x",
+    "to": "n1xde45",
+    "port": 0
+   },
+   {
+    "id": "e1zrj4g",
+    "from": "n1u7hv5",
+    "to": "n1xde45",
+    "port": 1
+   },
+   {
+    "id": "e2017vz",
+    "from": "n1wcreb",
+    "to": "n1xde45",
+    "port": 2
+   },
+   {
+    "id": "e22redp",
+    "from": "n1xde45",
+    "to": "n214a4h",
+    "port": 0
+   },
+   {
+    "id": "e23dult",
+    "from": "n1vmsxn",
+    "to": "n214a4h",
+    "port": 1
+   },
+   {
+    "id": "e24rq07",
+    "from": "n1wcreb",
+    "to": "n214a4h",
+    "port": 2
+   },
+   {
+    "id": "e264bk4",
+    "from": "n214a4h",
+    "to": "n255fzq",
+    "port": 0
+   }
+  ],
+  "groups": []
+ }
+}

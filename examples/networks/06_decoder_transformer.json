@@ -1,0 +1,1067 @@
+{
+ "title": "Decoder-only transformer, fully expanded",
+ "description": "A 2-layer GPT-style decoder with every layer drawn out: token and position embeddings, causal multi-head self-attention, a GELU MLP, residuals, LayerNorms and the LM head.",
+ "graph": {
+  "name": "DecoderTransformer",
+  "symbols": {
+   "e": 8,
+   "t": 64,
+   "vocab": 50257,
+   "block": 1024,
+   "d": 768,
+   "n_head": 12,
+   "ff": 3072
+  },
+  "nodes": [
+   {
+    "id": "n1uxqc",
+    "type": "input",
+    "x": 135,
+    "y": 840,
+    "params": {
+     "name": "idx",
+     "shape": "e, t",
+     "title": ""
+    }
+   },
+   {
+    "id": "n29xos",
+    "type": "embed",
+    "x": 40,
+    "y": 750,
+    "params": {
+     "num": "vocab",
+     "dim": "d",
+     "positions": false,
+     "init": "default",
+     "init_arg": "",
+     "tie": "",
+     "name": "tok_emb",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n34k03",
+    "type": "embed",
+    "x": 230,
+    "y": 750,
+    "params": {
+     "num": "block",
+     "dim": "d",
+     "positions": true,
+     "init": "default",
+     "init_arg": "",
+     "tie": "",
+     "name": "pos_emb",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n48jew",
+    "type": "binop",
+    "x": 135,
+    "y": 660,
+    "params": {
+     "op": "+",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": "x"
+    }
+   },
+   {
+    "id": "n9gp3n",
+    "type": "norm",
+    "x": 520,
+    "y": 744,
+    "params": {
+     "kind": "LayerNorm",
+     "dim": "d",
+     "groups": 8,
+     "eps": "",
+     "name": "ln1_1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "na5u8p",
+    "type": "linear",
+    "x": 375,
+    "y": 674,
+    "params": {
+     "in": "d",
+     "out": "d",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "tie": "",
+     "name": "q1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nbdyex",
+    "type": "linear",
+    "x": 520,
+    "y": 674,
+    "params": {
+     "in": "d",
+     "out": "d",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "tie": "",
+     "name": "k1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nct0k2",
+    "type": "linear",
+    "x": 665,
+    "y": 674,
+    "params": {
+     "in": "d",
+     "out": "d",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "tie": "",
+     "name": "v1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "ndzeur",
+    "type": "heads",
+    "x": 375,
+    "y": 616,
+    "params": {
+     "heads": "n_head",
+     "title": "",
+     "var": "q"
+    }
+   },
+   {
+    "id": "nepomy",
+    "type": "heads",
+    "x": 520,
+    "y": 616,
+    "params": {
+     "heads": "n_head",
+     "title": "",
+     "var": "k"
+    }
+   },
+   {
+    "id": "nfgfin",
+    "type": "heads",
+    "x": 665,
+    "y": 616,
+    "params": {
+     "heads": "n_head",
+     "title": "",
+     "var": "v"
+    }
+   },
+   {
+    "id": "ng7vhj",
+    "type": "scale",
+    "x": 375,
+    "y": 558,
+    "params": {
+     "title": "",
+     "var": "q"
+    }
+   },
+   {
+    "id": "nhq0ly",
+    "type": "transpose",
+    "x": 520,
+    "y": 558,
+    "params": {
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nij3y8",
+    "type": "binop",
+    "x": 448,
+    "y": 500,
+    "params": {
+     "op": "@",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": "att"
+    }
+   },
+   {
+    "id": "nj0wa4",
+    "type": "mask",
+    "x": 448,
+    "y": 442,
+    "params": {
+     "title": "",
+     "var": "att"
+    }
+   },
+   {
+    "id": "nk6omt",
+    "type": "act",
+    "x": 448,
+    "y": 384,
+    "params": {
+     "fn": "softmax",
+     "dim": "-1",
+     "title": "",
+     "var": "att"
+    }
+   },
+   {
+    "id": "nlu22n",
+    "type": "binop",
+    "x": 556,
+    "y": 326,
+    "params": {
+     "op": "@",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": "y"
+    }
+   },
+   {
+    "id": "nmkia6",
+    "type": "merge",
+    "x": 556,
+    "y": 268,
+    "params": {
+     "title": "",
+     "var": "y"
+    }
+   },
+   {
+    "id": "nn3lbj",
+    "type": "linear",
+    "x": 556,
+    "y": 210,
+    "params": {
+     "in": "d",
+     "out": "d",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "tie": "",
+     "name": "proj1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "noro1k",
+    "type": "binop",
+    "x": 556,
+    "y": 140,
+    "params": {
+     "op": "+",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": "x"
+    }
+   },
+   {
+    "id": "n18duzy",
+    "type": "norm",
+    "x": 880,
+    "y": 396,
+    "params": {
+     "kind": "LayerNorm",
+     "dim": "d",
+     "groups": 8,
+     "eps": "",
+     "name": "ln2_1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n192asr",
+    "type": "linear",
+    "x": 880,
+    "y": 326,
+    "params": {
+     "in": "d",
+     "out": "ff",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "tie": "",
+     "name": "fc1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1awewm",
+    "type": "act",
+    "x": 880,
+    "y": 268,
+    "params": {
+     "fn": "gelu",
+     "dim": "-1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1bhrsx",
+    "type": "linear",
+    "x": 880,
+    "y": 210,
+    "params": {
+     "in": "ff",
+     "out": "d",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "tie": "",
+     "name": "fc_out1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1c3b04",
+    "type": "binop",
+    "x": 880,
+    "y": 140,
+    "params": {
+     "op": "+",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": "x"
+    }
+   },
+   {
+    "id": "n1jb4ko",
+    "type": "norm",
+    "x": 1180,
+    "y": 744,
+    "params": {
+     "kind": "LayerNorm",
+     "dim": "d",
+     "groups": 8,
+     "eps": "",
+     "name": "ln1_2",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1kzh1z",
+    "type": "linear",
+    "x": 1035,
+    "y": 674,
+    "params": {
+     "in": "d",
+     "out": "d",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "tie": "",
+     "name": "q2",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1lg2g2",
+    "type": "linear",
+    "x": 1180,
+    "y": 674,
+    "params": {
+     "in": "d",
+     "out": "d",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "tie": "",
+     "name": "k2",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1mkhgc",
+    "type": "linear",
+    "x": 1325,
+    "y": 674,
+    "params": {
+     "in": "d",
+     "out": "d",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "tie": "",
+     "name": "v2",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1n848r",
+    "type": "heads",
+    "x": 1035,
+    "y": 616,
+    "params": {
+     "heads": "n_head",
+     "title": "",
+     "var": "q"
+    }
+   },
+   {
+    "id": "n1osijg",
+    "type": "heads",
+    "x": 1180,
+    "y": 616,
+    "params": {
+     "heads": "n_head",
+     "title": "",
+     "var": "k"
+    }
+   },
+   {
+    "id": "n1pimhx",
+    "type": "heads",
+    "x": 1325,
+    "y": 616,
+    "params": {
+     "heads": "n_head",
+     "title": "",
+     "var": "v"
+    }
+   },
+   {
+    "id": "n1qpqxl",
+    "type": "scale",
+    "x": 1035,
+    "y": 558,
+    "params": {
+     "title": "",
+     "var": "q"
+    }
+   },
+   {
+    "id": "n1rjsag",
+    "type": "transpose",
+    "x": 1180,
+    "y": 558,
+    "params": {
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1srpv5",
+    "type": "binop",
+    "x": 1108,
+    "y": 500,
+    "params": {
+     "op": "@",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": "att"
+    }
+   },
+   {
+    "id": "n1t03g8",
+    "type": "mask",
+    "x": 1108,
+    "y": 442,
+    "params": {
+     "title": "",
+     "var": "att"
+    }
+   },
+   {
+    "id": "n1ub3pw",
+    "type": "act",
+    "x": 1108,
+    "y": 384,
+    "params": {
+     "fn": "softmax",
+     "dim": "-1",
+     "title": "",
+     "var": "att"
+    }
+   },
+   {
+    "id": "n1vhufe",
+    "type": "binop",
+    "x": 1216,
+    "y": 326,
+    "params": {
+     "op": "@",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": "y"
+    }
+   },
+   {
+    "id": "n1w1fn5",
+    "type": "merge",
+    "x": 1216,
+    "y": 268,
+    "params": {
+     "title": "",
+     "var": "y"
+    }
+   },
+   {
+    "id": "n1x2qdg",
+    "type": "linear",
+    "x": 1216,
+    "y": 210,
+    "params": {
+     "in": "d",
+     "out": "d",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "tie": "",
+     "name": "proj2",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1ysx3k",
+    "type": "binop",
+    "x": 1216,
+    "y": 140,
+    "params": {
+     "op": "+",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": "x"
+    }
+   },
+   {
+    "id": "n2iz04o",
+    "type": "norm",
+    "x": 1540,
+    "y": 396,
+    "params": {
+     "kind": "LayerNorm",
+     "dim": "d",
+     "groups": 8,
+     "eps": "",
+     "name": "ln2_2",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n2jh0no",
+    "type": "linear",
+    "x": 1540,
+    "y": 326,
+    "params": {
+     "in": "d",
+     "out": "ff",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "tie": "",
+     "name": "fc2",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n2kfz1y",
+    "type": "act",
+    "x": 1540,
+    "y": 268,
+    "params": {
+     "fn": "gelu",
+     "dim": "-1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n2lus40",
+    "type": "linear",
+    "x": 1540,
+    "y": 210,
+    "params": {
+     "in": "ff",
+     "out": "d",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "tie": "",
+     "name": "fc_out2",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n2mq85j",
+    "type": "binop",
+    "x": 1540,
+    "y": 140,
+    "params": {
+     "op": "+",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": "x"
+    }
+   },
+   {
+    "id": "n2t71cr",
+    "type": "norm",
+    "x": 1720,
+    "y": 220,
+    "params": {
+     "kind": "LayerNorm",
+     "dim": "d",
+     "groups": 8,
+     "eps": "",
+     "name": "ln_f",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n2ujoz2",
+    "type": "linear",
+    "x": 1720,
+    "y": 300,
+    "params": {
+     "in": "d",
+     "out": "vocab",
+     "bias": false,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "tie": "",
+     "name": "lm_head",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n2vwnmz",
+    "type": "output",
+    "x": 1720,
+    "y": 390,
+    "params": {
+     "name": "logits",
+     "title": ""
+    }
+   },
+   {
+    "id": "n2zzit9",
+    "type": "loss",
+    "x": 1950,
+    "y": 390,
+    "params": {
+     "fn": "cross_entropy",
+     "mode": "next",
+     "label_smoothing": "",
+     "ignore_index": "",
+     "delta": "1.0",
+     "weight": "1",
+     "mask_prob": "0.15",
+     "mask_id": "",
+     "title": ""
+    }
+   }
+  ],
+  "edges": [
+   {
+    "id": "e57wpw",
+    "from": "n1uxqc",
+    "to": "n29xos",
+    "port": 0
+   },
+   {
+    "id": "e6qy4w",
+    "from": "n1uxqc",
+    "to": "n34k03",
+    "port": 0
+   },
+   {
+    "id": "e7wgi1",
+    "from": "n29xos",
+    "to": "n48jew",
+    "port": 0
+   },
+   {
+    "id": "e88l6l",
+    "from": "n34k03",
+    "to": "n48jew",
+    "port": 1
+   },
+   {
+    "id": "ep7gm6",
+    "from": "n48jew",
+    "to": "n9gp3n",
+    "port": 0
+   },
+   {
+    "id": "eqti5q",
+    "from": "n9gp3n",
+    "to": "na5u8p",
+    "port": 0
+   },
+   {
+    "id": "erqxii",
+    "from": "n9gp3n",
+    "to": "nbdyex",
+    "port": 0
+   },
+   {
+    "id": "es60t8",
+    "from": "n9gp3n",
+    "to": "nct0k2",
+    "port": 0
+   },
+   {
+    "id": "eto0pq",
+    "from": "na5u8p",
+    "to": "ndzeur",
+    "port": 0
+   },
+   {
+    "id": "eu4igr",
+    "from": "nbdyex",
+    "to": "nepomy",
+    "port": 0
+   },
+   {
+    "id": "evzvtj",
+    "from": "nct0k2",
+    "to": "nfgfin",
+    "port": 0
+   },
+   {
+    "id": "ewpnly",
+    "from": "ndzeur",
+    "to": "ng7vhj",
+    "port": 0
+   },
+   {
+    "id": "exwq92",
+    "from": "nepomy",
+    "to": "nhq0ly",
+    "port": 0
+   },
+   {
+    "id": "eylvcl",
+    "from": "ng7vhj",
+    "to": "nij3y8",
+    "port": 0
+   },
+   {
+    "id": "ezs9mc",
+    "from": "nhq0ly",
+    "to": "nij3y8",
+    "port": 1
+   },
+   {
+    "id": "e102dgt",
+    "from": "nij3y8",
+    "to": "nj0wa4",
+    "port": 0
+   },
+   {
+    "id": "e11y9bn",
+    "from": "nj0wa4",
+    "to": "nk6omt",
+    "port": 0
+   },
+   {
+    "id": "e12eo15",
+    "from": "nk6omt",
+    "to": "nlu22n",
+    "port": 0
+   },
+   {
+    "id": "e13tsp6",
+    "from": "nfgfin",
+    "to": "nlu22n",
+    "port": 1
+   },
+   {
+    "id": "e14v33p",
+    "from": "nlu22n",
+    "to": "nmkia6",
+    "port": 0
+   },
+   {
+    "id": "e15staj",
+    "from": "nmkia6",
+    "to": "nn3lbj",
+    "port": 0
+   },
+   {
+    "id": "e16nzze",
+    "from": "n48jew",
+    "to": "noro1k",
+    "port": 0
+   },
+   {
+    "id": "e17d13l",
+    "from": "nn3lbj",
+    "to": "noro1k",
+    "port": 1
+   },
+   {
+    "id": "e1dkt2d",
+    "from": "noro1k",
+    "to": "n18duzy",
+    "port": 0
+   },
+   {
+    "id": "e1e7dlo",
+    "from": "n18duzy",
+    "to": "n192asr",
+    "port": 0
+   },
+   {
+    "id": "e1fl3x5",
+    "from": "n192asr",
+    "to": "n1awewm",
+    "port": 0
+   },
+   {
+    "id": "e1g8zh2",
+    "from": "n1awewm",
+    "to": "n1bhrsx",
+    "port": 0
+   },
+   {
+    "id": "e1h3c26",
+    "from": "noro1k",
+    "to": "n1c3b04",
+    "port": 0
+   },
+   {
+    "id": "e1i41l1",
+    "from": "n1bhrsx",
+    "to": "n1c3b04",
+    "port": 1
+   },
+   {
+    "id": "e1z5uuj",
+    "from": "n1c3b04",
+    "to": "n1jb4ko",
+    "port": 0
+   },
+   {
+    "id": "e204rvg",
+    "from": "n1jb4ko",
+    "to": "n1kzh1z",
+    "port": 0
+   },
+   {
+    "id": "e21dq7n",
+    "from": "n1jb4ko",
+    "to": "n1lg2g2",
+    "port": 0
+   },
+   {
+    "id": "e224g4z",
+    "from": "n1jb4ko",
+    "to": "n1mkhgc",
+    "port": 0
+   },
+   {
+    "id": "e237rb4",
+    "from": "n1kzh1z",
+    "to": "n1n848r",
+    "port": 0
+   },
+   {
+    "id": "e24ynls",
+    "from": "n1lg2g2",
+    "to": "n1osijg",
+    "port": 0
+   },
+   {
+    "id": "e25z1v5",
+    "from": "n1mkhgc",
+    "to": "n1pimhx",
+    "port": 0
+   },
+   {
+    "id": "e267ngn",
+    "from": "n1n848r",
+    "to": "n1qpqxl",
+    "port": 0
+   },
+   {
+    "id": "e27feku",
+    "from": "n1osijg",
+    "to": "n1rjsag",
+    "port": 0
+   },
+   {
+    "id": "e28ttuk",
+    "from": "n1qpqxl",
+    "to": "n1srpv5",
+    "port": 0
+   },
+   {
+    "id": "e298jmu",
+    "from": "n1rjsag",
+    "to": "n1srpv5",
+    "port": 1
+   },
+   {
+    "id": "e2a8joq",
+    "from": "n1srpv5",
+    "to": "n1t03g8",
+    "port": 0
+   },
+   {
+    "id": "e2blb1b",
+    "from": "n1t03g8",
+    "to": "n1ub3pw",
+    "port": 0
+   },
+   {
+    "id": "e2c270i",
+    "from": "n1ub3pw",
+    "to": "n1vhufe",
+    "port": 0
+   },
+   {
+    "id": "e2d40x1",
+    "from": "n1pimhx",
+    "to": "n1vhufe",
+    "port": 1
+   },
+   {
+    "id": "e2e3yiu",
+    "from": "n1vhufe",
+    "to": "n1w1fn5",
+    "port": 0
+   },
+   {
+    "id": "e2fiiqo",
+    "from": "n1w1fn5",
+    "to": "n1x2qdg",
+    "port": 0
+   },
+   {
+    "id": "e2g0lyq",
+    "from": "n1c3b04",
+    "to": "n1ysx3k",
+    "port": 0
+   },
+   {
+    "id": "e2hc4bz",
+    "from": "n1x2qdg",
+    "to": "n1ysx3k",
+    "port": 1
+   },
+   {
+    "id": "e2ned09",
+    "from": "n1ysx3k",
+    "to": "n2iz04o",
+    "port": 0
+   },
+   {
+    "id": "e2oeyzt",
+    "from": "n2iz04o",
+    "to": "n2jh0no",
+    "port": 0
+   },
+   {
+    "id": "e2p5rvw",
+    "from": "n2jh0no",
+    "to": "n2kfz1y",
+    "port": 0
+   },
+   {
+    "id": "e2qgnrv",
+    "from": "n2kfz1y",
+    "to": "n2lus40",
+    "port": 0
+   },
+   {
+    "id": "e2r8mx0",
+    "from": "n1ysx3k",
+    "to": "n2mq85j",
+    "port": 0
+   },
+   {
+    "id": "e2stmnv",
+    "from": "n2lus40",
+    "to": "n2mq85j",
+    "port": 1
+   },
+   {
+    "id": "e2wvewz",
+    "from": "n2mq85j",
+    "to": "n2t71cr",
+    "port": 0
+   },
+   {
+    "id": "e2x8yiw",
+    "from": "n2t71cr",
+    "to": "n2ujoz2",
+    "port": 0
+   },
+   {
+    "id": "e2ycw84",
+    "from": "n2ujoz2",
+    "to": "n2vwnmz",
+    "port": 0
+   },
+   {
+    "id": "e30wfjn",
+    "from": "n2ujoz2",
+    "to": "n2zzit9",
+    "port": 0
+   },
+   {
+    "id": "e31pbej",
+    "from": "n1uxqc",
+    "to": "n2zzit9",
+    "port": 1
+   }
+  ],
+  "groups": []
+ }
+}

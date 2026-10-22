@@ -1,0 +1,228 @@
+{
+ "title": "GatedBlock",
+ "description": "Pre-norm gated residual branch: x + (σ(N W) ⊙ N W ⊙ N V) W_out, with N = RMSNorm(x).",
+ "labels": "h=hidden",
+ "graph": {
+  "name": "GatedBlock",
+  "symbols": {
+   "e": 8,
+   "d": 256,
+   "h": 512
+  },
+  "nodes": [
+   {
+    "id": "n293pwn",
+    "type": "input",
+    "x": 60,
+    "y": 650,
+    "params": {
+     "name": "x",
+     "shape": "e, d",
+     "title": ""
+    }
+   },
+   {
+    "id": "n2arcrs",
+    "type": "norm",
+    "x": 200,
+    "y": 600,
+    "params": {
+     "kind": "RMSNorm",
+     "dim": "d",
+     "groups": 8,
+     "eps": "",
+     "name": "norm",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n2bh5dt",
+    "type": "linear",
+    "x": 146,
+    "y": 515,
+    "params": {
+     "in": "d",
+     "out": "h",
+     "bias": false,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "name": "w",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n2cq2u4",
+    "type": "linear",
+    "x": 258,
+    "y": 515,
+    "params": {
+     "in": "d",
+     "out": "h",
+     "bias": false,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "name": "v",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n2dhirc",
+    "type": "act",
+    "x": 100,
+    "y": 430,
+    "params": {
+     "fn": "sigmoid",
+     "dim": "-1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n2emvag",
+    "type": "binop",
+    "x": 146,
+    "y": 380,
+    "params": {
+     "op": "*",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n2f2pwz",
+    "type": "binop",
+    "x": 200,
+    "y": 325,
+    "params": {
+     "op": "*",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n2guyof",
+    "type": "linear",
+    "x": 200,
+    "y": 270,
+    "params": {
+     "in": "h",
+     "out": "d",
+     "bias": false,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "name": "w_out",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n2h925r",
+    "type": "binop",
+    "x": 200,
+    "y": 205,
+    "params": {
+     "op": "+",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n2iauvj",
+    "type": "output",
+    "x": 200,
+    "y": 140,
+    "params": {
+     "name": "out",
+     "title": ""
+    }
+   }
+  ],
+  "edges": [
+   {
+    "id": "e2jsbpi",
+    "from": "n293pwn",
+    "to": "n2arcrs",
+    "port": 0
+   },
+   {
+    "id": "e2kiidn",
+    "from": "n2arcrs",
+    "to": "n2bh5dt",
+    "port": 0
+   },
+   {
+    "id": "e2l91bv",
+    "from": "n2arcrs",
+    "to": "n2cq2u4",
+    "port": 0
+   },
+   {
+    "id": "e2mg9pa",
+    "from": "n2bh5dt",
+    "to": "n2dhirc",
+    "port": 0
+   },
+   {
+    "id": "e2nolih",
+    "from": "n2dhirc",
+    "to": "n2emvag",
+    "port": 0
+   },
+   {
+    "id": "e2oeors",
+    "from": "n2bh5dt",
+    "to": "n2emvag",
+    "port": 1
+   },
+   {
+    "id": "e2py1gs",
+    "from": "n2emvag",
+    "to": "n2f2pwz",
+    "port": 0
+   },
+   {
+    "id": "e2q6wp6",
+    "from": "n2cq2u4",
+    "to": "n2f2pwz",
+    "port": 1
+   },
+   {
+    "id": "e2rtm1g",
+    "from": "n2f2pwz",
+    "to": "n2guyof",
+    "port": 0
+   },
+   {
+    "id": "e2sqdos",
+    "from": "n293pwn",
+    "to": "n2h925r",
+    "port": 0
+   },
+   {
+    "id": "e2tz16o",
+    "from": "n2guyof",
+    "to": "n2h925r",
+    "port": 1
+   },
+   {
+    "id": "e2u6vsn",
+    "from": "n2h925r",
+    "to": "n2iauvj",
+    "port": 0
+   }
+  ],
+  "groups": []
+ }
+}

@@ -1,0 +1,778 @@
+{
+ "title": "GPT-2 (124M architecture)",
+ "description": "GPT-2 small: token and position embeddings, 12 × GPT2Block (pre-norm causal self-attention and a tanh-GELU MLP, with dropout), a final LayerNorm and the LM head. GPT-2 initialization: N(0, 0.02), residual projections scaled by 1/√24. The LM head shares its weights with the token embedding (weight tying), as in GPT-2: 124,439,808 parameters.",
+ "graph": {
+  "name": "GPT2",
+  "symbols": {
+   "e": 8,
+   "t": 64,
+   "vocab": 50257,
+   "block": 1024,
+   "d": 768,
+   "n_head": 12,
+   "ff": 3072
+  },
+  "nodes": [
+   {
+    "id": "n1lm7st",
+    "type": "input",
+    "x": 135,
+    "y": 560,
+    "params": {
+     "name": "idx",
+     "shape": "e, t",
+     "title": ""
+    }
+   },
+   {
+    "id": "n1mdwdg",
+    "type": "embed",
+    "x": 40,
+    "y": 470,
+    "params": {
+     "num": "vocab",
+     "dim": "d",
+     "positions": false,
+     "init": "normal",
+     "init_arg": "0.02",
+     "tie": "",
+     "name": "wte",
+     "title": "Token embedding",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1nuhic",
+    "type": "embed",
+    "x": 235,
+    "y": 470,
+    "params": {
+     "num": "block",
+     "dim": "d",
+     "positions": true,
+     "init": "normal",
+     "init_arg": "0.02",
+     "tie": "",
+     "name": "wpe",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1ozgzr",
+    "type": "binop",
+    "x": 135,
+    "y": 385,
+    "params": {
+     "op": "+",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": "x"
+    }
+   },
+   {
+    "id": "n1p00dh",
+    "type": "dropout",
+    "x": 135,
+    "y": 320,
+    "params": {
+     "p": 0.1,
+     "name": "drop",
+     "title": "",
+     "var": "x"
+    }
+   },
+   {
+    "id": "n1qau9i",
+    "type": "block",
+    "x": 135,
+    "y": 230,
+    "params": {
+     "block": "b1kjy2w",
+     "args": {
+      "n_head": "n_head",
+      "ff": "ff"
+     },
+     "nIn": 1,
+     "repeat": 12,
+     "name": "h",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1rrv4r",
+    "type": "norm",
+    "x": 135,
+    "y": 120,
+    "params": {
+     "kind": "LayerNorm",
+     "dim": "d",
+     "groups": 8,
+     "eps": "",
+     "name": "ln_f",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1si12j",
+    "type": "linear",
+    "x": 135,
+    "y": 55,
+    "params": {
+     "in": "d",
+     "out": "vocab",
+     "bias": false,
+     "init": "normal",
+     "init_arg": "0.02",
+     "zero_bias": true,
+     "tie": "n1mdwdg",
+     "name": "lm_head",
+     "title": "LM head",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1tqmk8",
+    "type": "output",
+    "x": 135,
+    "y": -15,
+    "params": {
+     "name": "logits",
+     "title": ""
+    }
+   },
+   {
+    "id": "n232900",
+    "type": "loss",
+    "x": 400,
+    "y": -15,
+    "params": {
+     "fn": "cross_entropy",
+     "mode": "next",
+     "label_smoothing": "",
+     "ignore_index": "",
+     "delta": "1.0",
+     "weight": "1",
+     "mask_prob": "0.15",
+     "mask_id": "",
+     "title": ""
+    }
+   }
+  ],
+  "edges": [
+   {
+    "id": "e1uu6b3",
+    "from": "n1lm7st",
+    "to": "n1mdwdg",
+    "port": 0
+   },
+   {
+    "id": "e1vo3fm",
+    "from": "n1lm7st",
+    "to": "n1nuhic",
+    "port": 0
+   },
+   {
+    "id": "e1w2sih",
+    "from": "n1mdwdg",
+    "to": "n1ozgzr",
+    "port": 0
+   },
+   {
+    "id": "e1xpw7e",
+    "from": "n1nuhic",
+    "to": "n1ozgzr",
+    "port": 1
+   },
+   {
+    "id": "e1y968d",
+    "from": "n1ozgzr",
+    "to": "n1p00dh",
+    "port": 0
+   },
+   {
+    "id": "e1z4bnt",
+    "from": "n1p00dh",
+    "to": "n1qau9i",
+    "port": 0
+   },
+   {
+    "id": "e20nsrv",
+    "from": "n1qau9i",
+    "to": "n1rrv4r",
+    "port": 0
+   },
+   {
+    "id": "e21mg74",
+    "from": "n1rrv4r",
+    "to": "n1si12j",
+    "port": 0
+   },
+   {
+    "id": "e22k48v",
+    "from": "n1si12j",
+    "to": "n1tqmk8",
+    "port": 0
+   },
+   {
+    "id": "e246ip7",
+    "from": "n1si12j",
+    "to": "n232900",
+    "port": 0
+   },
+   {
+    "id": "e2509tc",
+    "from": "n1lm7st",
+    "to": "n232900",
+    "port": 1
+   }
+  ],
+  "groups": [],
+  "blocks": {
+   "b1kjy2w": {
+    "id": "b1kjy2w",
+    "name": "GPT2Block",
+    "graph": {
+     "name": "GPT2Block",
+     "symbols": {
+      "e": 8,
+      "t": 64,
+      "d": 768,
+      "n_head": 12,
+      "ff": 3072
+     },
+     "nodes": [
+      {
+       "id": "n14lno",
+       "type": "input",
+       "x": 70,
+       "y": 810,
+       "params": {
+        "name": "x",
+        "shape": "e, t, d",
+        "title": ""
+       }
+      },
+      {
+       "id": "n2cmis",
+       "type": "norm",
+       "x": 380,
+       "y": 790,
+       "params": {
+        "kind": "LayerNorm",
+        "dim": "d",
+        "groups": 8,
+        "eps": "",
+        "name": "ln_1",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n3ii8e",
+       "type": "linear",
+       "x": 235,
+       "y": 732,
+       "params": {
+        "in": "d",
+        "out": "d",
+        "bias": true,
+        "init": "normal",
+        "init_arg": "0.02",
+        "zero_bias": true,
+        "tie": "",
+        "name": "q_proj",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n4ec2p",
+       "type": "linear",
+       "x": 380,
+       "y": 732,
+       "params": {
+        "in": "d",
+        "out": "d",
+        "bias": true,
+        "init": "normal",
+        "init_arg": "0.02",
+        "zero_bias": true,
+        "tie": "",
+        "name": "k_proj",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n5djzh",
+       "type": "linear",
+       "x": 525,
+       "y": 732,
+       "params": {
+        "in": "d",
+        "out": "d",
+        "bias": true,
+        "init": "normal",
+        "init_arg": "0.02",
+        "zero_bias": true,
+        "tie": "",
+        "name": "v_proj",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n6unl5",
+       "type": "heads",
+       "x": 235,
+       "y": 674,
+       "params": {
+        "heads": "n_head",
+        "title": "",
+        "var": "q"
+       }
+      },
+      {
+       "id": "n7s9ic",
+       "type": "heads",
+       "x": 380,
+       "y": 674,
+       "params": {
+        "heads": "n_head",
+        "title": "",
+        "var": "k"
+       }
+      },
+      {
+       "id": "n8dqsz",
+       "type": "heads",
+       "x": 525,
+       "y": 674,
+       "params": {
+        "heads": "n_head",
+        "title": "",
+        "var": "v"
+       }
+      },
+      {
+       "id": "n93c6n",
+       "type": "scale",
+       "x": 235,
+       "y": 616,
+       "params": {
+        "title": "",
+        "var": "q"
+       }
+      },
+      {
+       "id": "nanhx0",
+       "type": "transpose",
+       "x": 380,
+       "y": 616,
+       "params": {
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "nbu5bx",
+       "type": "binop",
+       "x": 308,
+       "y": 558,
+       "params": {
+        "op": "@",
+        "const": "",
+        "rev": false,
+        "title": "",
+        "var": "att"
+       }
+      },
+      {
+       "id": "ncxag5",
+       "type": "mask",
+       "x": 308,
+       "y": 500,
+       "params": {
+        "title": "",
+        "var": "att"
+       }
+      },
+      {
+       "id": "ndcljd",
+       "type": "act",
+       "x": 308,
+       "y": 442,
+       "params": {
+        "fn": "softmax",
+        "dim": "-1",
+        "title": "",
+        "var": "att"
+       }
+      },
+      {
+       "id": "ne9zk9",
+       "type": "dropout",
+       "x": 308,
+       "y": 384,
+       "params": {
+        "p": 0.1,
+        "name": "attn_drop",
+        "title": "",
+        "var": "att"
+       }
+      },
+      {
+       "id": "nf95cm",
+       "type": "binop",
+       "x": 416,
+       "y": 336,
+       "params": {
+        "op": "@",
+        "const": "",
+        "rev": false,
+        "title": "",
+        "var": "y"
+       }
+      },
+      {
+       "id": "ngoepq",
+       "type": "merge",
+       "x": 416,
+       "y": 288,
+       "params": {
+        "title": "",
+        "var": "y"
+       }
+      },
+      {
+       "id": "nh8tn2",
+       "type": "linear",
+       "x": 416,
+       "y": 230,
+       "params": {
+        "in": "d",
+        "out": "d",
+        "bias": true,
+        "init": "normal",
+        "init_arg": "0.00408248",
+        "zero_bias": true,
+        "tie": "",
+        "name": "attn_proj",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "ni2fj3",
+       "type": "dropout",
+       "x": 416,
+       "y": 178,
+       "params": {
+        "p": 0.1,
+        "name": "resid_drop",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "njx6xl",
+       "type": "binop",
+       "x": 416,
+       "y": 100,
+       "params": {
+        "op": "+",
+        "const": "",
+        "rev": false,
+        "title": "",
+        "var": "x"
+       }
+      },
+      {
+       "id": "n15ehx0",
+       "type": "norm",
+       "x": 700,
+       "y": 442,
+       "params": {
+        "kind": "LayerNorm",
+        "dim": "d",
+        "groups": 8,
+        "eps": "",
+        "name": "ln_2",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n16t6rw",
+       "type": "linear",
+       "x": 700,
+       "y": 384,
+       "params": {
+        "in": "d",
+        "out": "ff",
+        "bias": true,
+        "init": "normal",
+        "init_arg": "0.02",
+        "zero_bias": true,
+        "tie": "",
+        "name": "c_fc",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n17f5p2",
+       "type": "act",
+       "x": 700,
+       "y": 332,
+       "params": {
+        "fn": "gelu_tanh",
+        "dim": "-1",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n18jl56",
+       "type": "linear",
+       "x": 700,
+       "y": 280,
+       "params": {
+        "in": "ff",
+        "out": "d",
+        "bias": true,
+        "init": "normal",
+        "init_arg": "0.00408248",
+        "zero_bias": true,
+        "tie": "",
+        "name": "c_proj",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n19ncvr",
+       "type": "dropout",
+       "x": 700,
+       "y": 230,
+       "params": {
+        "p": 0.1,
+        "name": "mlp_drop",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n1aompd",
+       "type": "binop",
+       "x": 700,
+       "y": 100,
+       "params": {
+        "op": "+",
+        "const": "",
+        "rev": false,
+        "title": "",
+        "var": "x"
+       }
+      },
+      {
+       "id": "n1bn0a9",
+       "type": "output",
+       "x": 850,
+       "y": 100,
+       "params": {
+        "name": "out",
+        "title": ""
+       }
+      }
+     ],
+     "edges": [
+      {
+       "id": "ekn5ne",
+       "from": "n14lno",
+       "to": "n2cmis",
+       "port": 0
+      },
+      {
+       "id": "elgiu1",
+       "from": "n2cmis",
+       "to": "n3ii8e",
+       "port": 0
+      },
+      {
+       "id": "em4mf4",
+       "from": "n2cmis",
+       "to": "n4ec2p",
+       "port": 0
+      },
+      {
+       "id": "ent5vw",
+       "from": "n2cmis",
+       "to": "n5djzh",
+       "port": 0
+      },
+      {
+       "id": "eof5kd",
+       "from": "n3ii8e",
+       "to": "n6unl5",
+       "port": 0
+      },
+      {
+       "id": "epti2a",
+       "from": "n4ec2p",
+       "to": "n7s9ic",
+       "port": 0
+      },
+      {
+       "id": "eqvjnv",
+       "from": "n5djzh",
+       "to": "n8dqsz",
+       "port": 0
+      },
+      {
+       "id": "eruma6",
+       "from": "n6unl5",
+       "to": "n93c6n",
+       "port": 0
+      },
+      {
+       "id": "esj5la",
+       "from": "n7s9ic",
+       "to": "nanhx0",
+       "port": 0
+      },
+      {
+       "id": "ethss9",
+       "from": "n93c6n",
+       "to": "nbu5bx",
+       "port": 0
+      },
+      {
+       "id": "eu6prr",
+       "from": "nanhx0",
+       "to": "nbu5bx",
+       "port": 1
+      },
+      {
+       "id": "ev0syo",
+       "from": "nbu5bx",
+       "to": "ncxag5",
+       "port": 0
+      },
+      {
+       "id": "ewh5mn",
+       "from": "ncxag5",
+       "to": "ndcljd",
+       "port": 0
+      },
+      {
+       "id": "ex456p",
+       "from": "ndcljd",
+       "to": "ne9zk9",
+       "port": 0
+      },
+      {
+       "id": "eywawn",
+       "from": "ne9zk9",
+       "to": "nf95cm",
+       "port": 0
+      },
+      {
+       "id": "ezcgca",
+       "from": "n8dqsz",
+       "to": "nf95cm",
+       "port": 1
+      },
+      {
+       "id": "e101bmk",
+       "from": "nf95cm",
+       "to": "ngoepq",
+       "port": 0
+      },
+      {
+       "id": "e11s39p",
+       "from": "ngoepq",
+       "to": "nh8tn2",
+       "port": 0
+      },
+      {
+       "id": "e12879y",
+       "from": "nh8tn2",
+       "to": "ni2fj3",
+       "port": 0
+      },
+      {
+       "id": "e138ahf",
+       "from": "n14lno",
+       "to": "njx6xl",
+       "port": 0
+      },
+      {
+       "id": "e14kx1p",
+       "from": "ni2fj3",
+       "to": "njx6xl",
+       "port": 1
+      },
+      {
+       "id": "e1chdce",
+       "from": "njx6xl",
+       "to": "n15ehx0",
+       "port": 0
+      },
+      {
+       "id": "e1d9dmi",
+       "from": "n15ehx0",
+       "to": "n16t6rw",
+       "port": 0
+      },
+      {
+       "id": "e1exixa",
+       "from": "n16t6rw",
+       "to": "n17f5p2",
+       "port": 0
+      },
+      {
+       "id": "e1f01sm",
+       "from": "n17f5p2",
+       "to": "n18jl56",
+       "port": 0
+      },
+      {
+       "id": "e1gqm62",
+       "from": "n18jl56",
+       "to": "n19ncvr",
+       "port": 0
+      },
+      {
+       "id": "e1hvquk",
+       "from": "njx6xl",
+       "to": "n1aompd",
+       "port": 0
+      },
+      {
+       "id": "e1intlr",
+       "from": "n19ncvr",
+       "to": "n1aompd",
+       "port": 1
+      },
+      {
+       "id": "e1jg2ug",
+       "from": "n1aompd",
+       "to": "n1bn0a9",
+       "port": 0
+      }
+     ],
+     "groups": []
+    },
+    "labels": {
+     "n_head": "heads",
+     "ff": "MLP width"
+    }
+   }
+  }
+ }
+}
