@@ -149,3 +149,13 @@ for (const [f, want] of [['08_bert_base.json', 109514298], ['09_llama2_7b.json',
   check(NN.syncSource(withNew, withBlock, {}) === withNew, 'syncing the new class twice changed the file');
   console.log('source sync OK');
 }
+// A literal file: a size set in the diagram (through its symbol) reaches the file, as the inspector's Output size does.
+{
+  const base = NN.generate(NN.presetResidualMLP(), { literalDims: true }).code;
+  const g = NN.importPython(base).graph;
+  g.symbols.d256 = 64;
+  NN.syncWidths(g);
+  const out = NN.syncSource(base, g, { gen: { literalDims: true, shapeComments: true } });
+  if (out === base || !/nn\.Linear\(784, 64, bias=False\)/.test(out)) { console.error('A symbol size edit did not reach a literal file'); process.exit(1); }
+  console.log('literal file symbol size OK');
+}

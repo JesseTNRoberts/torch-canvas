@@ -2706,7 +2706,9 @@ const NN = (() => {
   function syncSource(text, graph, o = {}) {
     const src = text.replace(/\r\n/g, '\n');
     const res = importPython(src, { root: o.root });
-    const opts = Object.assign({}, o.gen, { shapeComments: false, literalDims: false });
+    // Compare in the file's own style: a literal file has no size symbols to patch, so comparing symbolic
+    // code would drop a size edit made through a symbol.
+    const opts = Object.assign({}, o.gen, { shapeComments: false, literalDims: res.literalDims != null ? res.literalDims : false });
     const baseGen = generate(res.graph, Object.assign({}, opts, { className: res.graph.name })).code;
     const curGen = generate(graph, Object.assign({}, opts, { className: graph.name })).code;
     if (baseGen === curGen) return src;
