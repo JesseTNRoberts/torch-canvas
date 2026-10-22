@@ -186,6 +186,16 @@ Without Actions: choose **Source: Deploy from a branch** (main, / root) instead;
 
 On Pages the app works as the single-file version: the example library is what was built into `index.html`, and edits to library blocks, new blocks and open tabs are kept in each visitor's browser. Writing blocks back to `examples/` needs `npm start` on your own machine. Opening and saving files and folders works in Chrome and Edge (Pages is served over https).
 
+## Linking to an example
+
+Add `?open=` and an example's name to the address to open that model directly:
+
+    https://<user>.github.io/torch-canvas/?open=gpt2
+    https://<user>.github.io/torch-canvas/?open=qwen2_5_vl_3b
+    https://<user>.github.io/torch-canvas/?open=swiglu          (a library block)
+
+The name is the file name in `examples/` without the number prefix and extension (`07_gpt2.json` → `gpt2`); the full file name works too. The easiest way to get the link is **Open / import → Copy link to this example** while the example's tab is open. Someone opening the link for the first time sees only that model. If they already have it open, the link switches to that tab. Links point at the examples as published, not at your own edits. To share an edited network, save it into `examples/networks/` and push.
+
 ## Starting a new repository
 
     git init -b main

@@ -3900,7 +3900,7 @@ function restore(json) {
   clearSel(); changed();
 }
 function save() {
-  try { localStorage.setItem(STORE, JSON.stringify({ v: 2, docs: S.docs.map(d => (d.id === S.cur ? S.root : d.root)), cur: Math.max(0, S.docs.findIndex(d => d.id === S.cur)) })); } catch {}
+  try { localStorage.setItem(STORE, JSON.stringify({ v: 2, docs: S.docs.map(d => (d.id === S.cur ? S.root : d.root)), from: S.docs.map(d => d.fromLib || null), cur: Math.max(0, S.docs.findIndex(d => d.id === S.cur)) })); } catch {}
 }
 function load() { try { const s = localStorage.getItem(STORE); if (s) { const g = JSON.parse(s); if (g && Array.isArray(g.nodes)) return g; } } catch {} return null; }
 function clearSel() { S.sel.nodes.clear(); S.sel.edges.clear(); S.sel.group = null; }
@@ -5961,19 +5961,19 @@ $('#bCopy').onclick = () => copyText(S.gen.code, 'PyTorch code copied.');
 $('#bMore').onclick = e => {
   if (ctxEl && ctxEl.classList.contains('ctx-open')) return closeCtx();  // the button toggles the menu
   const r = e.currentTarget.getBoundingClientRect();
-  const nets = S.library.filter(x => x.kind === 'network'), blks = S.library.filter(x => x.kind === 'block');
+  const nets = S.library.filter(x => x.kind === 'network'), blks = S.library.filter(x => x.kind === 'block'), curLib = curLibEntry();
   openCtx(r.left, r.bottom + 4,
     `<div class="ctx-top"><b>Open / import</b><button class="ctx-x" data-close aria-label="Close" title="Close (Esc)">×</button></div>`
     + (nets.length ? `<div class="hd">Example networks <span>open in a new tab</span></div>` + nets.map(x => item('lib:' + x.file, x.title, x.description || '')).join('') : '')
     + (blks.length ? `<div class="hd">Blocks <span>open in a new tab to edit</span></div>` + blks.map(x => item('lib:' + x.file, x.title, x.description || '')).join('') : '')
     + `<hr><div class="hd">From your computer</div>` + item('ofile', 'Open file…', 'A .py model, edited in place · Ctrl+O') + item('odir', 'Open folder…', 'Browse the models in a project') + item('paste', 'Paste code…', 'Or press Ctrl+V anywhere')
-    + '<hr>' + item('json', 'Copy graph JSON', 'Restore it later with Paste code'),
+    + '<hr>' + (curLib ? item('link', 'Copy link to this example', `Opens ${curLib.title} directly`) : '') + item('json', 'Copy graph JSON', 'Restore it later with Paste code'),
     el => { el.classList.add('ctx-open'); el.addEventListener('click', ev => {
       if (ev.target.closest('[data-close]')) return closeCtx();
       const b = ev.target.closest('[data-act]'); if (!b) return; closeCtx();
       const a = b.dataset.act;
       if (a.startsWith('lib:')) return openLibrary(S.library.find(x => x.file === a.slice(4)));
-      ({ ofile: openFileDialog, odir: openFolder, paste: openImport, json: () => copyText(JSON.stringify(R(), null, 1), 'Graph JSON copied. Paste it into Paste code to restore.') })[a]();
+      ({ link: () => copyLibLink(curLib), ofile: openFileDialog, odir: openFolder, paste: openImport, json: () => copyText(JSON.stringify(R(), null, 1), 'Graph JSON copied. Paste it into Paste code to restore.') })[a]();
     }); });
 };
 // ── library: example networks and blocks shipped with the app (examples/ folder) ──
@@ -5992,10 +5992,37 @@ function parseLabels(s) { const o = {}; String(s || '').split(',').forEach(p => 
 function openLibrary(entry) {
   if (!entry) return;
   if (entry.kind === 'block') return openLibraryBlock(entry);
+  const before = S.cur;
   if (entry.type === 'json') {
     let g; try { const j = JSON.parse(entry.source); g = j.graph || j; } catch { return toast(`Couldn't read ${entry.title}.`); }
     openDoc(g, null, { byName: true }); toast(`Opened example: ${entry.title}.`);
   } else importText(entry.source, null, { libTitle: entry.title });
+  const d = S.cur !== before && docById(S.cur); if (d) { d.fromLib = entry.file; save(); }
+}
+// ── links to an example: ?open=gpt2 opens examples/networks/07_gpt2.json (or a library block, e.g. ?open=swiglu) ──
+const libBase = f => f.split('/').pop().replace(/\.\w+$/, '').toLowerCase();
+const libSlug = f => libBase(f).replace(/^\d+[_-]/, '');
+function findLibEntry(q) {
+  q = String(q || '').trim().toLowerCase().replace(/-/g, '_'); if (!q) return null;
+  const all = S.library.filter(x => !(x.kind === 'block' && !S.libBlocks[x.file]));
+  const nets = all.filter(x => x.kind === 'network'), blks = all.filter(x => x.kind === 'block');
+  for (const test of [x => x.file.toLowerCase() === q, x => x.file.toLowerCase().replace(/\.\w+$/, '') === q, x => libSlug(x.file) === q, x => libBase(x.file) === q])
+    { const hit = nets.find(test) || blks.find(test); if (hit) return hit; }
+  return null;
+}
+function libLink(entry) {
+  const key = [libSlug(entry.file), libBase(entry.file), entry.file].find(k => findLibEntry(k) === entry) || entry.file;
+  return location.href.replace(/[?#].*$/, '') + '?open=' + encodeURIComponent(key);
+}
+function curLibEntry() {
+  const d = docById(S.cur), file = (d && d.fromLib) || R().libHost;
+  return file ? S.library.find(x => x.file === file) || null : null;
+}
+function copyLibLink(entry) {
+  const url = libLink(entry);
+  copyText(url, location.protocol === 'file:'
+    ? `Link copied. It points at this file on your computer; open the published site and copy it there to share it.`
+    : `Link copied: anyone who opens it lands on ${entry.title}.`);
 }
 // ── shared library blocks ──
 // Each library block has one definition (S.libBlocks, keyed by its file in examples/blocks). A network's copy of it
@@ -7018,16 +7045,32 @@ function changed() {
 }
 let saved = null;
 try { const raw = localStorage.getItem(STORE); if (raw) saved = JSON.parse(raw); } catch {}
+const fromOf = new Map();
+if (saved && saved.v === 2 && Array.isArray(saved.docs) && Array.isArray(saved.from)) saved.docs.forEach((g, i) => { if (g && saved.from[i]) fromOf.set(g, saved.from[i]); });
 let roots = saved && saved.v === 2 && Array.isArray(saved.docs) ? saved.docs.filter(g => g && Array.isArray(g.nodes)) : saved && Array.isArray(saved.nodes) ? [saved] : [];
 // an old saved example drawn with hidden groups is replaced by the current example
 roots = roots.map(g => (g.groups && g.groups.some(x => x.cls === 'GatedBlock' || x.cls === 'GatedHead') ? NN.presetResidualMLP() : g));
 if (!roots.length) roots = [NN.presetResidualMLP()];
 for (const g of roots) for (const n of g.nodes) { if ('tone' in n.params) delete n.params.tone; if (['Down projection', 'Output projection', 'Final norm'].includes(n.params.title)) n.params.title = ''; }
 roots.forEach(r => syncLinked(r));
-S.docs = roots.map(r => ({ id: NN.uid('d'), root: r, file: null, undo: [], redo: [], tabs: [], views: {} }));
+S.docs = roots.map(r => ({ id: NN.uid('d'), root: r, file: null, undo: [], redo: [], tabs: [], views: {}, fromLib: fromOf.get(r) || null }));
 S.cur = null;
 activateDoc(S.docs[Math.min(saved && saved.cur || 0, S.docs.length - 1)].id);
 renderProject();
+(function openFromLink() {
+  let want = null; try { want = new URLSearchParams(location.search).get('open'); } catch {}
+  if (!want) return;
+  try { const u = new URL(location.href); u.searchParams.delete('open'); history.replaceState(history.state, '', u.pathname + u.search + u.hash); } catch {}
+  const entry = findLibEntry(want);
+  if (!entry) return setTimeout(() => toast(`There is no example called “${want}”. Open / import lists them all.`), 300);
+  // already open in a tab (from an earlier visit): switch to it
+  const have = S.docs.find(d => d.fromLib === entry.file || (d.id === S.cur ? S.root : d.root).libHost === entry.file);
+  if (have) { if (have.id !== S.cur) activateDoc(have.id); return; }
+  const first = S.cur;
+  openLibrary(entry);
+  // someone opening the link for the first time sees just that model, not the default example beside it
+  if (!saved && S.cur !== first) closeDoc(first);
+})();
 idb.get('last').then(r => { if (r && (r.dir || r.file)) { S.remembered = r; if (!S.dir) renderProject(); } }).catch(() => {});
 requestAnimationFrame(fit);
 window.addEventListener('resize', () => render());
