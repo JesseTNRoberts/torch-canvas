@@ -79,3 +79,73 @@ for (const [f, want] of [['08_bert_base.json', 109514298], ['09_llama2_7b.json',
   }
   console.log('nested blocks OK');
 }
+// Source sync: a diagram edit is written into the file text; everything the edit does not touch stays byte for byte.
+{
+  const fs = require('fs');
+  const check = (cond, msg) => { if (!cond) { console.error('Source sync failed: ' + msg); process.exit(1); } };
+  const parse = text => NN.importPython(text, {}).graph;
+  const dir = __dirname + '/test_fixtures/';
+  const nb = fs.readFileSync(dir + 'marimo/marimo-net.py', 'utf8');
+  const plain = NN.generate(NN.presetResidualMLP()).code + '\n# written by hand\n';
+  check(NN.isMarimo(nb) && !NN.isMarimo(plain), 'marimo detection');
+  // An unchanged graph returns the text exactly.
+  for (const src of [nb, plain]) check(NN.syncSource(src, parse(src), {}) === src, 'unchanged graph rewrote the file');
+  // A size change rewrites only the statement it touches.
+  const sized = parse(nb);
+  sized.nodes.find(n => n.params.name === 'fc1').params.out = '32';
+  check(NN.syncSource(nb, sized, {}) === nb.replace('nn.Linear(n_in, 16)', 'nn.Linear(n_in, 32)'), 'size change touched other lines');
+  // A new layer is added to __init__ and forward is rewritten; comments, docstrings and other methods stay.
+  const edited = nb
+    .replace('        self.act = nn.ReLU()\n', '        self.act = nn.ReLU()\n        self.drop = nn.Dropout(0.1)\n')
+    .replace('self.fc2(self.act(self.fc1(x)))', 'self.fc2(self.drop(self.act(self.fc1(x))))');
+  const grown = NN.syncSource(nb, parse(edited), {});
+  check(/self\.drop = nn\.Dropout\(0\.1\)/.test(grown), 'new layer missing');
+  for (const kept of ['# keep me', '"""Doc."""', 'def predict', '@app.class_definition', 'n_in, 16)']) check(grown.includes(kept), 'lost ' + kept);
+  check(NN.syncSource(grown, parse(edited), {}) === grown, 'syncing twice changed the file');
+  // Renaming the model renames its class and nothing else.
+  const renamed = parse(nb); renamed.name = 'Renamed';
+  check(NN.syncSource(nb, renamed, {}) === nb.replace('class Net(nn.Module):', 'class Renamed(nn.Module):'), 'rename changed other lines or deleted the class');
+  // A block the diagram removes loses its class and its use; the other classes stay.
+  const enc = fs.readFileSync(dir + 'nested/encoder.py', 'utf8');
+  const eg = parse(enc), B = eg.blocks;
+  const mixId = Object.keys(B).find(k => B[k].name === 'Mix');
+  const encG = B[Object.keys(B).find(k => B[k].name === 'Encoder')].graph;
+  const use = encG.nodes.find(n => n.type === 'block' && n.params.block === mixId);
+  const inE = encG.edges.find(e => e.to === use.id), outE = encG.edges.find(e => e.from === use.id);
+  encG.nodes = encG.nodes.filter(n => n !== use);
+  encG.edges = encG.edges.filter(e => e !== inE && e !== outE).concat([{ id: 'bridge', from: inE.from, to: outE.to, port: outE.port }]);
+  delete B[mixId];
+  const del = NN.syncSource(enc, eg, {});
+  check(!/^class Mix\b/m.test(del) && /^class Gate\b/m.test(del) && /^class Encoder\b/m.test(del), 'removed class not deleted, or others deleted');
+  check(!/self\.mix/.test(del) && !/\n{4,}/.test(del), 'removed block left its use or extra blank lines');
+  // A new helper function gets @app.function, and a missing import goes into the setup cell.
+  const masked = parse(nb), out = masked.nodes.find(n => n.type === 'output'), fc2 = masked.nodes.find(n => n.params.name === 'fc2');
+  const mk = { id: 'mk1', type: 'mask', params: { mode: 'causal', title: '', var: '' }, x: 0, y: 0 };
+  masked.nodes.push(mk);
+  masked.edges = masked.edges.map(e => (e.to === out.id ? Object.assign({}, e, { from: mk.id }) : e)).concat([{ id: 'ex1', from: fc2.id, to: mk.id, port: 0 }]);
+  const mo = NN.syncSource(nb, masked, {});
+  check(/^@app\.function\ndef causal_mask\(scores\):/m.test(mo) && /causal_mask\(self\.fc2/.test(mo), 'helper not decorated');
+  check(/^    import torch\.nn\.functional as F$/m.test(mo) && !/^import torch\.nn\.functional/m.test(mo), 'import not in setup cell');
+  // Merging generated classes into a notebook keeps its decorators and setup imports.
+  const gen = 'import torch\nimport torch.nn as nn\nimport torch.nn.functional as F\n\n\nclass Net(nn.Module):\n    def __init__(self):\n        super().__init__()\n        self.fc = nn.Linear(4, 2)\n\n    def forward(self, x):\n        return F.relu(self.fc(x))\n\n\nclass Extra(nn.Module):\n    def __init__(self):\n        super().__init__()\n        self.fc = nn.Linear(2, 2)\n\n    def forward(self, x):\n        return self.fc(x)\n';
+  const merged = NN.mergeIntoSource(nb, gen, NN.importPython(nb, {}).usedClasses);
+  check(/^@app\.class_definition\nclass Net\(nn\.Module\):/m.test(merged) && /^@app\.class_definition\nclass Extra\b/m.test(merged), 'merged classes not decorated');
+  check(/^    import torch\.nn\.functional as F$/m.test(merged) && !/^import torch\.nn\.functional/m.test(merged) && !/^import torch\.nn as nn/m.test(merged), 'merged imports not in setup cell');
+  // A new block with its own class is inserted before the class that uses it, decorated in a marimo notebook.
+  const withBlock = parse(nb), bOut = withBlock.nodes.find(n => n.type === 'output'), fc2b = withBlock.nodes.find(n => n.params.name === 'fc2');
+  const sq = { name: 'Squash', symbols: { e: 8, d: 4 }, nodes: [], edges: [] };
+  const SB = (type, params) => { const n = NN.makeNode(type, params); sq.nodes.push(n); return n; };
+  const sx = SB('input', { name: 'x', shape: 'e, d' }), sa = SB('act', { fn: 'tanh' }), so = SB('output', { name: 'out' });
+  sq.edges.push({ id: 'sq1', from: sx.id, to: sa.id, port: 0 }, { id: 'sq2', from: sa.id, to: so.id, port: 0 });
+  withBlock.blocks = Object.assign({}, withBlock.blocks, { sqBlk: { id: 'sqBlk', name: 'Squash', graph: sq } });
+  const sqUse = NN.makeNode('block', { block: 'sqBlk', args: {}, nIn: 1, repeat: 1, name: 'squash' });
+  withBlock.nodes.push(sqUse);
+  withBlock.edges = withBlock.edges.filter(e => e.to !== bOut.id).concat([{ id: 'sq3', from: fc2b.id, to: sqUse.id, port: 0 }, { id: 'sq4', from: sqUse.id, to: bOut.id, port: 0 }]);
+  const withNew = NN.syncSource(nb, withBlock, {});
+  check((withNew.match(/^class Squash\b/gm) || []).length === 1, 'new class not written exactly once');
+  check(/^@app\.class_definition\nclass Squash\(nn\.Module\):/m.test(withNew), 'new class not decorated');
+  check(withNew.indexOf('class Squash') < withNew.indexOf('class Net'), 'new class not placed before its user');
+  check(withNew.includes('    """Tiny net."""\n\n    def __init__(self, n_in=8, n_out=4):\n        super().__init__()\n        # keep me\n        self.fc1 = nn.Linear(n_in, 16)\n') && withNew.endsWith(nb.slice(nb.indexOf('    def predict'))), 'text outside the change was rewritten');
+  check(NN.syncSource(withNew, withBlock, {}) === withNew, 'syncing the new class twice changed the file');
+  console.log('source sync OK');
+}
