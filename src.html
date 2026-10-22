@@ -3311,17 +3311,19 @@ async function saveFile() {
     const disk = await (await h.getFile()).text();
     if (disk !== S.file.diskText && !(await ask(`${name} changed on disk since it was opened. Saving merges the diagram into the newer version.`, 'Save anyway'))) return;
     const gen = NN.generate(R(), genOpts()).code;
-    let out;
+    let out, synced = false;
     if (S.file.kind === 'graph') out = JSON.stringify(R(), null, 1);
     else {
-      out = NN.mergeIntoSource(disk, gen, S.file.used);
+      // Patch only the statements the diagram changed; fall back to replacing the model classes.
+      try { out = NN.syncSource(disk, R(), { root: S.file.root, gen: genOpts() }); synced = out != null; } catch {}
+      if (out == null) out = NN.mergeIntoSource(disk, gen, S.file.used);
       if (out == null) { if (!(await ask(`The model's classes aren't in ${name} any more. Replace the whole file with the generated code?`, 'Replace file'))) return; out = gen; }
     }
     const f = await writeHandle(h, out);
     let used = S.file.used; try { if (S.file.kind === 'py') used = NN.importPython(out, { root: S.file.root }).usedClasses; } catch {}
     Object.assign(S.file, { diskText: out, lastModified: f.lastModified, savedCode: gen, used, changedOnDisk: false });
     renderFileBar();
-    toast(`Saved ${name}. Only the model classes changed; the rest of the file is untouched.`, { label: 'Undo', run: async () => { const f2 = await writeHandle(h, disk); Object.assign(S.file, { diskText: disk, lastModified: f2.lastModified, savedCode: null }); renderFileBar(); toast(`Restored the previous ${name}.`); } });
+    toast(`Saved ${name}. ${synced ? 'Only the lines you changed were rewritten; the rest of the file is untouched.' : 'Only the model classes changed; the rest of the file is untouched.'}`, { label: 'Undo', run: async () => { const f2 = await writeHandle(h, disk); Object.assign(S.file, { diskText: disk, lastModified: f2.lastModified, savedCode: null }); renderFileBar(); toast(`Restored the previous ${name}.`); } });
   } catch (e) { if (!isAbort(e)) toast(`Couldn't save ${name}: ${e.message}`); }
 }
 async function saveAs() {
@@ -3382,9 +3384,12 @@ async function reloadFromDisk(auto) {
     toast(auto ? `${f.name} changed on disk; the diagram was updated.` : `Reloaded ${f.name}.`);
   } catch (e) { toast(`Couldn't reload ${f.name}: ${e.message}`); }
 }
-// Watch the open file: follow edits made in another editor when the diagram has no unsaved changes.
-setInterval(async () => {
-  const f = S.file; if (!f || !f.handle || document.visibilityState !== 'visible' || S.drag) return;
+// Follow edits made in another editor when the diagram has no unsaved changes. Browsers have no file-change
+// events, so this runs at once on window focus and when the tab becomes visible, and every 5 s as a fallback.
+let checking = false;
+async function checkDisk() {
+  const f = S.file; if (!f || !f.handle || document.visibilityState !== 'visible' || S.drag || checking) return;
+  checking = true;
   try {
     const file = await f.handle.getFile();
     if (file.lastModified === f.lastModified) return;
@@ -3392,8 +3397,11 @@ setInterval(async () => {
     const text = await file.text(); if (text === f.diskText) return;
     if (!isDirty()) reloadFromDisk(true);
     else { f.changedOnDisk = true; renderFileBar(); }
-  } catch {}
-}, 1500);
+  } catch {} finally { checking = false; }
+}
+window.addEventListener('focus', checkDisk);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkDisk(); });
+setInterval(checkDisk, 5000);
 
 async function openFolder() {
   if (!('showDirectoryPicker' in window)) return toast('Opening folders needs Chrome or Edge.');
