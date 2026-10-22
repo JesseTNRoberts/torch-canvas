@@ -6979,9 +6979,12 @@ async function reloadFromDisk(auto) {
     toast(auto ? `${f.name} changed on disk; the diagram was updated.` : `Reloaded ${f.name}.`);
   } catch (e) { toast(`Couldn't reload ${f.name}: ${e.message}`); }
 }
-// Watch the open file: follow edits made in another editor when the diagram has no unsaved changes.
-setInterval(async () => {
-  const f = S.file; if (!f || !f.handle || document.visibilityState !== 'visible' || S.drag) return;
+// Follow edits made in another editor when the diagram has no unsaved changes. Browsers have no file-change
+// events, so this runs at once on window focus and when the tab becomes visible, and every 5 s as a fallback.
+let checking = false;
+async function checkDisk() {
+  const f = S.file; if (!f || !f.handle || document.visibilityState !== 'visible' || S.drag || checking) return;
+  checking = true;
   try {
     const file = await f.handle.getFile();
     if (file.lastModified === f.lastModified) return;
@@ -6989,8 +6992,11 @@ setInterval(async () => {
     const text = await file.text(); if (text === f.diskText) return;
     if (!isDirty()) reloadFromDisk(true);
     else { f.changedOnDisk = true; renderFileBar(); }
-  } catch {}
-}, 1500);
+  } catch {} finally { checking = false; }
+}
+window.addEventListener('focus', checkDisk);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkDisk(); });
+setInterval(checkDisk, 5000);
 
 async function openFolder() {
   if (!('showDirectoryPicker' in window)) return toast('Opening folders needs Chrome or Edge.');
