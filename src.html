@@ -1320,7 +1320,7 @@ function renderCode() {
 // last good diagram and is reported in the warnings list. Diagram edits are folded into the open file's text
 // (NN.syncSource), so code the diagram does not describe stays byte for byte.
 let codeTyping = false, codeTimer = null, codeText = '', codeTypeErr = null, codeSyncErr = null, saveTimer = null;
-let autoSave = (() => { try { return localStorage.getItem('torchcanvas.autosave') === '1'; } catch { return false; } })();
+let autoSave = (() => { try { return localStorage.getItem('torchcanvas.autosave') !== '0'; } catch { return true; } })();
 const fileMode = () => !!S.file && S.file.kind === 'py' && typeof S.file.text === 'string';
 function paintCode(text, hl) {
   $('#code').innerHTML = text.replace(/\n$/, '').split('\n').map((ln, i) => `<span class="ln${hl && hl.has(i) ? ' hl' : ''}" data-n="${i + 1}">${highlight(ln) || ' '}</span>`).join('');
