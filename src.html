@@ -48,6 +48,7 @@ button { cursor: pointer; }
 .filebar .fn { font-family: var(--mono); display: flex; align-items: baseline; gap: 6px; min-width: 0; }
 .filebar .fn b { font-weight: 500; }
 .filebar .fn span { color: var(--faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.filebar label.autosave { display: flex; align-items: center; gap: 5px; cursor: pointer; color: var(--muted); }
 .pill { font-size: 11px; padding: 2px 8px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
 .pill.dirty { color: var(--act-ink); border-color: var(--act-bd); background: var(--act-bg); }
 .pill.warn { color: var(--err); border-color: var(--err); background: var(--err-bg); }
@@ -268,6 +269,10 @@ pre.code { margin: 0; padding: 10px 0 24px; font-family: var(--mono); font-size:
 pre.code .ln { display: block; padding: 0 14px 0 0; white-space: pre; }
 pre.code .ln::before { content: attr(data-n); display: inline-block; width: 3.4em; padding-right: 1em; text-align: right; color: var(--faint); user-select: none; }
 pre.code .ln.hl { background: var(--hl); }
+.codewrap { position: relative; min-width: 100%; width: max-content; min-height: 100%; background: var(--code-bg); }
+.codewrap pre.code { position: relative; }
+#codeEdit { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 10px 14px 24px 4.4em; border: 0; border-radius: 0; outline: 0; resize: none; overflow: hidden; white-space: pre; tab-size: 4; background: transparent; color: transparent; caret-color: var(--ink); font: 12px/1.6 var(--mono); }
+#codeEdit::selection { background: color-mix(in srgb, var(--sel) 30%, transparent); color: transparent; }
 .k { color: var(--kw); } .s { color: var(--str); } .nu { color: var(--num); } .c { color: var(--com); font-style: italic; } .cl { color: var(--cls); } .sf { color: var(--muted); }
 .var-float { position: absolute; left: 14px; bottom: 58px; width: min(500px, calc(100% - 28px)); max-height: calc(100% - 110px); display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 10px 34px rgba(20, 20, 40, .16); z-index: 6; }
 .var-float[hidden] { display: none !important; }
@@ -478,7 +483,7 @@ details summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
         <span class="spacer"></span>
         <button class="btn" id="bCopy">Copy code</button>
       </div>
-      <div class="pane" id="codePane"><ul class="warns" id="warns" hidden></ul><pre class="code" id="code"></pre></div>
+      <div class="pane" id="codePane"><ul class="warns" id="warns" hidden></ul><div class="codewrap"><pre class="code" id="code" aria-hidden="true"></pre><textarea id="codeEdit" wrap="off" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="PyTorch code"></textarea></div></div>
     </div>
   </div>
 </div>
@@ -1288,12 +1293,103 @@ function renderCode() {
     }
   }
   S.gen = r;
-  const hl = new Set();
-  const ids = [...S.sel.nodes]; if (S.sel.group) ids.push('g:' + S.sel.group);
-  for (const id of ids) (r.lineMap.get(id) || []).forEach(l => hl.add(l));
-  $('#code').innerHTML = r.code.replace(/\n$/, '').split('\n').map((ln, i) => `<span class="ln${hl.has(i) ? ' hl' : ''}" data-n="${i + 1}">${highlight(ln) || ' '}</span>`).join('');
+  // With a file open the panel shows the file's text (the diagram is folded into it); otherwise it shows the
+  // generated code, or the text being typed while it has not been applied yet.
+  const ta = $('#codeEdit'), focused = document.activeElement === ta, fm = fileMode();
+  ta.readOnly = !!R().libHost;
+  let shown;
+  if (fm) { syncFile(); shown = S.file.text; }
+  else shown = codeTypeErr || (codeTyping && focused) ? ta.value : r.code;
+  const view = shown.replace(/\r\n/g, '\n');
+  if (ta.value !== view) {
+    const s0 = ta.selectionStart, e0 = ta.selectionEnd;
+    ta.value = view;
+    if (focused) ta.setSelectionRange(Math.min(s0, view.length), Math.min(e0, view.length));
+  }
+  // Highlight the lines of the selected layers only while the panel shows the generated code.
+  const hl = new Set(), same = view === r.code;
+  if (same) { const ids = [...S.sel.nodes]; if (S.sel.group) ids.push('g:' + S.sel.group); for (const id of ids) (r.lineMap.get(id) || []).forEach(l => hl.add(l)); }
+  paintCode(view, hl);
   const w = $('#warns'); w.hidden = !r.warnings.length; w.innerHTML = r.warnings.map(x => `<li>${esc(x)}</li>`).join('');
+  showCodeError();
   if (hl.size) { const first = $('#code .ln.hl'); if (first) { const pane = $('#codePane'); const top = first.offsetTop; if (top < pane.scrollTop || top > pane.scrollTop + pane.clientHeight - 40) pane.scrollTop = top - 60; } }
+  if (fm && isDirty()) scheduleAutoSave();
+}
+// ── editable code panel ──
+// Typing re-imports the text after a short pause and replaces the diagram. A text that does not parse keeps the
+// last good diagram and is reported in the warnings list. Diagram edits are folded into the open file's text
+// (NN.syncSource), so code the diagram does not describe stays byte for byte.
+let codeTyping = false, codeTimer = null, codeText = '', codeTypeErr = null, codeSyncErr = null, saveTimer = null;
+let autoSave = (() => { try { return localStorage.getItem('torchcanvas.autosave') !== '0'; } catch { return true; } })();
+const fileMode = () => !!S.file && S.file.kind === 'py' && typeof S.file.text === 'string';
+function paintCode(text, hl) {
+  $('#code').innerHTML = text.replace(/\n$/, '').split('\n').map((ln, i) => `<span class="ln${hl && hl.has(i) ? ' hl' : ''}" data-n="${i + 1}">${highlight(ln) || ' '}</span>`).join('');
+}
+function showCodeError() {
+  const w = $('#warns'), msg = codeTypeErr || codeSyncErr;
+  w.querySelectorAll('li.err').forEach(li => li.remove());
+  if (msg) w.insertAdjacentHTML('afterbegin', `<li class="err">${esc(msg)}</li>`);
+  w.hidden = !w.children.length;
+}
+function syncFile() {
+  const f = S.file;
+  if (codeTimer != null) return; // typed text not applied yet: it is the newer state
+  const key = S.gen.code + '\0' + f.text;
+  if (f.syncKey === key) return;
+  if (!S.live) {
+    try { const out = NN.syncSource(f.text, R(), { root: f.root, gen: genOpts() }); if (out !== f.text.replace(/\r\n/g, '\n')) f.text = out; codeSyncErr = null; }
+    catch (e) { codeSyncErr = `The diagram change could not be written into the code: ${e.message}`; }
+  }
+  f.syncKey = S.gen.code + '\0' + f.text;
+}
+function applyTyped(text) {
+  codeTimer = null;
+  let res;
+  try { res = NN.importPython(text, { root: S.file && S.file.root }); }
+  catch (e) { codeTypeErr = `Code: ${e.message} The diagram keeps its last good version.`; return showCodeError(); }
+  codeTypeErr = null;
+  if (res.literalDims != null) { S.opts.literalDims = res.literalDims; $('#oNamed').checked = !res.literalDims; }
+  const opts = Object.assign({}, genOpts(), { shapeComments: false, literalDims: false });
+  const gen = g => NN.generate(g, Object.assign({}, opts, { className: res.graph.name })).code;
+  let same = false; try { same = gen(res.graph) === gen(R()); } catch {}
+  if (same) return showCodeError();
+  NN.autoLayout(res.graph, sizeOf);
+  if (res.graph.blocks) for (const b of Object.values(res.graph.blocks)) NN.autoLayout(b.graph, sizeOf);
+  if (S.file) saveLayout();
+  syncLinked(res.graph);
+  S.live = true;
+  try { commit(() => { setModel(res.graph); if (S.file) restoreLayout(); clearSel(); }); }
+  finally { S.live = false; }
+  if (res.warnings.length) { const w = $('#warns'); w.hidden = false; w.innerHTML += res.warnings.map(x => `<li>Import: ${esc(x)}</li>`).join(''); }
+  showCodeError();
+}
+// Apply typed text now instead of after the debounce (before saving, leaving the panel, or opening another file).
+function flushTyped() { if (codeTimer == null) return; clearTimeout(codeTimer); applyTyped(codeText); }
+function scheduleAutoSave() {
+  clearTimeout(saveTimer);
+  if (autoSave) saveTimer = setTimeout(() => { if (autoSave && fileMode() && S.file.handle && !S.file.changedOnDisk && !codeTypeErr && codeTimer == null && isDirty()) saveFile(true); }, 700);
+}
+function setAutoSave(on) {
+  autoSave = on;
+  try { localStorage.setItem('torchcanvas.autosave', on ? '1' : '0'); } catch {}
+  if (on) scheduleAutoSave(); else clearTimeout(saveTimer);
+}
+{
+  const ta = $('#codeEdit');
+  ta.addEventListener('input', () => {
+    codeTyping = true;
+    codeText = ta.value;
+    if (fileMode()) { S.file.text = codeText; renderFileBar(); }
+    paintCode(codeText, null);
+    clearTimeout(codeTimer); codeTimer = setTimeout(() => applyTyped(codeText), 350);
+    scheduleAutoSave();
+  });
+  ta.addEventListener('blur', () => { flushTyped(); codeTyping = false; if (!codeTypeErr) renderCode(); });
+  ta.addEventListener('keydown', e => {
+    if (e.key !== 'Tab' || e.shiftKey || e.metaKey || e.ctrlKey || e.altKey || ta.readOnly) return;
+    e.preventDefault();
+    if (!document.execCommand('insertText', false, '    ')) { const a = ta.selectionStart; ta.setRangeText('    ', a, ta.selectionEnd, 'end'); ta.dispatchEvent(new Event('input')); }
+  });
 }
 const PY = /(#.*$)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|\b(import|from|as|class|def|return|if|for|in|not|and|or|None|True|False|super|lambda|with)\b|\b(self)\b|\b(\d+(?:\.\d+)?)\b|\b([A-Z]\w*)\b/g;
 function highlight(line) {
@@ -3245,6 +3341,7 @@ $('#imGo').onclick = () => {
 
 // Turn source text into a diagram. file = {name, path, handle?, lastModified?} when it came from disk.
 function importText(text, file, o = {}) {
+  flushTyped();
   const k = kind(text);
   let res;
   try {
@@ -3256,12 +3353,13 @@ function importText(text, file, o = {}) {
     if (o.throwErrors) throw ex;
     toast(`${file ? file.name + ': ' : ''}${ex.message}`); return false;
   }
+  codeTypeErr = null; codeSyncErr = null;
   if (k !== 'graph') NN.autoLayout(res.graph, sizeOf);
   if (res.literalDims != null) { S.opts.literalDims = res.literalDims; $('#oNamed').checked = !res.literalDims; }
   if (res.graph.blocks) for (const b of Object.values(res.graph.blocks)) NN.autoLayout(b.graph, sizeOf);
   if (o.replace) { S.file = null; syncLinked(res.graph); commit(() => { setModel(res.graph); clearSel(); }); } // reloading the open file: same tab
   else openDoc(res.graph, null, { byName: !!o.libTitle }); // anything else opens in a new tab
-  S.file = file ? Object.assign({}, file, { kind: k, diskText: text, used: res.usedClasses || [], root: o.root, changedOnDisk: false }) : null;
+  S.file = file ? Object.assign({}, file, { kind: k, diskText: text, text, used: res.usedClasses || [], root: o.root, changedOnDisk: false }) : null;
   if (S.file) restoreLayout();
   S.file && (S.file.savedCode = NN.generate(R(), genOpts()).code);
   changed(); fit();
@@ -3303,39 +3401,57 @@ async function ensureWrite(h) {
   return (await h.requestPermission({ mode: 'readwrite' })) === 'granted';
 }
 async function writeHandle(h, text) { const w = await h.createWritable(); await w.write(text); await w.close(); return h.getFile(); }
-async function saveFile() {
+async function saveFile(quiet = false) {
   if (!S.file || !S.file.handle || S.file.kind === 'fx') return saveAs();
-  const h = S.file.handle, name = S.file.name;
+  flushTyped();
+  if (fileMode() && codeTypeErr) return quiet ? undefined : toast('Fix the error in the code before saving. The diagram keeps its last good version.');
+  const h = S.file.handle, name = S.file.name, cur = S.file;
   try {
-    if (!(await ensureWrite(h))) return toast('Chrome needs write permission to save. Press Save again and choose Allow.');
+    // Auto-save runs without a user gesture, so it never asks for permission.
+    if (quiet) { if (h.queryPermission && (await h.queryPermission({ mode: 'readwrite' })) !== 'granted') return; }
+    else if (!(await ensureWrite(h))) return toast('Chrome needs write permission to save. Press Save again and choose Allow.');
     const disk = await (await h.getFile()).text();
-    if (disk !== S.file.diskText && !(await ask(`${name} changed on disk since it was opened. Saving merges the diagram into the newer version.`, 'Save anyway'))) return;
+    const moved = disk !== S.file.diskText;
+    if (moved) {
+      if (quiet) { S.file.changedOnDisk = true; renderFileBar(); return; }
+      if (!(await ask(`${name} changed on disk since it was opened. Saving merges the diagram into the newer version.`, 'Save anyway'))) return;
+    }
     const gen = NN.generate(R(), genOpts()).code;
-    let out;
+    let out, synced = false;
     if (S.file.kind === 'graph') out = JSON.stringify(R(), null, 1);
     else {
-      out = NN.mergeIntoSource(disk, gen, S.file.used);
-      if (out == null) { if (!(await ask(`The model's classes aren't in ${name} any more. Replace the whole file with the generated code?`, 'Replace file'))) return; out = gen; }
+      // Patch only the statements the diagram changed in the working text; fall back to replacing the model classes.
+      const src = moved ? disk : S.file.text;
+      try { out = NN.syncSource(src, R(), { root: S.file.root, gen: genOpts() }); synced = out != null; } catch {}
+      if (out == null) out = NN.mergeIntoSource(src, gen, S.file.used);
+      if (out == null) {
+        if (quiet || !(await ask(`The model's classes aren't in ${name} any more. Replace the whole file with the generated code?`, 'Replace file'))) return;
+        out = gen;
+      }
     }
     const f = await writeHandle(h, out);
     let used = S.file.used; try { if (S.file.kind === 'py') used = NN.importPython(out, { root: S.file.root }).usedClasses; } catch {}
-    Object.assign(S.file, { diskText: out, lastModified: f.lastModified, savedCode: gen, used, changedOnDisk: false });
+    Object.assign(S.file, { diskText: out, text: out, lastModified: f.lastModified, savedCode: gen, used, changedOnDisk: false });
     renderFileBar();
-    toast(`Saved ${name}. Only the model classes changed; the rest of the file is untouched.`, { label: 'Undo', run: async () => { const f2 = await writeHandle(h, disk); Object.assign(S.file, { diskText: disk, lastModified: f2.lastModified, savedCode: null }); renderFileBar(); toast(`Restored the previous ${name}.`); } });
-  } catch (e) { if (!isAbort(e)) toast(`Couldn't save ${name}: ${e.message}`); }
+    if (quiet) return;
+    toast(`Saved ${name}. ${synced ? 'Only the lines you changed were rewritten; the rest of the file is untouched.' : 'Only the model classes changed; the rest of the file is untouched.'}`, { label: 'Undo', run: async () => { const f2 = await writeHandle(h, disk); if (S.file === cur) loadFileText(cur, disk, f2.lastModified); toast(`Restored the previous ${name}.`); } });
+  } catch (e) { if (!isAbort(e) && !quiet) toast(`Couldn't save ${name}: ${e.message}`); }
 }
 async function saveAs() {
+  flushTyped();
+  if (fileMode() && codeTypeErr) return toast('Fix the error in the code before saving. The diagram keeps its last good version.');
   const gen = NN.generate(R(), genOpts()).code;
+  const text = fileMode() ? S.file.text : gen; // the open file's working text, not a regenerated one
   if ('showSaveFilePicker' in window) {
     try {
       const h = await showSaveFilePicker({ suggestedName: (S.g.name || 'model').replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase() + '.py', types: PY_TYPES });
-      const f = await writeHandle(h, gen);
-      let used = []; try { used = NN.importPython(gen).usedClasses; } catch {}
-      S.file = { name: f.name, path: f.name, handle: h, kind: 'py', diskText: gen, used, savedCode: gen, lastModified: f.lastModified };
+      const f = await writeHandle(h, text);
+      let used = []; try { used = NN.importPython(text).usedClasses; } catch {}
+      S.file = { name: f.name, path: f.name, handle: h, kind: 'py', diskText: text, text, used, savedCode: gen, lastModified: f.lastModified };
       renderFileBar(); rememberHandles(); toast(`Saved ${f.name}.`); return;
     } catch (e) { if (isAbort(e)) return; if (e.name !== 'SecurityError') return toast(e.message); }
   }
-  copyText(gen, 'This sandboxed page cannot save files, so the code was copied instead. The local version (npm start) saves directly.');
+  copyText(text, 'This sandboxed page cannot save files, so the code was copied instead. The local version (npm start) saves directly.');
 }
 // In-page confirmation (dialogs are blocked in sandboxed frames)
 function ask(msg, okLabel) {
@@ -3349,7 +3465,11 @@ function ask(msg, okLabel) {
     el.querySelector('#askOk').focus();
   });
 }
-function isDirty() { return S.file && S.gen && S.file.savedCode != null && S.gen.code !== S.file.savedCode; }
+function isDirty() {
+  if (!S.file || !S.gen) return false;
+  if (fileMode() && S.file.text !== S.file.diskText) return true;
+  return S.file.savedCode != null && S.gen.code !== S.file.savedCode;
+}
 function renderFileBar() {
   const bar = $('#fileBar'); if (bar.querySelector('.ask')) return;
   const f = S.file;
@@ -3363,28 +3483,36 @@ function renderFileBar() {
   else if (isDirty()) pill = '<span class="pill dirty">unsaved changes</span>';
   bar.innerHTML = `<span class="fn"><b>${esc(f.name)}</b>${where ? `<span>in ${esc(where)}</span>` : ''}</span>${pill}
     <span class="spacer"></span>
+    ${f.handle && f.kind === 'py' ? `<label class="autosave" title="Save 0.7 s after each edit. Paused while the file has changed on disk."><input type="checkbox" id="fbAuto"${autoSave ? ' checked' : ''}> Auto-save</label>` : ''}
     ${f.handle && f.kind !== 'fx' ? `<button class="btn primary" id="fbSave" title="Ctrl+S">Save to ${esc(f.name)}</button>` : ''}
     <button class="btn" id="fbSaveAs">Save as…</button>
     ${f.handle ? '<button class="btn" id="fbReload">Reload from disk</button>' : ''}
     <button class="btn" id="fbClose">Close file</button>
     ${!f.handle ? `<span class="hint" style="width:100%">${esc('showOpenFilePicker' in window ? SANDBOX : 'Opened read-only; this browser cannot write files back. Chrome or Edge can.')}</span>` : ''}`;
   const on = (id, fn) => { const b = bar.querySelector('#' + id); if (b) b.onclick = fn; };
-  on('fbSave', saveFile); on('fbSaveAs', saveAs);
+  on('fbSave', () => saveFile()); on('fbSaveAs', saveAs);
+  const au = bar.querySelector('#fbAuto'); if (au) au.onchange = () => setAutoSave(au.checked);
   on('fbReload', () => reloadFromDisk(false));
   on('fbClose', () => { S.file = null; renderFileBar(); renderProject(); });
+}
+// Replace the open file's text and diagram with text read from disk.
+function loadFileText(f, text, lastModified) {
+  importText(text, { name: f.name, path: f.path, handle: f.handle, lastModified, inDir: f.inDir }, { root: f.root, quiet: true, replace: true });
 }
 async function reloadFromDisk(auto) {
   const f = S.file; if (!f || !f.handle) return;
   try {
     const file = await f.handle.getFile(); const text = await file.text();
-    const keep = { name: f.name, path: f.path, handle: f.handle, lastModified: file.lastModified, inDir: f.inDir };
-    importText(text, keep, { root: f.root, quiet: true, replace: true });
+    loadFileText(f, text, file.lastModified);
     toast(auto ? `${f.name} changed on disk; the diagram was updated.` : `Reloaded ${f.name}.`);
   } catch (e) { toast(`Couldn't reload ${f.name}: ${e.message}`); }
 }
-// Watch the open file: follow edits made in another editor when the diagram has no unsaved changes.
-setInterval(async () => {
-  const f = S.file; if (!f || !f.handle || document.visibilityState !== 'visible' || S.drag) return;
+// Follow edits made in another editor when the diagram has no unsaved changes. Browsers have no file-change
+// events, so this runs at once on window focus and when the tab becomes visible, and every 5 s as a fallback.
+let checking = false;
+async function checkDisk() {
+  const f = S.file; if (!f || !f.handle || document.visibilityState !== 'visible' || S.drag || checking) return;
+  checking = true;
   try {
     const file = await f.handle.getFile();
     if (file.lastModified === f.lastModified) return;
@@ -3392,8 +3520,11 @@ setInterval(async () => {
     const text = await file.text(); if (text === f.diskText) return;
     if (!isDirty()) reloadFromDisk(true);
     else { f.changedOnDisk = true; renderFileBar(); }
-  } catch {}
-}, 1500);
+  } catch {} finally { checking = false; }
+}
+window.addEventListener('focus', checkDisk);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkDisk(); });
+setInterval(checkDisk, 5000);
 
 async function openFolder() {
   if (!('showDirectoryPicker' in window)) return toast('Opening folders needs Chrome or Edge.');
