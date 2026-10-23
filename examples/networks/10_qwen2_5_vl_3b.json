@@ -1,6 +1,7 @@
 {
  "title": "Qwen2.5-VL 3B",
  "description": "Qwen2.5-VL-3B-Instruct as Qwen2_5_VLForConditionalGeneration, giving the same output as the reference implementation in Hugging Face transformers. Inputs as Qwen's processor gives them: pixel_values (every image's 14 \u00d7 14 \u00d7 2-frame patches, 1176 values each, one list for all images), image_grid_thw (frames, rows, columns of patches per image) and input_ids (with image placeholder tokens). Vision: patch embedding, patches put in window order, 4 \u00d7 Qwen2_5_VLVisionStage (32 blocks: 2D rotary positions, attention within 112-pixel windows except every eighth block, which attends over the whole frame), patch merger, original order restored. The image features replace the placeholder tokens; 36 \u00d7 Qwen2_5_VLDecoderLayer with M-RoPE 3-D positions; final RMSNorm and an LM head tied to the embedding. 3,754,622,976 parameters.",
+ "category": "Vision & multimodal transformers",
  "graph": {
   "name": "Qwen2_5_VLForConditionalGeneration",
   "symbols": {

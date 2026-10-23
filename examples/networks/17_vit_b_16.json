@@ -1,6 +1,7 @@
 {
  "title": "ViT-B/16 (ImageNet)",
  "description": "The Vision Transformer, as torchvision's vit_b_16: the 224 \u00d7 224 image is cut into 16 \u00d7 16 patches by a strided convolution (196 patches of 768 features), a learned class token goes in front, learned position embeddings are added, then 12 pre-norm encoder blocks (12-head self-attention and a GELU MLP of width 3072), a final LayerNorm, and a 1000-way Linear on the class token. 86.6M parameters, the same as torchvision.",
+ "category": "Vision & multimodal transformers",
  "graph": {
   "name": "ViT_B_16",
   "symbols": {

@@ -1,6 +1,7 @@
 {
  "title": "Residual CNN, global average pooling head",
  "description": "The CNN from the inductive-bias lecture: a 5\u00d75 conv stem, then three pre-norm residual blocks (GroupNorm \u2192 ReLU \u2192 3\u00d73 conv, twice, plus a clean identity skip) with 2\u00d72 max pooling, a final GroupNorm and ReLU, then global average pooling (adaptive average pool to 1 \u00d7 1) and one Linear. Position is averaged away before the classifier. 57,098 parameters.",
+ "category": "Convolutional networks",
  "graph": {
   "name": "ResCNN",
   "symbols": {

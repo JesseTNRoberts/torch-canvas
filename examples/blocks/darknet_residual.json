@@ -1,6 +1,7 @@
 {
  "title": "DarknetResidual",
  "description": "Darknet-53 residual block: a 1\u00d71 DarknetConv to half the channels, a 3\u00d73 back to the channels, plus the input.",
+ "category": "Convolutional blocks",
  "graph": {
   "name": "DarknetResidual",
   "symbols": {

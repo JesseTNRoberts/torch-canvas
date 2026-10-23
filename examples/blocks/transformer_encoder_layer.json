@@ -1,6 +1,7 @@
 {
  "title": "EncoderLayer",
  "description": "A Transformer encoder layer (post-norm, as nn.TransformerEncoderLayer): multi-head self-attention, dropout, residual add, LayerNorm; then Linear \u2192 ReLU \u2192 dropout \u2192 Linear, dropout, residual add, LayerNorm.",
+ "category": "Transformer blocks",
  "labels": "n_head=heads, ff=feed-forward width",
  "graph": {
   "name": "EncoderLayer",

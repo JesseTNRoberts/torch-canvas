@@ -1,5 +1,6 @@
 # title: LinearReLU
 # description: A Linear layer followed by ReLU; repeat it to make a deep MLP.
+# category: MLP blocks
 import torch.nn as nn
 import torch.nn.functional as F
 

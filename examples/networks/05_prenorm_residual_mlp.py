@@ -1,5 +1,6 @@
 # title: Pre-norm residual MLP
 # description: A transformer-style stack: four pre-LayerNorm GELU MLP blocks with residual connections, then a classifier.
+# category: MLPs
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

@@ -1,6 +1,7 @@
 {
  "title": "U-Net (segmentation)",
  "description": "U-Net as in milesial/Pytorch-UNet (bilinear=False): an encoder of DoubleConv and four Down steps (64 \u2192 1024 channels, 256 \u2192 16 pixels), a decoder of four Up steps that double the size with a transposed convolution and join the encoder's map at the same size (the skip connections), and a 1\u00d71 convolution to a score per class per pixel. Trained with per-pixel cross-entropy against a mask of class indices. 31,037,698 parameters, the same as the reference.",
+ "category": "Convolutional networks",
  "graph": {
   "name": "UNet",
   "symbols": {

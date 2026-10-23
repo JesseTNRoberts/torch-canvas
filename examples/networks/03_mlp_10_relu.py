@@ -1,5 +1,6 @@
 # title: MLP, 10 layers, ReLU
 # description: A plain deep MLP: 10 Linear layers with ReLU between them. Good for seeing how depth and init affect the signal.
+# category: MLPs
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

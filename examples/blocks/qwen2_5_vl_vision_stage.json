@@ -1,6 +1,7 @@
 {
  "title": "Qwen2_5_VLVisionStage",
  "description": "Eight Qwen2.5-VL vision blocks: seven attending within 112-pixel windows (window_mask), then one attending over each whole frame (frame_mask). Four of these make the 32-block vision encoder.",
+ "category": "Transformer blocks",
  "graph": {
   "name": "Qwen2_5_VLVisionStage",
   "symbols": {

@@ -1,6 +1,7 @@
 {
  "title": "BERT-base (masked LM)",
  "description": "BERT-base as BertForMaskedLM: word, position and token-type embeddings with a LayerNorm, 12 \u00d7 BertLayer (post-norm: bidirectional self-attention, then a GELU feed-forward, each followed by add & LayerNorm), and the masked-LM head whose decoder shares its weights with the word embedding. 109,514,298 parameters, BERT initialization N(0, 0.02).",
+ "category": "Transformers",
  "graph": {
   "name": "BertForMaskedLM",
   "symbols": {

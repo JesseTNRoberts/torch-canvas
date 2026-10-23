@@ -1,6 +1,7 @@
 {
  "title": "GPT-2 (124M architecture)",
  "description": "GPT-2 small: token and position embeddings, 12 \u00d7 GPT2Block (pre-norm causal self-attention and a tanh-GELU MLP, with dropout), a final LayerNorm and the LM head. GPT-2 initialization: N(0, 0.02), residual projections scaled by 1/\u221a24. The LM head shares its weights with the token embedding (weight tying), as in GPT-2: 124,439,808 parameters.",
+ "category": "Transformers",
  "graph": {
   "name": "GPT2",
   "symbols": {

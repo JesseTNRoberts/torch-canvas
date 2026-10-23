@@ -1,6 +1,7 @@
 {
  "title": "LlamaDecoderLayer",
  "description": "Llama decoder layer: pre-RMSNorm causal self-attention with rotary position embeddings on q and k, then a SwiGLU MLP, each with a residual. No biases.",
+ "category": "Transformer blocks",
  "labels": "n_head=heads, ff=MLP width",
  "graph": {
   "name": "LlamaDecoderLayer",

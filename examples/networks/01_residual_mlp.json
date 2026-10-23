@@ -1,6 +1,7 @@
 {
  "title": "Residual MLP",
  "description": "The reference diagram: a down projection, three gated residual branches and a gated head, every layer drawn out.",
+ "category": "MLPs",
  "graph": {
   "name": "ResidualMLP",
   "symbols": {

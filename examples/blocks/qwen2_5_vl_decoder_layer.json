@@ -1,6 +1,7 @@
 {
  "title": "Qwen2_5_VLDecoderLayer",
  "description": "Qwen2.5 decoder layer: pre-RMSNorm causal self-attention with M-RoPE positions (time, row, column; sections 16/24/24, base 1e6) where 16 query heads share 2 key/value heads (bias on q, k, v), then a SwiGLU MLP, each with a residual. Inputs: hidden states and the 3-D positions.",
+ "category": "Transformer blocks",
  "graph": {
   "name": "Qwen2_5_VLDecoderLayer",
   "symbols": {

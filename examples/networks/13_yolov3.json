@@ -1,6 +1,7 @@
 {
  "title": "YOLOv3 (416, COCO)",
  "description": "YOLOv3 as in Darknet's yolov3.cfg: the Darknet-53 backbone (Conv-BN-LeakyReLU layers and 1 + 2 + 8 + 8 + 4 residual blocks), then detection at three scales: 13 \u00d7 13 for large objects, and 26 \u00d7 26 and 52 \u00d7 52 after upsampling and joining the backbone's features. Each output has 255 = 3 boxes \u00d7 (4 coordinates + objectness + 80 classes) channels per cell. 61.9M parameters.",
+ "category": "Convolutional networks",
  "graph": {
   "name": "YOLOv3",
   "symbols": {

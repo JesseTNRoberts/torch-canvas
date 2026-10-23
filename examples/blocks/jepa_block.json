@@ -1,6 +1,7 @@
 {
  "title": "JEPABlock",
  "description": "I-JEPA's Vision Transformer block (as timm's): pre-norm multi-head self-attention and a GELU MLP (4\u00d7 width), each with a residual add; LayerNorm eps 1e-6; weights N(0, 0.02), zero biases.",
+ "category": "Transformer blocks",
  "labels": "n_head=heads, ff=MLP width",
  "graph": {
   "name": "JEPABlock",

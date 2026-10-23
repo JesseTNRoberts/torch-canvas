@@ -22,6 +22,21 @@ Without Actions: choose **Source: Deploy from a branch** (main, / root) instead;
 
 On Pages the app works as the single-file version: the example library is what was built into `index.html`, and edits to library blocks, new blocks and open tabs are kept in each visitor's browser. Writing blocks back to `examples/` needs `npm start` on your own machine. Opening and saving files and folders works in Chrome and Edge (Pages is served over https).
 
+## Developer tools
+
+`tools/dev/` holds the scripts used while changing the app:
+
+- `node tools/dev/regress.js out/` writes the generated code of every example network (both styles) to `out/`. Run it before and after a change and `diff -r` the two folders: any difference is a change in the code users get.
+- `node tools/dev/vcmp.js old/examples examples` compares the variance plot of every example network with a saved copy of `examples/`.
+- `python tools/dev/applylayout.py networks/NN_name.json blocks/name.json` lays out residual networks the house way: the stream across the top through the + nodes, each sublayer a column below its +, input bottom-left (needs playwright and a built `index.html`).
+- `python tools/dev/syncblocks.py` copies the layouts of `examples/blocks/` into the block copies embedded in the example networks.
+
+The `tools/check_*.py` scripts compare an example's exported code with the reference implementation in PyTorch, and `tools/measure_variance.py` measures what the variance plot predicts.
+
+## Example categories
+
+Every file in `examples/` names its menu category: a `"category"` field next to `"description"` in a `.json`, or a `# category: …` comment line at the top of a `.py`. Network categories are listed in `NET_CATS` and block categories in `BLOCK_CATS` in `src.html`; that order is the menu order. A category that isn't in those lists is shown before **Other**, and a file with no category goes under **Other**.
+
 ## Linking to an example
 
 Add `?open=` and an example's name to the address to open that model directly:

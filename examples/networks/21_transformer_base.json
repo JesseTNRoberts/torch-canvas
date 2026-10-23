@@ -1,6 +1,7 @@
 {
  "title": "Transformer (encoder-decoder)",
  "description": "The original Transformer, \"Attention Is All You Need\" (base: d = 512, 8 heads, feed-forward 2048, 6 + 6 layers, dropout 0.1), computed as nn.Transformer does (post-norm, with a final LayerNorm on the encoder and the decoder). Source and target tokens share one embedding (37,000 BPE tokens), scaled by \u221ad, plus fixed sinusoidal positions; the encoder's output (memory) goes to the cross-attention of every decoder layer; the output projection shares the embedding's weights. Trained on the next target token with label smoothing 0.1. 63,084,544 parameters.",
+ "category": "Transformers",
  "graph": {
   "name": "Transformer",
   "symbols": {

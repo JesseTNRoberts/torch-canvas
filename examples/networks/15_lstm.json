@@ -1,6 +1,7 @@
 {
  "title": "LSTM",
  "description": "A long short-term memory network drawn flat: four gates (input i, forget f, cell g, output o), each from x and from h_prev; then c = f \u2299 c_prev + i \u2299 g and h = o \u2299 tanh(c). Delays carry h and c to the next step. Same parameters and outputs as nn.LSTM(16, 64) (its weight_ih is the four gates' ih weights stacked); a Linear reads 8 values out of every step, trained by mean squared error against a target sequence.",
+ "category": "Recurrent & state space",
  "graph": {
   "name": "LSTM",
   "symbols": {

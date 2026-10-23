@@ -1,6 +1,7 @@
 {
  "title": "I-JEPA (small)",
  "description": "A small I-JEPA (facebookresearch/ijepa: ViT encoder and predictor; 32 \u00d7 32 images, 4 \u00d7 4 patches, width 192, 6 + 3 layers). The context encoder sees only the context patches (ctx_idx); the predictor, given their embeddings plus a mask token at each target position (tgt_idx), predicts the target patches' embeddings; the target encoder sees the whole image and gives the embeddings to predict. It follows the context encoder (an EMA tie: a copy that gets no gradients, moved toward it after each step, momentum 0.996 \u2192 1.0), as does its patch embedding. Fixed 2-D sine/cosine positions (frozen); smooth L1 loss. train.py draws I-JEPA's block masks for every batch.",
+ "category": "Generative & self-supervised",
  "graph": {
   "name": "IJEPA",
   "symbols": {

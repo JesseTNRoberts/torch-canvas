@@ -1,7 +1,8 @@
 {
  "title": "YoloDetect",
- "description": "A YOLOv3 detection head: a 3×3 DarknetConv to twice the channels, then a 1×1 convolution with bias to n_out = 3 × (5 + classes) values per cell.",
- "labels": "n_out=outputs per cell: 3 × (5 + classes)",
+ "description": "A YOLOv3 detection head: a 3\u00d73 DarknetConv to twice the channels, then a 1\u00d71 convolution with bias to n_out = 3 \u00d7 (5 + classes) values per cell.",
+ "category": "Convolutional blocks",
+ "labels": "n_out=outputs per cell: 3 \u00d7 (5 + classes)",
  "graph": {
   "name": "YoloDetect",
   "symbols": {

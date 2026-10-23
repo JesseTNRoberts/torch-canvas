@@ -1,6 +1,7 @@
 {
  "title": "GatedBlock",
  "description": "Pre-norm gated residual branch: x + (\u03c3(N W) \u2299 N W \u2299 N V) W_out, with N = RMSNorm(x).",
+ "category": "MLP blocks",
  "labels": "h=hidden",
  "graph": {
   "name": "GatedBlock",

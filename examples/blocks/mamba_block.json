@@ -1,6 +1,7 @@
 {
  "title": "MambaBlock",
  "description": "Mamba residual block (transformers' MambaBlock with MambaMixer): RMSNorm; in_proj split into in_x and in_z; causal depthwise Conv1d and SiLU on x (u); x_proj split into \u0394 (low rank, then dt_proj and softplus), B and C; the selective scan h_t = exp(\u0394_t\u00b7A) \u2299 h_{t\u22121} + \u0394_t\u00b7B_t\u00b7u_t with A = \u2212exp(A_log), drawn flat with a Delay; y = \u03a3_n h\u00b7C + D\u00b7u; gated by SiLU(z); out_proj; residual.",
+ "category": "Recurrent & state space blocks",
  "labels": "d_inner=inner width, d_state=state size, dt_rank=\u0394 rank",
  "graph": {
   "name": "MambaBlock",

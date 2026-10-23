@@ -1,6 +1,7 @@
 # title: PreNormMLP
 # description: Transformer-style MLP with a residual: x + W2 GELU(W1 LayerNorm(x)).
 # labels: hidden=hidden
+# category: MLP blocks
 import torch.nn as nn
 import torch.nn.functional as F
 

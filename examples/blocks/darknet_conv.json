@@ -1,6 +1,7 @@
 {
  "title": "DarknetConv",
- "description": "Darknet's convolutional layer: Conv k×k with padding k // 2 and no bias, BatchNorm, LeakyReLU(0.1).",
+ "description": "Darknet's convolutional layer: Conv k\u00d7k with padding k // 2 and no bias, BatchNorm, LeakyReLU(0.1).",
+ "category": "Convolutional blocks",
  "labels": "c_out=output channels, k=kernel, stride=stride",
  "graph": {
   "name": "DarknetConv",

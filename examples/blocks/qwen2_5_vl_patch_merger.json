@@ -1,6 +1,7 @@
 {
  "title": "Qwen2_5_VLPatchMerger",
- "description": "Qwen2.5-VL patch merger: RMSNorm, then each 2 × 2 group of patches side by side, Linear → GELU → Linear to the language model width.",
+ "description": "Qwen2.5-VL patch merger: RMSNorm, then each 2 \u00d7 2 group of patches side by side, Linear \u2192 GELU \u2192 Linear to the language model width.",
+ "category": "Transformer blocks",
  "graph": {
   "name": "Qwen2_5_VLPatchMerger",
   "symbols": {
@@ -44,7 +45,7 @@
     "params": {
      "pattern": "(n g) d -> n (g d)",
      "sizes": "g=4",
-     "note": "Each group of 4 neighbouring patches (a 2 × 2 square, already next to each other in the patch order) becomes one token with their features side by side.",
+     "note": "Each group of 4 neighbouring patches (a 2 \u00d7 2 square, already next to each other in the patch order) becomes one token with their features side by side.",
      "title": "merge 4 patches",
      "var": ""
     }

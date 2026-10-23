@@ -1,6 +1,7 @@
 {
  "title": "Residual CNN, dense head",
  "description": "The same residual CNN, but the 32 \u00d7 7 \u00d7 7 feature maps are flattened into one Linear. Every position gets its own classifier weights, so the dense head brings back the addresses convolution removed. 72,458 parameters.",
+ "category": "Convolutional networks",
  "graph": {
   "name": "ResCNNDense",
   "symbols": {

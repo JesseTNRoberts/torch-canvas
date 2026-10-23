@@ -1,6 +1,7 @@
 {
  "title": "Residual MLP with a block",
  "description": "The same network with the gated branch defined once as GatedBlock and repeated 3 times.",
+ "category": "MLPs",
  "graph": {
   "name": "ResidualMLP",
   "symbols": {

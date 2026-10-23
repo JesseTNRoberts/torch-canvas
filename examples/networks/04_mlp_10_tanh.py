@@ -1,5 +1,6 @@
 # title: MLP, 10 layers, Tanh
 # description: The same 10-layer MLP with Tanh between the layers.
+# category: MLPs
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

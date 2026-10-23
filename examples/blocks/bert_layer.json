@@ -1,6 +1,7 @@
 {
  "title": "BertLayer",
  "description": "BERT encoder layer (post-norm): bidirectional multi-head self-attention, then a GELU feed-forward, each followed by add & LayerNorm.",
+ "category": "Transformer blocks",
  "labels": "n_head=heads, ff=FFN width",
  "graph": {
   "name": "BertLayer",

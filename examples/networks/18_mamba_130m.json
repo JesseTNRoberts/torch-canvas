@@ -1,6 +1,7 @@
 {
  "title": "Mamba-130M",
  "description": "Mamba (state-spaces/mamba-130m, as transformers' MambaForCausalLM): token embeddings, 24 MambaBlocks (RMSNorm, then the selective state space mixer: input projections, a causal depthwise convolution, input-dependent \u0394, B and C, and the scan h = exp(\u0394\u00b7A) \u2299 h_prev + \u0394\u00b7B\u00b7u drawn flat with a Delay, read out by C, plus D\u00b7u, gated by SiLU(z)), a final RMSNorm and an LM head tied to the embeddings, trained on the next token. 129M parameters, the same as the reference.",
+ "category": "Recurrent & state space",
  "graph": {
   "name": "Mamba",
   "symbols": {

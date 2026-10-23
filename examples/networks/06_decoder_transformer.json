@@ -1,6 +1,7 @@
 {
  "title": "Decoder-only transformer, fully expanded",
  "description": "A 2-layer GPT-style decoder with every layer drawn out: token and position embeddings, causal multi-head self-attention, a GELU MLP, residuals, LayerNorms and the LM head.",
+ "category": "Transformers",
  "graph": {
   "name": "DecoderTransformer",
   "symbols": {

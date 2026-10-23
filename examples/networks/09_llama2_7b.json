@@ -1,6 +1,7 @@
 {
  "title": "Llama 2 7B",
  "description": "Llama 2 7B as LlamaForCausalLM: token embedding, 32 \u00d7 LlamaDecoderLayer (pre-norm with RMSNorm; causal self-attention with rotary position embeddings on q and k; a SwiGLU MLP, down(silu(gate(x)) \u00b7 up(x))), a final RMSNorm and an untied LM head. No biases. 6,738,415,616 parameters, initialization N(0, 0.02). The code builds the full model, about 27 GB in float32.",
+ "category": "Transformers",
  "graph": {
   "name": "LlamaForCausalLM",
   "symbols": {

@@ -12,10 +12,10 @@ function readEntry(file, kind) {
   const ext = path.extname(file).toLowerCase();
   const entry = { kind, file: path.relative(path.join(__dirname, 'examples'), file).split(path.sep).join('/'), type: ext === '.json' ? 'json' : 'py', source };
   if (entry.type === 'json') {
-    try { const j = JSON.parse(source); entry.title = j.title; entry.description = j.description; if (j.labels) entry.labels = j.labels; } catch { return null; }
+    try { const j = JSON.parse(source); entry.title = j.title; entry.description = j.description; if (j.labels) entry.labels = j.labels; const c = j.category || (j.graph && j.graph.category); if (c) entry.category = c; } catch { return null; }
   } else {
     const meta = {};
-    for (const line of source.split('\n')) { const m = /^#\s*(title|description|labels)\s*:\s*(.*)$/i.exec(line); if (m) meta[m[1].toLowerCase()] = m[2].trim(); else if (line.trim() && !line.startsWith('#')) break; }
+    for (const line of source.split('\n')) { const m = /^#\s*(title|description|labels|category)\s*:\s*(.*)$/i.exec(line); if (m) meta[m[1].toLowerCase()] = m[2].trim(); else if (line.trim() && !line.startsWith('#')) break; }
     Object.assign(entry, meta);
   }
   entry.title = entry.title || path.basename(file, ext).replace(/^\d+_/, '').replace(/_/g, ' ');

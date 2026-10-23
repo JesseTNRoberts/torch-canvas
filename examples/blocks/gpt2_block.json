@@ -1,6 +1,7 @@
 {
  "title": "GPT2Block",
  "description": "GPT-2 transformer block: pre-LayerNorm causal multi-head self-attention and a tanh-GELU MLP, each with dropout and a residual.",
+ "category": "Transformer blocks",
  "labels": "n_head=heads, ff=MLP width",
  "graph": {
   "name": "GPT2Block",

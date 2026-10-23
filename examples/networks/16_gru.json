@@ -1,6 +1,7 @@
 {
  "title": "GRU",
  "description": "A gated recurrent unit drawn flat: reset r and update z gates from x and h_prev, the candidate n = tanh(W_in\u00b7x + r \u2299 (W_hn\u00b7h_prev)), then h = (1 \u2212 z) \u2299 n + z \u2299 h_prev, with a Delay carrying h to the next step. Same parameters and outputs as nn.GRU(16, 64); a Linear reads 8 values out of every step, trained by mean squared error against a target sequence.",
+ "category": "Recurrent & state space",
  "graph": {
   "name": "GRU",
   "symbols": {

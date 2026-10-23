@@ -1,6 +1,7 @@
 {
  "title": "ResNet-50 (ImageNet)",
  "description": "ResNet-50 as in torchvision (v1.5, stride on the 3\u00d73): a 7\u00d77 stem and max pool, then four stages of bottleneck blocks (3, 4, 6, 3) at 256 / 512 / 1024 / 2048 channels, global average pooling and a 1000-way Linear. 25.6M parameters; the same layers, in the same order, as torchvision.models.resnet50.",
+ "category": "Convolutional networks",
  "graph": {
   "name": "ResNet50",
   "symbols": {

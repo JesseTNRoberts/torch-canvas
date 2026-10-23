@@ -1,6 +1,7 @@
 {
  "title": "RNN (Elman)",
- "description": "A basic recurrent network drawn flat: h = tanh(W_ih·x + W_hh·h_prev), where h_prev comes from a Delay (the previous time step, zeros at the start). The code runs it as a loop over time. Same parameters and outputs as nn.RNN(16, 64) with tanh; a Linear reads 8 values out of every step, trained by mean squared error against a target sequence.",
+ "description": "A basic recurrent network drawn flat: h = tanh(W_ih\u00b7x + W_hh\u00b7h_prev), where h_prev comes from a Delay (the previous time step, zeros at the start). The code runs it as a loop over time. Same parameters and outputs as nn.RNN(16, 64) with tanh; a Linear reads 8 values out of every step, trained by mean squared error against a target sequence.",
+ "category": "Recurrent & state space",
  "graph": {
   "name": "RNN",
   "symbols": {

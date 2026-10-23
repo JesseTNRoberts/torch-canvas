@@ -1,6 +1,7 @@
 {
  "title": "ViTEncoderBlock",
  "description": "Vision Transformer encoder block (torchvision's EncoderBlock): LayerNorm, multi-head self-attention without a mask, residual; LayerNorm, Linear \u2192 GELU \u2192 Linear, residual. LayerNorm eps 1e-6.",
+ "category": "Transformer blocks",
  "labels": "n_head=heads, ff=MLP width",
  "graph": {
   "name": "ViTEncoderBlock",

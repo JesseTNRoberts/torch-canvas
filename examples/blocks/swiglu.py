@@ -1,6 +1,7 @@
 # title: SwiGLU
 # description: Gated MLP without a residual: W_out (SiLU(x W) ⊙ x V). Output size can differ from input size.
 # labels: hidden=hidden, d_out=output
+# category: MLP blocks
 import torch.nn as nn
 import torch.nn.functional as F
 

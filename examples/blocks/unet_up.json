@@ -1,6 +1,7 @@
 {
  "title": "Up",
- "description": "A U-Net step up: ConvTranspose 2×2 with stride 2 on the deeper map (twice the size, c_out channels), joined along the channels with the skip connection from the way down (x2 first), then DoubleConv.",
+ "description": "A U-Net step up: ConvTranspose 2\u00d72 with stride 2 on the deeper map (twice the size, c_out channels), joined along the channels with the skip connection from the way down (x2 first), then DoubleConv.",
+ "category": "Convolutional blocks",
  "labels": "c_out=output channels",
  "graph": {
   "name": "Up",

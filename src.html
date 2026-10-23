@@ -392,6 +392,13 @@ pre.code .ln.hl { background: var(--hl); }
 details summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
 .ctx { position: fixed; z-index: 25; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 10px 34px rgba(20, 18, 40, .2); padding: 5px; min-width: 248px; max-width: calc(100vw - 16px); max-height: calc(100vh - 16px); overflow: auto; font-size: 12.5px; }
 .ctx .hd { padding: 7px 10px 4px; font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); display: flex; justify-content: space-between; gap: 10px; }
+.ctx .cat-hd { display: flex; align-items: center; gap: 7px; width: 100%; border: 0; background: none; padding: 6px 10px; font: 600 12.5px var(--sans); color: var(--ink); cursor: pointer; text-align: left; border-radius: 6px; }
+.ctx .cat-hd:hover { background: var(--panel2); }
+.ctx .cat-arrow { display: inline-block; width: 10px; color: var(--muted); transition: transform .12s; } .ctx .cat.open .cat-arrow { transform: rotate(90deg); }
+.ctx .cat-n { margin-left: auto; font: 400 11px var(--mono); color: var(--faint); }
+.ctx .cat-items { display: none; padding-left: 12px; } .ctx .cat.open .cat-items { display: block; }
+.model-cat { font: 12px var(--sans); color: var(--muted); background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 2px 4px; max-width: 190px; cursor: pointer; }
+.model-cat:hover { border-color: var(--line); color: var(--ink); }
 .ctx .hd span { text-transform: none; letter-spacing: 0; font-weight: 400; font-family: var(--mono); }
 .ctx .it { display: grid; grid-template-columns: 16px minmax(0, 1fr); align-items: baseline; gap: 4px; width: 100%; text-align: left; border: 0; background: none; padding: 5px 10px 5px 6px; border-radius: 6px; }
 .ctx .it:hover, .ctx .it:focus-visible { background: var(--panel2); outline: none; box-shadow: inset 0 0 0 1px var(--line); }
@@ -429,6 +436,7 @@ details summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
   <header>
     <div class="brand"><img class="logo" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjggMTI4IiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IlRvcmNoIENhbnZhcyI+CiAgPHJlY3QgeD0iNCIgeT0iNCIgd2lkdGg9IjEyMCIgaGVpZ2h0PSIxMjAiIHJ4PSIyOCIgZmlsbD0iIzI0MjMyZSIvPgogIDwhLS0gdGhlIHBhaW50IHN0cm9rZTogYSB0YXBlcmVkIHN3ZWVwIGZyb20gbGVmdCB0byB0aGUgYnJ1c2ggdGlwIC0tPgogIDxwYXRoIGQ9Ik0xNCA4OCBDIDI2IDcwLCA0NCA3MCwgNTggODIgQyA3MCA5MiwgNzggNzQsIDgyIDU4IEwgODcgNjEgQyA4NCA4MiwgNzAgMTAyLCA1NCA5MiBDIDQyIDg0LCAyOCA4NCwgMTYgOTQgWiIgZmlsbD0iIzc0NjdkNCIgb3BhY2l0eT0iLjQ1Ii8+CiAgPCEtLSBhIHNtYWxsIG5ldHdvcmsgcGFpbnRlZCBpbiB0aGUgc3Ryb2tlIC0tPgogIDxnIHN0cm9rZT0iI2ExOTdmMCIgc3Ryb2tlLXdpZHRoPSIzLjQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCI+CiAgICA8bGluZSB4MT0iMjQiIHkxPSI4NiIgeDI9IjQyIiB5Mj0iNzQiLz48bGluZSB4MT0iMjQiIHkxPSI4NiIgeDI9IjQ0IiB5Mj0iOTYiLz4KICAgIDxsaW5lIHgxPSI0MiIgeTE9Ijc0IiB4Mj0iNjIiIHkyPSI4NiIvPjxsaW5lIHgxPSI0NCIgeTE9Ijk2IiB4Mj0iNjIiIHkyPSI4NiIvPgogIDwvZz4KICA8ZyBmaWxsPSIjZWZlZGZiIj48Y2lyY2xlIGN4PSIyNCIgY3k9Ijg2IiByPSI2LjUiLz48Y2lyY2xlIGN4PSI0MiIgY3k9Ijc0IiByPSI2Ii8+PGNpcmNsZSBjeD0iNDQiIGN5PSI5NiIgcj0iNiIvPjxjaXJjbGUgY3g9IjYyIiBjeT0iODYiIHI9IjYuNSIvPjwvZz4KICA8IS0tIHdoZXJlIHRoZSBicnVzaCBpcyBzdGlsbCBwYWludGluZywgdGhlIHN0cm9rZSBoYXMgYmVjb21lIGNvZGUgLS0+CiAgPGcgc3Ryb2tlPSIjZjBhMzVlIiBzdHJva2Utd2lkdGg9IjQuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIj4KICAgIDxsaW5lIHgxPSI3NCIgeTE9Ijg4IiB4Mj0iOTAiIHkyPSI4OCIvPjxsaW5lIHgxPSI4MCIgeTE9Ijk5IiB4Mj0iMTA2IiB5Mj0iOTkiLz48bGluZSB4MT0iODAiIHkxPSIxMTAiIHgyPSI5NiIgeTI9IjExMCIvPgogIDwvZz4KICA8IS0tIHRoZSBicnVzaCAtLT4KICA8ZyB0cmFuc2Zvcm09InJvdGF0ZSgzNSAxMDEgNDApIj4KICAgIDxyZWN0IHg9Ijk1IiB5PSIyIiB3aWR0aD0iMTIiIGhlaWdodD0iMzYiIHJ4PSI2IiBmaWxsPSIjYzg2NDFhIi8+CiAgICA8cmVjdCB4PSI5NCIgeT0iMzYiIHdpZHRoPSIxNCIgaGVpZ2h0PSI5IiByeD0iMiIgZmlsbD0iI2RmZGVlOCIvPgogICAgPHBhdGggZD0iTTk0IDQ1IGgxNCBjMCA5IC00IDE1IC03IDIwIGMtMyAtNSAtNyAtMTEgLTcgLTIweiIgZmlsbD0iI2ExOTdmMCIvPgogIDwvZz4KPC9zdmc+" alt="" width="24" height="24"><b>Torch Canvas</b><span>diagram ⇄ PyTorch</span></div>
     <input class="model-name" id="modelName" aria-label="Model class name" spellcheck="false">
+    <select class="model-cat" id="modelCat" aria-label="Category" title="The category this model is listed under in Open / import (written into its code as # category:)"></select>
     <div class="tb">
       <button class="btn primary" id="bNew" title="Start a new model from a small editable MLP">New model</button>
       <button class="btn" id="bMore" aria-haspopup="menu" title="Open a file or folder, paste code, copy graph JSON">Open / import ▾</button>
@@ -563,6 +571,11 @@ const fmt = n => n == null ? '?' : n.toLocaleString('en-US');
 const fmtShort = n => n >= 1e9 ? (n / 1e9).toFixed(2) + 'B' : n >= 1e6 ? (n / 1e6).toFixed(2) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'K' : String(n);
 
 const STORE = 'torchcanvas.graph.v1';
+// categories in Open / import (examples say theirs; anything else is Other)
+const NET_CATS = ['MLPs', 'Convolutional networks', 'Transformers', 'Vision & multimodal transformers', 'Recurrent & state space', 'Generative & self-supervised'];
+const BLOCK_CATS = ['MLP blocks', 'Transformer blocks', 'Convolutional blocks', 'Recurrent & state space blocks'];
+const catOf = x => (x.category && String(x.category).trim()) || 'Other';
+
 const S = {
   g: null, sel: { nodes: new Set(), edges: new Set(), group: null }, view: { x: 0, y: 0, k: 1 },
   opts: { fuseSilu: false, shapeComments: true, literalDims: true }, undo: [], redo: [], drag: null, focusDim: null,
@@ -1507,7 +1520,7 @@ function render() {
   S.lastConflicts = nc;
   $('#bUndo').disabled = !S.undo.length; $('#bRedo').disabled = !S.redo.length;
   const lh = R().libHost && R().blocks[S.edit];
-  $('#modelName').value = lh ? lh.name : R().name || 'Model'; $('#modelName').disabled = !!lh;
+  $('#modelName').value = lh ? lh.name : R().name || 'Model'; $('#modelName').disabled = !!lh; $('#modelCat').hidden = !!lh; if (!lh && typeof renderModelCat === 'function') renderModelCat();
   $('#bExport').disabled = !!lh; $('#bExport').title = lh ? 'Export a network that uses this block' : '';
   $('#legend').hidden = !!S.edit || !S.g.edges.some(e => edgeClass(e) === 'scaled');
 }
@@ -3308,6 +3321,19 @@ $('#bNew').onclick = () => {
   openDoc(g);
   toast('New model in its own tab. Click a size to change it, and add components from the left.');
 };
+// the model's category: its own, or the example's it was opened from; setting it writes it into the model
+function renderModelCat() {
+  const el = $('#modelCat'); if (!el) return;
+  const lib = curLibEntry(), cur = R().category || (lib && lib.kind === 'network' && lib.category) || 'Other';
+  const opts = [...NET_CATS, ...new Set(S.library.filter(x => x.kind === 'network').map(catOf).filter(c => !NET_CATS.includes(c) && c !== 'Other')), 'Other'];
+  if (!opts.includes(cur)) opts.splice(opts.length - 1, 0, cur);
+  el.innerHTML = opts.map(c => `<option${c === cur ? ' selected' : ''}>${esc(c)}</option>`).join('') + '<option value="__new">New category…</option>';
+}
+$('#modelCat').addEventListener('change', async e => {
+  let v = e.target.value;
+  if (v === '__new') { v = (window.prompt('Name of the new category') || '').trim(); if (!v) return renderModelCat(); }
+  commit(() => { if (v === 'Other') delete R().category; else R().category = v; }); renderModelCat();
+});
 $('#modelName').addEventListener('change', e => commit(() => { R().name = e.target.value.replace(/[^\w]/g, '_') || 'Model'; }));
 $('#oShapes').onchange = e => { S.opts.shapeComments = e.target.checked; renderCode(); };
 $('#oSilu').onchange = e => { S.opts.fuseSilu = e.target.checked; renderCode(); renderFileBar(); };
@@ -3318,18 +3344,32 @@ async function copyText(t, ok) {
   catch { const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); toast(ok); } catch { toast('Copy was blocked. Select the text and copy it manually.'); } ta.remove(); }
 }
 $('#bCopy').onclick = () => copyText(S.gen.code, 'PyTorch code copied.');
+// ── categories in Open / import: each example says which family it belongs to; anything else is Other ──
+let catOpen = {}; try { catOpen = JSON.parse(localStorage.getItem('torchcanvas.menuCats') || '{}') || {}; } catch { catOpen = {}; }
+function catGroups(list, order, kind, curFile) {
+  const groups = new Map(); for (const c of order) groups.set(c, []);
+  for (const x of list) { const c = catOf(x); if (!groups.has(c)) groups.set(c, []); groups.get(c).push(x); }
+  // custom categories before Other, Other last
+  const keys = [...groups.keys()].filter(c => c !== 'Other' && groups.get(c).length); if ((groups.get('Other') || []).length) keys.push('Other');
+  return keys.map(c => {
+    const items = groups.get(c), key = kind + ':' + c, open = key in catOpen ? catOpen[key] : items.some(x => x.file === curFile);
+    return `<div class="cat${open ? ' open' : ''}"><button class="cat-hd" data-cat="${esc(key)}"><span class="cat-arrow">▸</span>${esc(c)}<span class="cat-n">${items.length}</span></button><div class="cat-items">${items.map(x => item('lib:' + x.file, x.title, x.description || '')).join('')}</div></div>`;
+  }).join('');
+}
 $('#bMore').onclick = e => {
   if (ctxEl && ctxEl.classList.contains('ctx-open')) return closeCtx();  // the button toggles the menu
   const r = e.currentTarget.getBoundingClientRect();
   const nets = S.library.filter(x => x.kind === 'network'), blks = S.library.filter(x => x.kind === 'block'), curLib = curLibEntry();
   openCtx(r.left, r.bottom + 4,
     `<div class="ctx-top"><b>Open / import</b><button class="ctx-x" data-close aria-label="Close" title="Close (Esc)">×</button></div>`
-    + (nets.length ? `<div class="hd">Example networks <span>open in a new tab</span></div>` + nets.map(x => item('lib:' + x.file, x.title, x.description || '')).join('') : '')
-    + (blks.length ? `<div class="hd">Blocks <span>open in a new tab to edit</span></div>` + blks.map(x => item('lib:' + x.file, x.title, x.description || '')).join('') : '')
+    + (nets.length ? `<div class="hd">Example networks <span>open in a new tab</span></div>` + catGroups(nets, NET_CATS, 'net', curLib && curLib.file) : '')
+    + (blks.length ? `<div class="hd">Blocks <span>open in a new tab to edit</span></div>` + catGroups(blks, BLOCK_CATS, 'blk', curLib && curLib.file) : '')
     + `<hr><div class="hd">From your computer</div>` + item('ofile', 'Open file…', 'A .py model, edited in place · Ctrl+O') + item('odir', 'Open folder…', 'Browse the models in a project') + item('paste', 'Paste code…', 'Or press Ctrl+V anywhere')
     + '<hr>' + (curLib ? item('link', 'Copy link to this example', `Opens ${curLib.title} directly`) : '') + item('json', 'Copy graph JSON', 'Restore it later with Paste code'),
     el => { el.classList.add('ctx-open'); el.addEventListener('click', ev => {
       if (ev.target.closest('[data-close]')) return closeCtx();
+      const ch = ev.target.closest('[data-cat]');
+      if (ch) { const c = ch.parentElement; c.classList.toggle('open'); catOpen[ch.dataset.cat] = c.classList.contains('open'); try { localStorage.setItem('torchcanvas.menuCats', JSON.stringify(catOpen)); } catch {} ev.stopPropagation(); return; }
       const b = ev.target.closest('[data-act]'); if (!b) return; closeCtx();
       const a = b.dataset.act;
       if (a.startsWith('lib:')) return openLibrary(S.library.find(x => x.file === a.slice(4)));

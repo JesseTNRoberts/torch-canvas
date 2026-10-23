@@ -1,6 +1,7 @@
 {
  "title": "Down",
  "description": "A U-Net step down: max pool 2 (half the size), then DoubleConv.",
+ "category": "Convolutional blocks",
  "labels": "c_out=output channels",
  "graph": {
   "name": "Down",

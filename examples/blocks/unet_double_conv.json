@@ -1,6 +1,7 @@
 {
  "title": "DoubleConv",
- "description": "U-Net's double convolution: (Conv 3×3 with padding 1, no bias → BatchNorm → ReLU) twice.",
+ "description": "U-Net's double convolution: (Conv 3\u00d73 with padding 1, no bias \u2192 BatchNorm \u2192 ReLU) twice.",
+ "category": "Convolutional blocks",
  "labels": "c_out=output channels",
  "graph": {
   "name": "DoubleConv",

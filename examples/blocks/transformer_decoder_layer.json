@@ -1,6 +1,7 @@
 {
  "title": "DecoderLayer",
  "description": "A Transformer decoder layer (post-norm, as nn.TransformerDecoderLayer): causal self-attention; cross-attention, with queries from the decoder and keys and values from the encoder's output (memory, the second input); the feed-forward network. Each followed by dropout, a residual add and a LayerNorm.",
+ "category": "Transformer blocks",
  "labels": "n_head=heads, ff=feed-forward width",
  "graph": {
   "name": "DecoderLayer",

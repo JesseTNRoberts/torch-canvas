@@ -1,6 +1,7 @@
 {
  "title": "Encoder",
- "description": "An I-JEPA encoder's transformer: JEPABlock × 6 and a final LayerNorm (eps 1e-6), on a sequence of patch embeddings.",
+ "description": "An I-JEPA encoder's transformer: JEPABlock \u00d7 6 and a final LayerNorm (eps 1e-6), on a sequence of patch embeddings.",
+ "category": "Transformer blocks",
  "labels": "n_head=heads, ff=MLP width",
  "graph": {
   "name": "Encoder",

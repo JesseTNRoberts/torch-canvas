@@ -2154,6 +2154,8 @@ const NN = (() => {
       const shift = before - out.join('\n').split('\n').length;
       for (const [id, ls] of lineMap) lineMap.set(id, ls.map(l => l - shift));
     }
+    // a category set on the model goes first, as the examples' headers do (# category: Transformers)
+    if (g.category && !opts.noMain && !opts.noHeader) { out.unshift(`# category: ${String(g.category).replace(/\n/g, ' ')}`); for (const [k, ls] of lineMap) lineMap.set(k, ls.map(l => l + 1)); }
     return { code: out.join('\n') + '\n', warnings, lineMap, mainSyms: usedSyms.slice(), classes: classes.map(c => ({ name: c.name, ids: c.ids || [], args: c.args || [] })) };
   }
   function pyIdent(s, cls) {
@@ -3104,6 +3106,8 @@ const NN = (() => {
     autoLayout(g);
     // code style of the source: named sizes if the top-level model takes size arguments
     const literalDims = !(rootInit && rootInit.params.length > 1);
+    // a category header (# category: Transformers) belongs to the model
+    for (const line of src.split('\n')) { if (line.trim() && !/^\s*#/.test(line)) break; const m = /^\s*#\s*category\s*:\s*(.+?)\s*$/i.exec(line); if (m) { g.category = m[1]; break; } }
     return { graph: g, warnings: [...new Set(warnings)], usedClasses: [...usedClasses], literalDims };
   }
 

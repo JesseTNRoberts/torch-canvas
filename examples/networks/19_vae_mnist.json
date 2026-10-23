@@ -1,6 +1,7 @@
 {
  "title": "VAE (MNIST)",
  "description": "A variational autoencoder, as in PyTorch's examples/vae: the encoder (784 \u2192 400, ReLU) gives the mean \u03bc and log-variance of a 20-dimensional Gaussian; z = \u03bc + \u03b5\u00b7exp(\u00bd\u00b7logvar) with \u03b5 from a Noise node (the reparameterization trick, so gradients reach \u03bc and \u03c3); the decoder (20 \u2192 400 \u2192 784) gives pixel logits. The loss is the negative evidence lower bound: binary cross-entropy summed over the pixels (784 \u00d7 the mean) plus the KL divergence of the latent Gaussian from N(0, 1). predict() applies the sigmoid. 652,824 parameters.",
+ "category": "Generative & self-supervised",
  "graph": {
   "name": "VAE",
   "symbols": {
