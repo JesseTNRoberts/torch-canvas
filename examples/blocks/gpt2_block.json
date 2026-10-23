@@ -134,21 +134,21 @@
    {
     "id": "n93c6n",
     "type": "binop",
-    "x": 373,
+    "x": 436,
     "y": 736,
     "params": {
      "op": "*",
      "const": "(d / n_head) ** -0.5",
      "rev": false,
      "note": "Keeps the attention scores from growing with the head width. Each score q \u00b7 k adds up one product per feature of the head; with q and k of variance about 1, that sum has variance equal to the head width. Multiplying by 1/\u221a(head width) brings it back to about 1, so the softmax stays smooth instead of putting nearly all the weight on one key.",
-     "title": "",
+     "title": "\u00d71/\u221a(d/n_head)",
      "var": "q"
     }
    },
    {
     "id": "nanhx0",
     "type": "reshape",
-    "x": 614,
+    "x": 594,
     "y": 736,
     "params": {
      "pattern": "e h t d -> e h d t",

@@ -742,21 +742,21 @@
       {
        "id": "nogr2l",
        "type": "binop",
-       "x": 493,
+       "x": 555,
        "y": 608,
        "params": {
         "op": "*",
         "const": "(d / n_head) ** -0.5",
         "rev": false,
         "note": "Keeps the attention scores from growing with the head width. Each score q \u00b7 k adds up one product per feature of the head; with q and k of variance about 1, that sum has variance equal to the head width. Multiplying by 1/\u221a(head width) brings it back to about 1, so the softmax stays smooth instead of putting nearly all the weight on one key.",
-        "title": "",
+        "title": "\u00d71/\u221a(d/n_head)",
         "var": ""
        }
       },
       {
        "id": "nple0x",
        "type": "reshape",
-       "x": 761,
+       "x": 741,
        "y": 608,
        "params": {
         "pattern": "e h t d -> e h d t",
@@ -1517,7 +1517,7 @@
        "id": "n2ora80",
        "type": "input",
        "x": 130.2,
-       "y": 988,
+       "y": 999,
        "params": {
         "name": "x",
         "shape": "e, t, d",
@@ -1528,7 +1528,7 @@
        "id": "n2p3up2",
        "type": "input",
        "x": 391,
-       "y": 1088,
+       "y": 1099,
        "params": {
         "name": "pos",
         "shape": "3, e, t",
@@ -1539,7 +1539,7 @@
        "id": "n2qwsqo",
        "type": "norm",
        "x": 624,
-       "y": 988,
+       "y": 999,
        "params": {
         "kind": "RMSNorm",
         "dim": "d",
@@ -1554,7 +1554,7 @@
        "id": "n2sly8v",
        "type": "linear",
        "x": 486,
-       "y": 913,
+       "y": 924,
        "params": {
         "in": "d",
         "out": "d",
@@ -1572,7 +1572,7 @@
        "id": "n2txbap",
        "type": "linear",
        "x": 624,
-       "y": 913,
+       "y": 924,
        "params": {
         "in": "d",
         "out": "d_kv",
@@ -1590,7 +1590,7 @@
        "id": "n2u2crx",
        "type": "linear",
        "x": 762,
-       "y": 913,
+       "y": 924,
        "params": {
         "in": "d",
         "out": "d_kv",
@@ -1608,7 +1608,7 @@
        "id": "n2ytlc7",
        "type": "reshape",
        "x": 418,
-       "y": 827,
+       "y": 838,
        "params": {
         "pattern": "e t (h d) -> e h t d",
         "sizes": "h=n_head",
@@ -1621,7 +1621,7 @@
        "id": "n2zjoon",
        "type": "reshape",
        "x": 630,
-       "y": 827,
+       "y": 838,
        "params": {
         "pattern": "e t (h d) -> e h t d",
         "sizes": "h=n_kv",
@@ -1634,7 +1634,7 @@
        "id": "n303po8",
        "type": "reshape",
        "x": 836,
-       "y": 827,
+       "y": 838,
        "params": {
         "pattern": "e t (h d) -> e h t d",
         "sizes": "h=n_kv",
@@ -1647,7 +1647,7 @@
        "id": "n34r5rf",
        "type": "rope",
        "x": 391,
-       "y": 750,
+       "y": 761,
        "params": {
         "base": "1000000",
         "mode": "mrope",
@@ -1660,7 +1660,7 @@
        "id": "n357d22",
        "type": "rope",
        "x": 681,
-       "y": 750,
+       "y": 761,
        "params": {
         "base": "1000000",
         "mode": "mrope",
@@ -1672,8 +1672,8 @@
       {
        "id": "n3a0c0v",
        "type": "func",
-       "x": 713,
-       "y": 684,
+       "x": 693,
+       "y": 690,
        "params": {
         "fn": ".repeat_interleave",
         "extra": "8, dim=1",
@@ -1688,7 +1688,7 @@
        "id": "n3bkjoo",
        "type": "func",
        "x": 914,
-       "y": 750,
+       "y": 761,
        "params": {
         "fn": ".repeat_interleave",
         "extra": "8, dim=1",
@@ -1702,14 +1702,14 @@
       {
        "id": "n3ehwkw",
        "type": "binop",
-       "x": 474,
-       "y": 684,
+       "x": 536,
+       "y": 690,
        "params": {
         "op": "*",
         "const": "(d / n_head) ** -0.5",
         "rev": false,
         "note": "Keeps the attention scores from growing with the head width. Each score q \u00b7 k adds up one product per feature of the head; with q and k of variance about 1, that sum has variance equal to the head width. Multiplying by 1/\u221a(head width) brings it back to about 1, so the softmax stays smooth instead of putting nearly all the weight on one key.",
-        "title": "",
+        "title": "\u00d71/\u221a(d/n_head)",
         "var": ""
        }
       },

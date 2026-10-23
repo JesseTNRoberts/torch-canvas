@@ -27,6 +27,8 @@ Mamba:           e t d      →  e t d 1                      x.unsqueeze(-1)
 
 `(h d)` is one axis made of two, `1` an axis of size 1, `...` any axes not named; **Sizes** gives all but one part of a split (`h = n_head`), and the last is worked out. The node shows the pattern and the actual shape change (`64 × 768 → 12 × 64²`), so split heads, merge heads, flatten and the rest read as what they are: the same values, arranged differently. Its **Nickname** says what the step is for ("split heads"), and its details spell out each split, merge and move. The code is ordinary PyTorch (unflatten, squeeze, transpose or permute, flatten, unsqueeze, in that order), and code written with those methods reads back as Reshape nodes (a chain like `x.unflatten(…).transpose(1, 2)` as one node). Files that use the older Split heads, Merge heads and Transpose nodes still open.
 
+An operation with a fixed number is one component, **Constant operation**: a rounded box that reads "× constant" (or + − ÷), the same wherever it is used. The operation and the constant are set in its details; sizes can be used (`d ** 0.5`), and the details give the value for the model's sizes. Its nickname says which constant it is, e.g. "×√d" for the Transformer's embedding scale or "×1/√(d/n_head)" for attention. The small round operators (+, ⊙, −, ÷, @) are for combining two tensors.
+
 Any node can carry a **Note**: a sentence or two on why it is there, shown in its details under what it computes. The attention examples use one on the multiply by `(d / n_head) ** -0.5`, the constant that keeps the scores q · k from growing with the head width.
 
 ### What a function node shows

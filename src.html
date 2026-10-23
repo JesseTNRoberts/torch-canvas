@@ -201,6 +201,7 @@ kbd { font-family: var(--mono); font-size: 10.5px; border: 1px solid var(--line)
 .t-lin .n-box { fill: var(--lin-bg); stroke: var(--lin-bd); } .t-lin text { fill: var(--lin-ink); }
 .t-conv .n-box { fill: var(--conv-bg); stroke: var(--conv-bd); } .t-conv text { fill: var(--conv-ink); }
 .delay-link path { fill: none; stroke: var(--stream); stroke-width: 1.2; stroke-dasharray: 3 4; opacity: .38; } .delay-link.on path { opacity: .85; }
+.t-op.t-const .n-box { rx: 15px; }
 .t-reshape .n-box { fill: var(--panel2); stroke: var(--faint); stroke-dasharray: 5 2.5; } .t-reshape text { fill: var(--ink); }
 .opmath .note { color: var(--ink); border-left: 2px solid var(--faint); padding-left: 8px; }
 .t-delay .n-box { fill: var(--stream-bg); stroke: var(--stream); stroke-dasharray: 4 2; } .t-delay text { fill: var(--stream); } .t-delay .clk { fill: none; stroke: var(--stream); stroke-width: 1.3; }
@@ -225,6 +226,7 @@ kbd { font-family: var(--mono); font-size: 10.5px; border: 1px solid var(--line)
 .opmath { background: var(--panel2, rgba(116,103,212,.06)); border: 1px solid var(--line, rgba(0,0,0,.08)); border-radius: 8px; padding: 9px 11px; margin: 4px 0 12px; }
 .opmath .eq { font-family: "Cambria Math", "STIX Two Math", "Latin Modern Math", Georgia, serif; font-size: 15px; line-height: 1.5; color: var(--ink, inherit); overflow-x: auto; white-space: nowrap; }
 .opmath .eq sub, .opmath .eq sup { font-size: 70%; }
+.opmath .eq .rad { font-family: var(--sans); font-size: 105%; margin-right: -1px; } .opmath .eq .radx { border-top: 1.2px solid currentColor; padding: 1px 2px 0; }
 .opmath p { margin: 6px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--muted); }
 .opmath .eq + p { margin-top: 6px; } .opmath p:first-child { margin-top: 0; }
 .node .frz { font-size: 16px; fill: #2f7fd8; pointer-events: none; paint-order: stroke; stroke: var(--bg); stroke-width: 3px; }
@@ -675,7 +677,7 @@ function sizeOf0(n) {
     case 'pool': case 'upsample': case 'token': case 'select': case 'param': case 'noise': return { w: Math.max(70, OP_LABEL[n.type](p).length * 7 + 24), h: 30 };
     case 'delay': return { w: Math.max(74, OP_LABEL.delay(p).length * 7 + 30), h: 30 };
     case 'act': return p.fn === 'sigmoid' ? { w: 32, h: 34 } : p.fn === 'leaky_relu' ? { w: 84, h: 30 } : p.fn === 'softmax' ? { w: 108, h: 30 } : p.fn === 'softplus' ? { w: 84, h: 30 } : p.fn === 'gelu_tanh' ? { w: 84, h: 30 } : { w: 56, h: 30 };
-    case 'binop': return { w: 26, h: 26 };
+    case 'binop': return NN.isCircle(n) ? { w: 26, h: 26 } : { w: Math.max(54, constLabel(p).length * 7.6 + 24), h: 30 };
     case 'dropout': return { w: 86, h: 30 };
     case 'embed': { const t = p.positions ? 'Position embedding' : 'Embedding', sub = dimText(p.num) + ' × ' + dimText(p.dim), il = subLabel(p, n); return { w: Math.max(t.length * 7.4, sub.length * 7, il.length * 6) + 30, h: il ? 52 : 40 }; }
     case 'loss': { const t = (NN.LOSSES[p.fn] || NN.LOSSES.cross_entropy).label, sub = lossSub(p); return { w: Math.max(150, t.length * 7.6 + 30, sub.length * 6.2 + 26), h: 42 }; }
@@ -735,11 +737,17 @@ function reshapeCodeOf(n) {
   const x = S.info && S.info.shapes.get((S.info.ix.inKeys.get(n.id) || [])[0]);
   try { return 'x' + NN.reshapeSteps(n.params, (x || []).length).map(s2 => NN.reshapeStepCode(s2, v => v)).join(''); } catch { return ''; }
 }
-// a constant beside its circle, compact: × (d/n_head)^-½
+// an operation with a constant as it reads: × √d, × 1/√(d/n_head), × 0.5, 1 − x
+function prettyConst(c0) {
+  let c = String(c0).trim().replace(/\s+/g, ' ');
+  const root = (b, inv) => { const inner = b.replace(/\s+/g, '').replace(/^\((.*)\)$/, '$1'); const r = /^[\w.]+$/.test(inner) ? '√' + inner : `√(${inner})`; return inv ? '1/' + r : r; };
+  let m = /^(.+?)\s*\*\*\s*(-?)0?\.5$/.exec(c); if (m) return root(m[1], m[2] === '-');
+  return c.replace(/\s*\*\*\s*/g, '^').replace(/^-/, '−');
+}
+// the box of an operation with a constant is the same everywhere; its nickname says which constant (×√d)
 function constLabel(p) {
-  const c = String(p.const).replace(/\s+/g, '').replace(/\*\*-0\.5$/, '^-½').replace(/\*\*0\.5$/, '^½').replace(/\*\*/g, '^');
-  const op = { '*': '×', '-': '−', '/': '÷' }[p.op] || p.op;
-  return p.rev ? `${c} ${op}` : `${op} ${c}`;
+  const op = { '*': '×', '-': '−', '/': '÷', '+': '+' }[p.op] || p.op;
+  return p.rev ? `constant ${op} x` : `${op} constant`;
 }
 // A node's shape change as text: sizes without the batch (two equal trailing sizes of an image as n²); when that gets
 // long, sizes both sides share at the front become …
@@ -1376,8 +1384,9 @@ function render() {
         const add = p.op === '+';
         cls += ' t-op';
         const sym = { '+': '+', '*': '⊙', '-': '−', '/': '÷', '@': '@' }[p.op] || p.op;
-        inner = `<circle class="n-box" cx="${n.x}" cy="${n.y}" r="${b.r}"/><text x="${n.x}" y="${n.y + (add ? 5 : 4.5)}" text-anchor="middle" font-size="${add ? 15 : 14}">${sym}</text>`;
-        if (p.const !== '' && p.const != null) inner += `<text class="caption mono" x="${n.x + 18}" y="${n.y + 4}">${esc(constLabel(p))}</text>`;
+        if (NN.isCircle(n)) inner = `<circle class="n-box" cx="${n.x}" cy="${n.y}" r="${b.r}"/><text x="${n.x}" y="${n.y + (add ? 5 : 4.5)}" text-anchor="middle" font-size="${add ? 15 : 14}">${sym}</text>`;
+        // with a constant: a box that says the whole operation
+        else { cls += ' t-const'; inner = `<rect class="n-box" x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="15"/><text x="${n.x}" y="${n.y + 4.5}" text-anchor="middle" font-size="13">${esc(constLabel(p))}</text>`; }
         break;
       }
       case 'embed': {
@@ -1621,7 +1630,14 @@ function opExplain0(n) {
     case 'binop': {
       const op = p.op || '+', sym = { '+': '+', '-': '−', '*': '⊙', '/': '÷', '@': '@' }[op] || op, c = p.const !== '' && p.const != null ? esc(p.const) : null;
       if (op === '@') return box('Y = A @ B', 'Matrix product over the last two sizes: (… × n × k) @ (… × k × m) → (… × n × m), each entry Σ<sub>k</sub> A<sub>ik</sub> B<sub>kj</sub>; the sizes before them are batched. In attention: q @ kᵀ gives the scores, weights @ v the mix.');
-      if (c) return box(p.rev ? `y = ${c} ${sym} x` : `y = x ${sym} ${c}`, 'With a constant, ' + ew);
+      if (c) {
+        // the constant's value with this model's sizes
+        let v = null; try { const r = String(p.const).replace(/\b[A-Za-z_]\w*\b/g, t => { const x = NN.evalDim(t, R().symbols || {}); if (x == null) throw 0; return '(' + x + ')'; }); if (/^[\d.\s+\-*/()eE]+$/.test(r)) v = Function('"use strict"; return (' + r + ');')(); } catch { v = null; }
+        const pc = esc(prettyConst(p.const)), val = v != null && Number.isFinite(v) && String(v) !== String(p.const).trim() ? ` = ${esc(+v.toPrecision(5))}` : '';
+        const verb = { '*': 'Multiplies every value by', '+': 'Adds to every value', '-': p.rev ? 'Subtracts every value from' : 'Subtracts from every value', '/': 'Divides every value by' }[op] || 'Combines every value with';
+        const rad = t => t.replace(/√\(([^)]*)\)|√([\w.]+)/g, (m0, a, b2) => `<span class="rad">√</span><span class="radx">${a || b2}</span>`);
+        return box(rad(p.rev ? `y = ${pc} ${sym === '⊙' ? '×' : sym} x` : `y = x ${sym === '⊙' ? '×' : sym} ${pc}`), `${verb} the same fixed number, ${pc}${val}. It isn't learned; written in the code as <span class="mono">${esc(p.rev ? p.const + ' ' + op + ' x' : 'x ' + op + ' ' + p.const)}</span>.`);
+      }
       const name = { '+': 'Adds', '-': 'Subtracts', '*': 'Multiplies', '/': 'Divides' }[op];
       return box(`y = a ${sym} b`, `${name} the two inputs value by value. Shapes must match or broadcast (a size of 1, or a missing leading size, is repeated to fit).${op === '+' ? ' Adding a layer\'s input back to its output is a residual connection.' : op === '*' ? ' Multiplying by a sigmoid (or other gate) lets one tensor control how much of another passes.' : ''}`);
     }
@@ -1762,7 +1778,7 @@ function renderInspector() {
   const p = n.params; let h = '';
   const errMsg = S.info.errors.get(n.id);
   const sh = S.info.shapes.get(n.id);
-  const titles = { embed: p.positions ? 'Position embedding' : 'Embedding', reshape: 'Reshape', heads: 'Split heads', merge: 'Merge heads', transpose: 'Transpose', scale: 'Scale by 1/√d', conv: 'Convolution (2-D)', pool: 'Pooling', upsample: 'Upsample', delay: 'Delay', token: 'Learned token', select: 'Select a position', param: 'Parameter', conv1d: 'Causal convolution', noise: 'Noise', mask: 'Causal mask', rope: 'Rotary position embedding', loss: 'Loss', input: 'Input', output: 'Output', linear: 'Linear', norm: 'Normalization', act: 'Activation', binop: 'Elementwise op', dropout: 'Dropout', func: 'Custom op' };
+  const titles = { embed: p.positions ? 'Position embedding' : 'Embedding', reshape: 'Reshape', heads: 'Split heads', merge: 'Merge heads', transpose: 'Transpose', scale: 'Scale by 1/√d', conv: 'Convolution (2-D)', pool: 'Pooling', upsample: 'Upsample', delay: 'Delay', token: 'Learned token', select: 'Select a position', param: 'Parameter', conv1d: 'Causal convolution', noise: 'Noise', mask: 'Causal mask', rope: 'Rotary position embedding', loss: 'Loss', input: 'Input', output: 'Output', linear: 'Linear', norm: 'Normalization', act: 'Activation', binop: n.params.const !== '' && n.params.const != null ? ({ '*': 'Multiply by a constant', '+': 'Add a constant', '-': p.rev ? 'Subtract from a constant' : 'Subtract a constant', '/': 'Divide by a constant' }[p.op] || 'Operation with a constant') : 'Elementwise op', dropout: 'Dropout', func: 'Custom op' };
   h += `<h4>${titles[n.type]}</h4>`;
   h += opExplain(n);
   switch (n.type) {
@@ -2733,6 +2749,7 @@ const COMP = [
       { k: 'binop:-', label: 'Subtract', sw: 'sw-op', icon: '−', desc: 'a − b', torch: 'a - b' },
       { k: 'binop:/', label: 'Divide', sw: 'sw-op', icon: '÷', desc: 'a ÷ b', torch: 'a / b' },
       { k: 'reshape', label: 'Reshape', sw: 'sw-op', icon: '⇄', desc: 'Rearranges a tensor\'s axes: split, merge, reorder, add or remove size-1 axes, written as a pattern (e t (h d) → e h t d). No values change', torch: 'unflatten / transpose / flatten / …' },
+      { k: 'constop:*', label: 'Constant operation', sw: 'sw-op', icon: '×c', desc: 'Multiplies (or adds, subtracts, divides) by a fixed number c, e.g. √d or 0.5. Choose the operation and c in its details (sizes can be used: d ** 0.5); a nickname says which constant it is', torch: 'x * c' },
       { k: 'binop:@', label: 'Matmul @', sw: 'sw-op', icon: '@', desc: 'Multiplies two activations, e.g. attention scores. For a learned weight, use Linear', torch: 'a @ b' },
       { k: 'func:sum', label: 'Sum over axis', sw: 'sw-op', icon: 'Σ', desc: 'Adds up the values along one axis, which goes away (choose the axis in its details)', torch: 'x.sum(-1)' },
       { k: 'func:mean', label: 'Mean over axis', sw: 'sw-op', icon: 'x̄', desc: 'Averages the values along one axis, which goes away (choose the axis in its details)', torch: 'x.mean(-1)' },
@@ -2811,6 +2828,7 @@ function nextFreeIn(g, base) { base = String(base).replace(/\d+$/, '') || 'h'; l
 function nextFree(base) { let k = 1; while (S.g.symbols[base + k] != null) k++; return base + k; }
 function lastStreamWidth() { const lin = S.g.nodes.filter(n => n.type === 'linear'); return lin.length ? lin[lin.length - 1].params.out : 'f'; }
 function addFromPalette(k, x, y) {
+  if (k.startsWith('constop:')) return addNode('binop', { op: k.slice(8), const: k.endsWith('*') ? '2' : '1' }, x, y);
   if (k.startsWith('block:')) return addBlockUse(k.slice(6), x, y);
   const [type, sub] = k.split(':');
   if (type === 'loss') return addLoss(sub, x, y);

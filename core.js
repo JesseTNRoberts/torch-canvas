@@ -141,7 +141,8 @@ const NN = (() => {
     }
   }
   const hasConst = n => n.params.const !== '' && n.params.const != null;
-  const isCircle = n => n.type === 'binop';
+  // a two-input operator is a small circle; an operation with a constant is a box of its own
+  const isCircle = n => n.type === 'binop' && !(n.params.const !== '' && n.params.const != null);
 
   // ── graph helpers ──
   // An edge leaves its source's output e.out (0 unless the source is a block with several outputs).
