@@ -1,0 +1,193 @@
+{
+ "title": "PreNormConvBlock",
+ "description": "A pre-norm residual block for images: GroupNorm \u2192 ReLU \u2192 3\u00d73 conv, twice, plus a clean identity skip (x + h). The channel count and image size stay the same.",
+ "graph": {
+  "name": "PreNormConvBlock",
+  "symbols": {
+   "e": 8
+  },
+  "nodes": [
+   {
+    "id": "n1wo1nc",
+    "type": "input",
+    "x": 141.3,
+    "y": 515,
+    "params": {
+     "name": "x",
+     "shape": "e, 32, 14, 14",
+     "title": ""
+    }
+   },
+   {
+    "id": "n1x7x09",
+    "type": "norm",
+    "x": 343,
+    "y": 515,
+    "params": {
+     "kind": "GroupNorm",
+     "dim": "32",
+     "groups": 1,
+     "eps": "",
+     "name": "norm1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1ymjvq",
+    "type": "act",
+    "x": 343,
+    "y": 451,
+    "params": {
+     "fn": "relu",
+     "dim": "-1",
+     "title": "",
+     "var": "a"
+    }
+   },
+   {
+    "id": "n1zedo5",
+    "type": "conv",
+    "x": 343,
+    "y": 382,
+    "params": {
+     "in": "32",
+     "out": "32",
+     "k": "3",
+     "stride": "1",
+     "pad": "1",
+     "bias": true,
+     "transposed": false,
+     "name": "conv1",
+     "title": "",
+     "var": "h"
+    }
+   },
+   {
+    "id": "n20rcha",
+    "type": "norm",
+    "x": 343,
+    "y": 313,
+    "params": {
+     "kind": "GroupNorm",
+     "dim": "32",
+     "groups": 1,
+     "eps": "",
+     "name": "norm2",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n21tw07",
+    "type": "act",
+    "x": 343,
+    "y": 249,
+    "params": {
+     "fn": "relu",
+     "dim": "-1",
+     "title": "",
+     "var": "a"
+    }
+   },
+   {
+    "id": "n22vmbq",
+    "type": "conv",
+    "x": 343,
+    "y": 180,
+    "params": {
+     "in": "32",
+     "out": "32",
+     "k": "3",
+     "stride": "1",
+     "pad": "1",
+     "bias": true,
+     "transposed": false,
+     "name": "conv2",
+     "title": "",
+     "var": "h"
+    }
+   },
+   {
+    "id": "n23w3i7",
+    "type": "binop",
+    "x": 343,
+    "y": 100,
+    "params": {
+     "op": "+",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n2cuqip",
+    "type": "output",
+    "x": 495,
+    "y": 100,
+    "params": {
+     "name": "out",
+     "title": ""
+    }
+   }
+  ],
+  "edges": [
+   {
+    "id": "e24mxn3",
+    "from": "n1wo1nc",
+    "to": "n1x7x09",
+    "port": 0
+   },
+   {
+    "id": "e25x0r8",
+    "from": "n1x7x09",
+    "to": "n1ymjvq",
+    "port": 0
+   },
+   {
+    "id": "e26ofyg",
+    "from": "n1ymjvq",
+    "to": "n1zedo5",
+    "port": 0
+   },
+   {
+    "id": "e274qvs",
+    "from": "n1zedo5",
+    "to": "n20rcha",
+    "port": 0
+   },
+   {
+    "id": "e28xqar",
+    "from": "n20rcha",
+    "to": "n21tw07",
+    "port": 0
+   },
+   {
+    "id": "e295ckt",
+    "from": "n21tw07",
+    "to": "n22vmbq",
+    "port": 0
+   },
+   {
+    "id": "e2agg6e",
+    "from": "n1wo1nc",
+    "to": "n23w3i7",
+    "port": 0
+   },
+   {
+    "id": "e2boqwn",
+    "from": "n22vmbq",
+    "to": "n23w3i7",
+    "port": 1
+   },
+   {
+    "id": "e2deaer",
+    "from": "n23w3i7",
+    "to": "n2cuqip",
+    "port": 0
+   }
+  ],
+  "groups": []
+ }
+}

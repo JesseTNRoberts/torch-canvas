@@ -1,0 +1,475 @@
+{
+ "title": "Residual CNN, global average pooling head",
+ "description": "The CNN from the inductive-bias lecture: a 5\u00d75 conv stem, then three pre-norm residual blocks (GroupNorm \u2192 ReLU \u2192 3\u00d73 conv, twice, plus a clean identity skip) with 2\u00d72 max pooling, a final GroupNorm and ReLU, then global average pooling (adaptive average pool to 1 \u00d7 1) and one Linear. Position is averaged away before the classifier. 57,098 parameters.",
+ "graph": {
+  "name": "ResCNN",
+  "symbols": {
+   "e": 8
+  },
+  "nodes": [
+   {
+    "id": "n13shq",
+    "type": "input",
+    "x": 300,
+    "y": 1074,
+    "params": {
+     "name": "x",
+     "shape": "e, 1, 28, 28",
+     "title": ""
+    }
+   },
+   {
+    "id": "n25fw2",
+    "type": "conv",
+    "x": 300,
+    "y": 996,
+    "params": {
+     "in": "1",
+     "out": "32",
+     "k": "5",
+     "stride": "1",
+     "pad": "2",
+     "bias": true,
+     "transposed": false,
+     "name": "stem",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n46iuc",
+    "type": "pool",
+    "x": 300,
+    "y": 918,
+    "params": {
+     "kind": "max",
+     "k": "2",
+     "stride": "",
+     "pad": "0",
+     "size": "1",
+     "title": "",
+     "var": "x"
+    }
+   },
+   {
+    "id": "nmd4gz",
+    "type": "pool",
+    "x": 300,
+    "y": 762,
+    "params": {
+     "kind": "max",
+     "k": "2",
+     "stride": "",
+     "pad": "0",
+     "size": "1",
+     "title": "",
+     "var": "y"
+    }
+   },
+   {
+    "id": "n1k0yk7",
+    "type": "norm",
+    "x": 300,
+    "y": 528,
+    "params": {
+     "kind": "GroupNorm",
+     "dim": "32",
+     "groups": 1,
+     "eps": "",
+     "name": "norm",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1mpg9l",
+    "type": "act",
+    "x": 300,
+    "y": 450,
+    "params": {
+     "fn": "relu",
+     "dim": "-1",
+     "title": "",
+     "var": "x"
+    }
+   },
+   {
+    "id": "n1o0u5w",
+    "type": "pool",
+    "x": 300,
+    "y": 372,
+    "params": {
+     "kind": "adaptive",
+     "k": "2",
+     "stride": "",
+     "pad": "0",
+     "size": "1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1qza7c",
+    "type": "reshape",
+    "x": 300,
+    "y": 294,
+    "params": {
+     "pattern": "e c h w -> e (c h w)",
+     "sizes": "",
+     "note": "",
+     "title": "image \u2192 vector",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1s5lx7",
+    "type": "linear",
+    "x": 300,
+    "y": 216,
+    "params": {
+     "in": "32",
+     "out": "10",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": false,
+     "bias_init": "",
+     "tie": "",
+     "name": "fc",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1ui6j9",
+    "type": "output",
+    "x": 300,
+    "y": 138,
+    "params": {
+     "name": "out",
+     "title": ""
+    }
+   },
+   {
+    "id": "n2fkidg",
+    "type": "block",
+    "x": 300,
+    "y": 840,
+    "params": {
+     "block": "b2ewgnl",
+     "args": {},
+     "nIn": 1,
+     "repeat": 1,
+     "name": "block1",
+     "title": "",
+     "var": "",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n2hepyl",
+    "type": "block",
+    "x": 300,
+    "y": 684,
+    "params": {
+     "block": "b2ewgnl",
+     "args": {},
+     "nIn": 1,
+     "repeat": 1,
+     "name": "block2",
+     "title": "",
+     "var": "",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n2j6ykg",
+    "type": "block",
+    "x": 300,
+    "y": 606,
+    "params": {
+     "block": "b2ewgnl",
+     "args": {},
+     "nIn": 1,
+     "repeat": 1,
+     "name": "block3",
+     "title": "",
+     "var": "",
+     "nOut": 1
+    }
+   }
+  ],
+  "edges": [
+   {
+    "id": "e37cyg",
+    "from": "n13shq",
+    "to": "n25fw2",
+    "port": 0
+   },
+   {
+    "id": "e5ia0r",
+    "from": "n25fw2",
+    "to": "n46iuc",
+    "port": 0
+   },
+   {
+    "id": "en2lfb",
+    "from": "n2fkidg",
+    "to": "nmd4gz",
+    "port": 0
+   },
+   {
+    "id": "e1lu46u",
+    "from": "n2j6ykg",
+    "to": "n1k0yk7",
+    "port": 0
+   },
+   {
+    "id": "e1nh62d",
+    "from": "n1k0yk7",
+    "to": "n1mpg9l",
+    "port": 0
+   },
+   {
+    "id": "e1pnr9i",
+    "from": "n1mpg9l",
+    "to": "n1o0u5w",
+    "port": 0
+   },
+   {
+    "id": "e1r8xv0",
+    "from": "n1o0u5w",
+    "to": "n1qza7c",
+    "port": 0
+   },
+   {
+    "id": "e1tz9k1",
+    "from": "n1qza7c",
+    "to": "n1s5lx7",
+    "port": 0
+   },
+   {
+    "id": "e1vihc9",
+    "from": "n1s5lx7",
+    "to": "n1ui6j9",
+    "port": 0
+   },
+   {
+    "id": "e2gna0x",
+    "from": "n46iuc",
+    "to": "n2fkidg",
+    "port": 0
+   },
+   {
+    "id": "e2i0vp8",
+    "from": "nmd4gz",
+    "to": "n2hepyl",
+    "port": 0
+   },
+   {
+    "id": "e2kzzl2",
+    "from": "n2hepyl",
+    "to": "n2j6ykg",
+    "port": 0
+   }
+  ],
+  "groups": [],
+  "blocks": {
+   "b2ewgnl": {
+    "id": "b2ewgnl",
+    "name": "PreNormConvBlock",
+    "graph": {
+     "name": "PreNormConvBlock",
+     "symbols": {
+      "e": 8
+     },
+     "nodes": [
+      {
+       "id": "n1wo1nc",
+       "type": "input",
+       "x": 141.3,
+       "y": 515,
+       "params": {
+        "name": "x",
+        "shape": "e, 32, 14, 14",
+        "title": ""
+       }
+      },
+      {
+       "id": "n1x7x09",
+       "type": "norm",
+       "x": 343,
+       "y": 515,
+       "params": {
+        "kind": "GroupNorm",
+        "dim": "32",
+        "groups": 1,
+        "eps": "",
+        "name": "norm1",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n1ymjvq",
+       "type": "act",
+       "x": 343,
+       "y": 451,
+       "params": {
+        "fn": "relu",
+        "dim": "-1",
+        "title": "",
+        "var": "a"
+       }
+      },
+      {
+       "id": "n1zedo5",
+       "type": "conv",
+       "x": 343,
+       "y": 382,
+       "params": {
+        "in": "32",
+        "out": "32",
+        "k": "3",
+        "stride": "1",
+        "pad": "1",
+        "bias": true,
+        "transposed": false,
+        "name": "conv1",
+        "title": "",
+        "var": "h"
+       }
+      },
+      {
+       "id": "n20rcha",
+       "type": "norm",
+       "x": 343,
+       "y": 313,
+       "params": {
+        "kind": "GroupNorm",
+        "dim": "32",
+        "groups": 1,
+        "eps": "",
+        "name": "norm2",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n21tw07",
+       "type": "act",
+       "x": 343,
+       "y": 249,
+       "params": {
+        "fn": "relu",
+        "dim": "-1",
+        "title": "",
+        "var": "a"
+       }
+      },
+      {
+       "id": "n22vmbq",
+       "type": "conv",
+       "x": 343,
+       "y": 180,
+       "params": {
+        "in": "32",
+        "out": "32",
+        "k": "3",
+        "stride": "1",
+        "pad": "1",
+        "bias": true,
+        "transposed": false,
+        "name": "conv2",
+        "title": "",
+        "var": "h"
+       }
+      },
+      {
+       "id": "n23w3i7",
+       "type": "binop",
+       "x": 343,
+       "y": 100,
+       "params": {
+        "op": "+",
+        "const": "",
+        "rev": false,
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n2cuqip",
+       "type": "output",
+       "x": 495,
+       "y": 100,
+       "params": {
+        "name": "out",
+        "title": ""
+       }
+      }
+     ],
+     "edges": [
+      {
+       "id": "e24mxn3",
+       "from": "n1wo1nc",
+       "to": "n1x7x09",
+       "port": 0
+      },
+      {
+       "id": "e25x0r8",
+       "from": "n1x7x09",
+       "to": "n1ymjvq",
+       "port": 0
+      },
+      {
+       "id": "e26ofyg",
+       "from": "n1ymjvq",
+       "to": "n1zedo5",
+       "port": 0
+      },
+      {
+       "id": "e274qvs",
+       "from": "n1zedo5",
+       "to": "n20rcha",
+       "port": 0
+      },
+      {
+       "id": "e28xqar",
+       "from": "n20rcha",
+       "to": "n21tw07",
+       "port": 0
+      },
+      {
+       "id": "e295ckt",
+       "from": "n21tw07",
+       "to": "n22vmbq",
+       "port": 0
+      },
+      {
+       "id": "e2agg6e",
+       "from": "n1wo1nc",
+       "to": "n23w3i7",
+       "port": 0
+      },
+      {
+       "id": "e2boqwn",
+       "from": "n22vmbq",
+       "to": "n23w3i7",
+       "port": 1
+      },
+      {
+       "id": "e2deaer",
+       "from": "n23w3i7",
+       "to": "n2cuqip",
+       "port": 0
+      }
+     ],
+     "groups": []
+    },
+    "labels": {},
+    "lib": "blocks/prenorm_conv_block.json"
+   }
+  }
+ }
+}

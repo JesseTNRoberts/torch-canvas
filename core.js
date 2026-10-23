@@ -80,7 +80,9 @@ const NN = (() => {
     BatchNorm2d: { label: 'BatchNorm2d', note: 'Per channel of an image, over the batch and pixels (running stats)', short: 'BatchNorm2d', image: true },
   };
   // the axis a norm works on: the channels (dim 1) for image norms, otherwise the last
-  const normAxis = (p, x) => (NORMS[p.kind] && NORMS[p.kind].image ? 1 : x.length - 1);
+  // the axis a norm counts its width on: the channels of an image (BatchNorm2d, or GroupNorm given e × C × H × W),
+  // else the last size
+  const normAxis = (p, x) => ((NORMS[p.kind] && NORMS[p.kind].image) || (p.kind === 'GroupNorm' && x.length === 4) ? 1 : x.length - 1);
   const normCtor = (p, d) => {
     const eps = p.eps !== '' && p.eps != null ? `, eps=${p.eps}` : '';
     switch (p.kind) {
@@ -272,7 +274,7 @@ const NN = (() => {
             if (c != null && c % gN !== 0) conflict(id, { kind: 'groups', a: C, b: String(gN), ports: [0], cap: `${C} (${c}) is not divisible by ${gN} groups`, msg: `GroupNorm needs the width to divide into ${gN} groups, but ${C} = ${c}` });
           }
           if (p.kind === 'InstanceNorm1d' && x.length < 3) conflict(id, { kind: 'rank', a: x.join('×'), b: 'e × t × d', ports: [0], cap: 'needs a sequence dimension', msg: 'InstanceNorm normalizes over a sequence, so its input needs a shape like e × t × d' });
-          if (NORMS[p.kind] && NORMS[p.kind].channelFirst && x.length > 3) conflict(id, { kind: 'rank', a: x.join('×'), b: 'rank ≤ 3', ports: [0], cap: 'input has more than 3 dims', msg: `${NORMS[p.kind].label} here supports inputs of shape e × d or e × t × d` });
+          if (NORMS[p.kind] && NORMS[p.kind].channelFirst && x.length > 3 && !(p.kind === 'GroupNorm' && x.length === 4)) conflict(id, { kind: 'rank', a: x.join('×'), b: 'rank ≤ 3', ports: [0], cap: 'input has more than 3 dims', msg: `${NORMS[p.kind].label} here supports inputs of shape e × d or e × t × d` });
           out = x; break;
         }
         case 'act': case 'dropout': case 'scale': case 'noise': out = inS[0]; break;

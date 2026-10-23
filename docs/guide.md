@@ -139,6 +139,8 @@ Use the Open / import menu (Open file, Ctrl+O; Open folder), or drop a `.py` fil
 
 This uses Chrome's File System Access API, so it works in the local version (`npm start`, served from localhost). Inside the hosted claude.ai page, Chrome blocks file pickers in the sandboxed frame, so there it opens files read-only and Save copies the code.
 
+Open tabs are kept in your browser between visits. A tab opened from an example remembers which version of the example it came from: if the example has changed since and you haven't edited the tab, it is brought up to date when the app starts (Undo brings back the copy that was open); a tab you have edited is left as it is, and Open / import opens the current version alongside it.
+
 ## Import
 
 Paste an `nn.Module` anywhere on the page (Ctrl+V), or use Open / import → Paste code. The reader follows `nn.Linear`, `nn.LayerNorm`/`nn.RMSNorm`, activations, `nn.Dropout`, `nn.Sequential`, `nn.ModuleList` (including list comprehensions), `for` loops over module lists, custom submodules, and elementwise math. Other calls are kept as custom ops so the code still regenerates.

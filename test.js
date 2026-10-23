@@ -118,6 +118,18 @@ for (const [f, want, delays] of [['14_rnn.json', 5768, 1], ['15_lstm.json', 2151
   if (r.error || r.layers.length !== 193 || r.layers[2].name !== 'layers.0.conv1d' || r.layers.some(l => !(l.fwdOut > 0 && l.bwdIn > 0)) || r.notes.some(x => /one step/.test(x))) { console.error('variance plot failed: ' + f + ' ' + (r.error || r.layers.length)); process.exit(1); }
   console.log(f + ' round trip OK, ' + n.toLocaleString('en-US') + ' parameters, variance plot OK');
 }
+// Residual CNNs (pre-norm blocks with image GroupNorm): the global-average-pooling head and the dense head share one
+// block; both round-trip, have the right parameter counts, and plot.
+for (const [f, want] of [['23_residual_cnn_gap.json', 57098], ['24_residual_cnn_dense.json', 72458]]) {
+  const g = JSON.parse(require('fs').readFileSync(__dirname + '/examples/networks/' + f, 'utf8')).graph;
+  const a = NN.generate(g, { literalDims: true }).code, b = NN.generate(NN.importPython(a).graph, { literalDims: true }).code;
+  if (a !== b || !/nn\.GroupNorm\(1, 32\)/.test(a) || /GroupNorm\(1, 7\)/.test(a)) { console.error(f + ' round trip failed'); process.exit(1); }
+  const fl = NN.expandBlocks(g).flat; let n = 0; for (const z of fl.nodes) n += NN.paramCount(z, fl.symbols) || 0;
+  if (n !== want) { console.error(f + ' has ' + n + ' parameters, expected ' + want); process.exit(1); }
+  const r = require('./engine.js').predict(g);
+  if (r.error || r.layers.length !== 8) { console.error('variance plot failed: ' + f + ' ' + (r.error || r.layers.length)); process.exit(1); }
+  console.log(f + ' round trip OK, ' + n.toLocaleString('en-US') + ' parameters, variance plot OK');
+}
 // VAE (PyTorch's examples/vae): three outputs (reconstruction logits, μ, log σ²), a Noise node for the
 // reparameterization trick, and a loss of 784 × BCE plus the KL term (kl_normal), read back as the same losses.
 {

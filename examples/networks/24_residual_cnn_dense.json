@@ -1,0 +1,454 @@
+{
+ "title": "Residual CNN, dense head",
+ "description": "The same residual CNN, but the 32 \u00d7 7 \u00d7 7 feature maps are flattened into one Linear. Every position gets its own classifier weights, so the dense head brings back the addresses convolution removed. 72,458 parameters.",
+ "graph": {
+  "name": "ResCNNDense",
+  "symbols": {
+   "e": 8
+  },
+  "nodes": [
+   {
+    "id": "n2lxqco",
+    "type": "input",
+    "x": 300,
+    "y": 996,
+    "params": {
+     "name": "x",
+     "shape": "e, 1, 28, 28",
+     "title": ""
+    }
+   },
+   {
+    "id": "n2m1au9",
+    "type": "conv",
+    "x": 300,
+    "y": 918,
+    "params": {
+     "in": "1",
+     "out": "32",
+     "k": "5",
+     "stride": "1",
+     "pad": "2",
+     "bias": true,
+     "transposed": false,
+     "name": "stem",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n2ouiu9",
+    "type": "pool",
+    "x": 300,
+    "y": 840,
+    "params": {
+     "kind": "max",
+     "k": "2",
+     "stride": "",
+     "pad": "0",
+     "size": "1",
+     "title": "",
+     "var": "x"
+    }
+   },
+   {
+    "id": "n36pnxe",
+    "type": "pool",
+    "x": 300,
+    "y": 684,
+    "params": {
+     "kind": "max",
+     "k": "2",
+     "stride": "",
+     "pad": "0",
+     "size": "1",
+     "title": "",
+     "var": "y"
+    }
+   },
+   {
+    "id": "n444ooh",
+    "type": "norm",
+    "x": 300,
+    "y": 450,
+    "params": {
+     "kind": "GroupNorm",
+     "dim": "32",
+     "groups": 1,
+     "eps": "",
+     "name": "norm",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n46rg13",
+    "type": "act",
+    "x": 300,
+    "y": 372,
+    "params": {
+     "fn": "relu",
+     "dim": "-1",
+     "title": "",
+     "var": "x"
+    }
+   },
+   {
+    "id": "n48pop1",
+    "type": "reshape",
+    "x": 300,
+    "y": 294,
+    "params": {
+     "pattern": "e c h w -> e (c h w)",
+     "sizes": "",
+     "note": "",
+     "title": "image \u2192 vector",
+     "var": "x"
+    }
+   },
+   {
+    "id": "n4a4gdc",
+    "type": "linear",
+    "x": 300,
+    "y": 216,
+    "params": {
+     "in": "1568",
+     "out": "10",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": false,
+     "bias_init": "",
+     "tie": "",
+     "name": "fc",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n4c6laj",
+    "type": "output",
+    "x": 300,
+    "y": 138,
+    "params": {
+     "name": "out",
+     "title": ""
+    }
+   },
+   {
+    "id": "n4x11bo",
+    "type": "block",
+    "x": 300,
+    "y": 762,
+    "params": {
+     "block": "b4w0kpz",
+     "args": {},
+     "nIn": 1,
+     "repeat": 1,
+     "name": "block1",
+     "title": "",
+     "var": "",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n4z3t1g",
+    "type": "block",
+    "x": 300,
+    "y": 606,
+    "params": {
+     "block": "b4w0kpz",
+     "args": {},
+     "nIn": 1,
+     "repeat": 1,
+     "name": "block2",
+     "title": "",
+     "var": "",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n518unj",
+    "type": "block",
+    "x": 300,
+    "y": 528,
+    "params": {
+     "block": "b4w0kpz",
+     "args": {},
+     "nIn": 1,
+     "repeat": 1,
+     "name": "block3",
+     "title": "",
+     "var": "",
+     "nOut": 1
+    }
+   }
+  ],
+  "edges": [
+   {
+    "id": "e2naklb",
+    "from": "n2lxqco",
+    "to": "n2m1au9",
+    "port": 0
+   },
+   {
+    "id": "e2pwr6v",
+    "from": "n2m1au9",
+    "to": "n2ouiu9",
+    "port": 0
+   },
+   {
+    "id": "e371j33",
+    "from": "n4x11bo",
+    "to": "n36pnxe",
+    "port": 0
+   },
+   {
+    "id": "e459vdk",
+    "from": "n518unj",
+    "to": "n444ooh",
+    "port": 0
+   },
+   {
+    "id": "e47cirg",
+    "from": "n444ooh",
+    "to": "n46rg13",
+    "port": 0
+   },
+   {
+    "id": "e49sfuy",
+    "from": "n46rg13",
+    "to": "n48pop1",
+    "port": 0
+   },
+   {
+    "id": "e4betgv",
+    "from": "n48pop1",
+    "to": "n4a4gdc",
+    "port": 0
+   },
+   {
+    "id": "e4d8ab8",
+    "from": "n4a4gdc",
+    "to": "n4c6laj",
+    "port": 0
+   },
+   {
+    "id": "e4yl50i",
+    "from": "n2ouiu9",
+    "to": "n4x11bo",
+    "port": 0
+   },
+   {
+    "id": "e506jjw",
+    "from": "n36pnxe",
+    "to": "n4z3t1g",
+    "port": 0
+   },
+   {
+    "id": "e52v360",
+    "from": "n4z3t1g",
+    "to": "n518unj",
+    "port": 0
+   }
+  ],
+  "groups": [],
+  "blocks": {
+   "b4w0kpz": {
+    "id": "b4w0kpz",
+    "name": "PreNormConvBlock",
+    "graph": {
+     "name": "PreNormConvBlock",
+     "symbols": {
+      "e": 8
+     },
+     "nodes": [
+      {
+       "id": "n1wo1nc",
+       "type": "input",
+       "x": 141.3,
+       "y": 515,
+       "params": {
+        "name": "x",
+        "shape": "e, 32, 14, 14",
+        "title": ""
+       }
+      },
+      {
+       "id": "n1x7x09",
+       "type": "norm",
+       "x": 343,
+       "y": 515,
+       "params": {
+        "kind": "GroupNorm",
+        "dim": "32",
+        "groups": 1,
+        "eps": "",
+        "name": "norm1",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n1ymjvq",
+       "type": "act",
+       "x": 343,
+       "y": 451,
+       "params": {
+        "fn": "relu",
+        "dim": "-1",
+        "title": "",
+        "var": "a"
+       }
+      },
+      {
+       "id": "n1zedo5",
+       "type": "conv",
+       "x": 343,
+       "y": 382,
+       "params": {
+        "in": "32",
+        "out": "32",
+        "k": "3",
+        "stride": "1",
+        "pad": "1",
+        "bias": true,
+        "transposed": false,
+        "name": "conv1",
+        "title": "",
+        "var": "h"
+       }
+      },
+      {
+       "id": "n20rcha",
+       "type": "norm",
+       "x": 343,
+       "y": 313,
+       "params": {
+        "kind": "GroupNorm",
+        "dim": "32",
+        "groups": 1,
+        "eps": "",
+        "name": "norm2",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n21tw07",
+       "type": "act",
+       "x": 343,
+       "y": 249,
+       "params": {
+        "fn": "relu",
+        "dim": "-1",
+        "title": "",
+        "var": "a"
+       }
+      },
+      {
+       "id": "n22vmbq",
+       "type": "conv",
+       "x": 343,
+       "y": 180,
+       "params": {
+        "in": "32",
+        "out": "32",
+        "k": "3",
+        "stride": "1",
+        "pad": "1",
+        "bias": true,
+        "transposed": false,
+        "name": "conv2",
+        "title": "",
+        "var": "h"
+       }
+      },
+      {
+       "id": "n23w3i7",
+       "type": "binop",
+       "x": 343,
+       "y": 100,
+       "params": {
+        "op": "+",
+        "const": "",
+        "rev": false,
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n2cuqip",
+       "type": "output",
+       "x": 495,
+       "y": 100,
+       "params": {
+        "name": "out",
+        "title": ""
+       }
+      }
+     ],
+     "edges": [
+      {
+       "id": "e24mxn3",
+       "from": "n1wo1nc",
+       "to": "n1x7x09",
+       "port": 0
+      },
+      {
+       "id": "e25x0r8",
+       "from": "n1x7x09",
+       "to": "n1ymjvq",
+       "port": 0
+      },
+      {
+       "id": "e26ofyg",
+       "from": "n1ymjvq",
+       "to": "n1zedo5",
+       "port": 0
+      },
+      {
+       "id": "e274qvs",
+       "from": "n1zedo5",
+       "to": "n20rcha",
+       "port": 0
+      },
+      {
+       "id": "e28xqar",
+       "from": "n20rcha",
+       "to": "n21tw07",
+       "port": 0
+      },
+      {
+       "id": "e295ckt",
+       "from": "n21tw07",
+       "to": "n22vmbq",
+       "port": 0
+      },
+      {
+       "id": "e2agg6e",
+       "from": "n1wo1nc",
+       "to": "n23w3i7",
+       "port": 0
+      },
+      {
+       "id": "e2boqwn",
+       "from": "n22vmbq",
+       "to": "n23w3i7",
+       "port": 1
+      },
+      {
+       "id": "e2deaer",
+       "from": "n23w3i7",
+       "to": "n2cuqip",
+       "port": 0
+      }
+     ],
+     "groups": []
+    },
+    "labels": {},
+    "lib": "blocks/prenorm_conv_block.json"
+   }
+  }
+ }
+}

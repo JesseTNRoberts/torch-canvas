@@ -323,9 +323,23 @@ const NNVar = (() => {
       for (let i = 0; i < R.h; i++) for (let j = 0; j < R.w; j++) X.set(A.X.subarray((i * R.gw + j) * NS, (i * R.gw + j + 1) * NS), (i * R.w + j) * NS);
       return Object.assign({}, A, { T: R.h * R.w, X, img: exactRep(R.h, R.w) });
     };
+    // a wrapped map with a pooling history (each step of a pixel moves dh grid cells) as its actual pixels: each pixel
+    // reads the grid cell it lands on; pixels that share a cell get the cell's values in a fresh order, so they stay
+    // independent (as when such a map is flattened into a sequence)
+    const toExactPooled = A => {
+      const R = A.img; if (!R || !R.torus || R.h * R.w > SEQCAP) return A;
+      const P = R.h * R.w, X = new Float32Array(P * NS), seen = new Map();
+      for (let i = 0; i < R.h; i++) for (let j = 0; j < R.w; j++) {
+        const q = (Math.round(i * R.dh) % R.gh) * R.gw + (Math.round(j * R.dw) % R.gw), c = seen.get(q) || 0; seen.set(q, c + 1);
+        const pm = c ? permuted() : null, a = i * R.w + j;
+        for (let s2 = 0; s2 < NS; s2++) X[a * NS + s2] = A.X[q * NS + (pm ? pm[s2] : s2)];
+      }
+      return Object.assign({}, A, { T: P, X, img: exactRep(R.h, R.w) });
+    };
     const alignImgs = list => {
       if (!list.every(v => v && v.img)) return list;
-      const ex = list.some(v => !v.img.torus) ? list.map(toExact) : list;
+      let ex = list.some(v => !v.img.torus) ? list.map(toExact) : list;
+      if (ex.some(v => v.T !== ex[0].T) && ex.some(v => !v.img.torus)) ex = ex.map(v => (v.img.torus ? toExactPooled(v) : v));
       if (ex.some(v => v.T !== ex[0].T)) return null;
       if (ex.some(v => v.img.dh !== ex[0].img.dh || v.img.dw !== ex[0].img.dw)) notes.add('Feature maps with different pooling histories are added as if aligned pixel for pixel.');
       return ex;
@@ -829,7 +843,13 @@ const NNVar = (() => {
     const addGrad = (id, G) => {
       if (!id || !G) return; const v = val.get(id); if (!v || v.k === 'idx') return;
       // a gradient worked out on a map cut to its actual size goes back into the wrapped grid it came from
-      if (v.img && v.img.torus && G.length !== v.T * NS && G.length === v.img.h * v.img.w * NS) { const Y = new Float32Array(v.T * NS); for (let i = 0; i < v.img.h; i++) for (let j = 0; j < v.img.w; j++) Y.set(G.subarray((i * v.img.w + j) * NS, (i * v.img.w + j + 1) * NS), (i * v.img.gw + j) * NS); G = Y; }
+      // (with a pooling history: each grid cell takes the gradient of a pixel that lands on it, or of any pixel)
+      if (v.img && v.img.torus && G.length !== v.T * NS && G.length === v.img.h * v.img.w * NS && (v.img.dh !== 1 || v.img.dw !== 1 || v.img.h > v.img.gh || v.img.w > v.img.gw)) {
+        const R = v.img, on = new Map(), Y = new Float32Array(v.T * NS);
+        for (let i = 0; i < R.h; i++) for (let j = 0; j < R.w; j++) { const q = (Math.round(i * R.dh) % R.gh) * R.gw + (Math.round(j * R.dw) % R.gw); if (!on.has(q)) on.set(q, []); on.get(q).push(i * R.w + j); }
+        for (let q = 0; q < v.T; q++) { const l = on.get(q), a = l ? l[(rand() * l.length) | 0] : (rand() * R.h * R.w) | 0; Y.set(G.subarray(a * NS, (a + 1) * NS), q * NS); }
+        G = Y;
+      } else if (v.img && v.img.torus && G.length !== v.T * NS && G.length === v.img.h * v.img.w * NS) { const Y = new Float32Array(v.T * NS); for (let i = 0; i < v.img.h; i++) for (let j = 0; j < v.img.w; j++) Y.set(G.subarray((i * v.img.w + j) * NS, (i * v.img.w + j + 1) * NS), (i * v.img.gw + j) * NS); G = Y; }
       // a tensor broadcast over positions receives the sum of their gradients
       { const Wd = NS * (v.K > 1 ? v.K : 1); if (v.k !== 's' && v.T === 1 && G.length > Wd) { const S = new Float32Array(Wd); for (let i = 0; i < G.length; i++) S[i % Wd] += G[i]; G = S; } }
       const cur = grad.get(id);

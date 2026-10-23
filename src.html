@@ -646,8 +646,12 @@ function restore(json) {
   if (S.edit && !(S.tabs || []).includes(S.edit)) S.tabs.push(S.edit);
   clearSel(); changed();
 }
+// which version of an example a tab was opened from, and whether it has been edited since: an untouched tab of an
+// example that has changed is brought up to date when the app starts
+const libSigOf = src => { let h = 5381; const t = String(src || ''); for (let i = 0; i < t.length; i++) h = ((h * 33) ^ t.charCodeAt(i)) >>> 0; return h.toString(36); };
+const docEdited = d => !!(d.edited || ((d.id === S.cur ? S.undo : d.undo) || []).length > (d.baseUndo || 0));
 function save() {
-  try { localStorage.setItem(STORE, JSON.stringify({ v: 2, docs: S.docs.map(d => (d.id === S.cur ? S.root : d.root)), from: S.docs.map(d => d.fromLib || null), cur: Math.max(0, S.docs.findIndex(d => d.id === S.cur)) })); } catch {}
+  try { localStorage.setItem(STORE, JSON.stringify({ v: 2, docs: S.docs.map(d => (d.id === S.cur ? S.root : d.root)), from: S.docs.map(d => d.fromLib || null), sig: S.docs.map(d => d.libSig || null), ed: S.docs.map(docEdited), cur: Math.max(0, S.docs.findIndex(d => d.id === S.cur)) })); } catch {}
 }
 function load() { try { const s = localStorage.getItem(STORE); if (s) { const g = JSON.parse(s); if (g && Array.isArray(g.nodes)) return g; } } catch {} return null; }
 function clearSel() { S.sel.nodes.clear(); S.sel.edges.clear(); S.sel.group = null; }
@@ -3353,7 +3357,7 @@ function openLibrary(entry) {
     let g; try { const j = JSON.parse(entry.source); g = j.graph || j; } catch { return toast(`Couldn't read ${entry.title}.`); }
     openDoc(g, null, { byName: true }); toast(`Opened example: ${entry.title}.`);
   } else importText(entry.source, null, { libTitle: entry.title });
-  const d = S.cur !== before && docById(S.cur); if (d) { d.fromLib = entry.file; save(); }
+  const d = S.cur !== before && docById(S.cur); if (d) { d.fromLib = entry.file; d.libSig = libSigOf(entry.source); d.edited = false; save(); }
 }
 // ── links to an example: ?open=gpt2 opens examples/networks/07_gpt2.json (or a library block, e.g. ?open=swiglu) ──
 const libBase = f => f.split('/').pop().replace(/\.\w+$/, '').toLowerCase();
@@ -4411,6 +4415,22 @@ if (!roots.length) roots = [NN.presetResidualMLP()];
 for (const g of roots) for (const n of g.nodes) { if ('tone' in n.params) delete n.params.tone; if (['Down projection', 'Output projection', 'Final norm'].includes(n.params.title)) n.params.title = ''; }
 roots.forEach(r => syncLinked(r));
 S.docs = roots.map(r => ({ id: NN.uid('d'), root: r, file: null, undo: [], redo: [], tabs: [], views: {}, fromLib: fromOf.get(r) || null }));
+// tabs of examples that have changed since they were opened: untouched ones (or ones saved before edits were tracked)
+// get the current version, with Undo bringing back the copy that was open; edited ones are left as they are
+{
+  const sigs = (saved && saved.sig) || [], eds = (saved && saved.ed) || [], updated = [], kept = [];
+  S.docs.forEach((d, i) => {
+    const entry = d.fromLib && S.library.find(x => x.file === d.fromLib && x.kind === 'network' && x.type === 'json'); if (!entry) return;
+    const now = libSigOf(entry.source); d.libSig = sigs[i] || null; d.edited = eds[i] === true;
+    if (d.libSig === now) return;
+    if (d.edited) { kept.push(entry.title); return; }
+    let g; try { const j = JSON.parse(entry.source); g = j.graph || j; } catch { return; }
+    syncLinked(g, { byName: true });
+    d.undo = [JSON.stringify({ root: d.root, edit: null })]; d.baseUndo = 1; d.root = g; d.libSig = now; d.edited = false; updated.push(entry.title);
+  });
+  if (updated.length) setTimeout(() => toast(`Updated ${updated.length === 1 ? 'the ' + updated[0] + ' tab' : updated.length + ' example tabs'} to the current version of the example. Undo brings back the copy that was open.`), 600);
+  else if (kept.length) setTimeout(() => toast(`The ${kept.join(', ')} example has changed since you opened it; your edited tab is unchanged. Open / import opens the current version.`), 600);
+}
 S.cur = null;
 activateDoc(S.docs[Math.min(saved && saved.cur || 0, S.docs.length - 1)].id);
 renderProject();
@@ -4422,7 +4442,7 @@ renderProject();
   if (!entry) return setTimeout(() => toast(`There is no example called “${want}”. Open / import lists them all.`), 300);
   // already open in a tab (from an earlier visit): switch to it
   const have = S.docs.find(d => d.fromLib === entry.file || (d.id === S.cur ? S.root : d.root).libHost === entry.file);
-  if (have) { if (have.id !== S.cur) activateDoc(have.id); return; }
+  if (have && (!have.libSig || have.libSig === libSigOf(entry.source) || docEdited(have))) { if (have.id !== S.cur) activateDoc(have.id); if (have.libSig && have.libSig !== libSigOf(entry.source)) setTimeout(() => toast('This tab has your edits; Open / import opens the current version of the example.'), 300); return; }
   const first = S.cur;
   openLibrary(entry);
   // someone opening the link for the first time sees just that model, not the default example beside it
