@@ -1,0 +1,769 @@
+{
+ "title": "U-Net (segmentation)",
+ "description": "U-Net as in milesial/Pytorch-UNet (bilinear=False): an encoder of DoubleConv and four Down steps (64 → 1024 channels, 256 → 16 pixels), a decoder of four Up steps that double the size with a transposed convolution and join the encoder's map at the same size (the skip connections), and a 1×1 convolution to a score per class per pixel. Trained with per-pixel cross-entropy against a mask of class indices. 31,037,698 parameters, the same as the reference.",
+ "graph": {
+  "name": "UNet",
+  "symbols": {
+   "e": 8,
+   "classes": 2
+  },
+  "nodes": [
+   {
+    "id": "n11znqe",
+    "type": "input",
+    "x": 120,
+    "y": 900,
+    "params": {
+     "name": "x",
+     "shape": "e, 3, 256, 256",
+     "title": ""
+    }
+   },
+   {
+    "id": "n12szak",
+    "type": "block",
+    "x": 120,
+    "y": 816,
+    "params": {
+     "block": "bgz6x0",
+     "args": {
+      "c_out": "64"
+     },
+     "nIn": 1,
+     "repeat": 1,
+     "name": "inc",
+     "title": "",
+     "var": "",
+     "lib": "blocks/unet_double_conv.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n136w93",
+    "type": "block",
+    "x": 210,
+    "y": 732,
+    "params": {
+     "block": "bo53bb",
+     "args": {
+      "c_out": "128"
+     },
+     "nIn": 1,
+     "repeat": 1,
+     "name": "down1",
+     "title": "",
+     "var": "",
+     "lib": "blocks/unet_down.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n14t93k",
+    "type": "block",
+    "x": 300,
+    "y": 648,
+    "params": {
+     "block": "bo53bb",
+     "args": {
+      "c_out": "256"
+     },
+     "nIn": 1,
+     "repeat": 1,
+     "name": "down2",
+     "title": "",
+     "var": "",
+     "lib": "blocks/unet_down.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n150tn9",
+    "type": "block",
+    "x": 390,
+    "y": 564,
+    "params": {
+     "block": "bo53bb",
+     "args": {
+      "c_out": "512"
+     },
+     "nIn": 1,
+     "repeat": 1,
+     "name": "down3",
+     "title": "",
+     "var": "",
+     "lib": "blocks/unet_down.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n16435c",
+    "type": "block",
+    "x": 480,
+    "y": 480,
+    "params": {
+     "block": "bo53bb",
+     "args": {
+      "c_out": "1024"
+     },
+     "nIn": 1,
+     "repeat": 1,
+     "name": "down4",
+     "title": "",
+     "var": "",
+     "lib": "blocks/unet_down.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n17f2q3",
+    "type": "block",
+    "x": 880,
+    "y": 564,
+    "params": {
+     "block": "b108sio",
+     "args": {
+      "c_out": "512"
+     },
+     "nIn": 2,
+     "repeat": 1,
+     "name": "up1",
+     "title": "",
+     "var": "",
+     "lib": "blocks/unet_up.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n180ium",
+    "type": "block",
+    "x": 970,
+    "y": 648,
+    "params": {
+     "block": "b108sio",
+     "args": {
+      "c_out": "256"
+     },
+     "nIn": 2,
+     "repeat": 1,
+     "name": "up2",
+     "title": "",
+     "var": "",
+     "lib": "blocks/unet_up.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n19ph1w",
+    "type": "block",
+    "x": 1060,
+    "y": 732,
+    "params": {
+     "block": "b108sio",
+     "args": {
+      "c_out": "128"
+     },
+     "nIn": 2,
+     "repeat": 1,
+     "name": "up3",
+     "title": "",
+     "var": "",
+     "lib": "blocks/unet_up.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n1amsh3",
+    "type": "block",
+    "x": 1150,
+    "y": 816,
+    "params": {
+     "block": "b108sio",
+     "args": {
+      "c_out": "64"
+     },
+     "nIn": 2,
+     "repeat": 1,
+     "name": "up4",
+     "title": "",
+     "var": "",
+     "lib": "blocks/unet_up.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n1bw524",
+    "type": "conv",
+    "x": 1300,
+    "y": 816,
+    "params": {
+     "in": "64",
+     "out": "classes",
+     "k": "1",
+     "stride": "1",
+     "pad": "0",
+     "bias": true,
+     "transposed": false,
+     "name": "outc",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1c3otm",
+    "type": "output",
+    "x": 1300,
+    "y": 732,
+    "params": {
+     "name": "logits",
+     "title": ""
+    }
+   },
+   {
+    "id": "n1szlz5",
+    "type": "loss",
+    "x": 1300,
+    "y": 648,
+    "params": {
+     "fn": "cross_entropy",
+     "mode": "given",
+     "label_smoothing": "",
+     "ignore_index": "",
+     "delta": "1.0",
+     "weight": "1",
+     "mask_prob": "0.15",
+     "mask_id": "",
+     "title": ""
+    }
+   },
+   {
+    "id": "n1tr8j3",
+    "type": "input",
+    "x": 1520,
+    "y": 732,
+    "params": {
+     "name": "mask",
+     "shape": "e, 256, 256",
+     "title": ""
+    }
+   }
+  ],
+  "edges": [
+   {
+    "id": "e1dfmh9",
+    "from": "n11znqe",
+    "to": "n12szak",
+    "port": 0
+   },
+   {
+    "id": "e1eck3p",
+    "from": "n12szak",
+    "to": "n136w93",
+    "port": 0
+   },
+   {
+    "id": "e1fc9v2",
+    "from": "n136w93",
+    "to": "n14t93k",
+    "port": 0
+   },
+   {
+    "id": "e1g8fjb",
+    "from": "n14t93k",
+    "to": "n150tn9",
+    "port": 0
+   },
+   {
+    "id": "e1h2nl9",
+    "from": "n150tn9",
+    "to": "n16435c",
+    "port": 0
+   },
+   {
+    "id": "e1i1ctk",
+    "from": "n16435c",
+    "to": "n17f2q3",
+    "port": 0
+   },
+   {
+    "id": "e1jllhc",
+    "from": "n150tn9",
+    "to": "n17f2q3",
+    "port": 1
+   },
+   {
+    "id": "e1khe5j",
+    "from": "n17f2q3",
+    "to": "n180ium",
+    "port": 0
+   },
+   {
+    "id": "e1lnxj2",
+    "from": "n14t93k",
+    "to": "n180ium",
+    "port": 1
+   },
+   {
+    "id": "e1m9t6y",
+    "from": "n180ium",
+    "to": "n19ph1w",
+    "port": 0
+   },
+   {
+    "id": "e1nkuwv",
+    "from": "n136w93",
+    "to": "n19ph1w",
+    "port": 1
+   },
+   {
+    "id": "e1ofm31",
+    "from": "n19ph1w",
+    "to": "n1amsh3",
+    "port": 0
+   },
+   {
+    "id": "e1pmoth",
+    "from": "n12szak",
+    "to": "n1amsh3",
+    "port": 1
+   },
+   {
+    "id": "e1qg3ly",
+    "from": "n1amsh3",
+    "to": "n1bw524",
+    "port": 0
+   },
+   {
+    "id": "e1ror02",
+    "from": "n1bw524",
+    "to": "n1c3otm",
+    "port": 0
+   },
+   {
+    "id": "e1ud0du",
+    "from": "n1bw524",
+    "to": "n1szlz5",
+    "port": 0
+   },
+   {
+    "id": "e1v7bo0",
+    "from": "n1tr8j3",
+    "to": "n1szlz5",
+    "port": 1
+   }
+  ],
+  "groups": [],
+  "blocks": {
+   "bgz6x0": {
+    "id": "bgz6x0",
+    "name": "DoubleConv",
+    "graph": {
+     "name": "DoubleConv",
+     "symbols": {
+      "e": 8,
+      "c_in": 64,
+      "c_out": 128,
+      "H": 64,
+      "W": 64
+     },
+     "nodes": [
+      {
+       "id": "n1fkpj",
+       "type": "input",
+       "x": 200,
+       "y": 470,
+       "params": {
+        "name": "x",
+        "shape": "e, c_in, H, W",
+        "title": ""
+       }
+      },
+      {
+       "id": "n21j5c",
+       "type": "conv",
+       "x": 200,
+       "y": 406,
+       "params": {
+        "in": "c_in",
+        "out": "c_out",
+        "k": "3",
+        "stride": "1",
+        "pad": "1",
+        "bias": false,
+        "transposed": false,
+        "name": "conv1",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n3bm87",
+       "type": "norm",
+       "x": 200,
+       "y": 342,
+       "params": {
+        "kind": "BatchNorm2d",
+        "dim": "c_out",
+        "groups": 8,
+        "eps": "",
+        "name": "bn1",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n4bjk4",
+       "type": "act",
+       "x": 200,
+       "y": 284,
+       "params": {
+        "fn": "relu",
+        "dim": "-1",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n53rwk",
+       "type": "conv",
+       "x": 200,
+       "y": 220,
+       "params": {
+        "in": "c_out",
+        "out": "c_out",
+        "k": "3",
+        "stride": "1",
+        "pad": "1",
+        "bias": false,
+        "transposed": false,
+        "name": "conv2",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n6my9j",
+       "type": "norm",
+       "x": 200,
+       "y": 156,
+       "params": {
+        "kind": "BatchNorm2d",
+        "dim": "c_out",
+        "groups": 8,
+        "eps": "",
+        "name": "bn2",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n7s5hk",
+       "type": "act",
+       "x": 200,
+       "y": 98,
+       "params": {
+        "fn": "relu",
+        "dim": "-1",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n86tfr",
+       "type": "output",
+       "x": 200,
+       "y": 34,
+       "params": {
+        "name": "out",
+        "title": ""
+       }
+      }
+     ],
+     "edges": [
+      {
+       "id": "e9uyiq",
+       "from": "n1fkpj",
+       "to": "n21j5c",
+       "port": 0
+      },
+      {
+       "id": "ea4qtz",
+       "from": "n21j5c",
+       "to": "n3bm87",
+       "port": 0
+      },
+      {
+       "id": "ebeie7",
+       "from": "n3bm87",
+       "to": "n4bjk4",
+       "port": 0
+      },
+      {
+       "id": "ecj1gc",
+       "from": "n4bjk4",
+       "to": "n53rwk",
+       "port": 0
+      },
+      {
+       "id": "edqe1i",
+       "from": "n53rwk",
+       "to": "n6my9j",
+       "port": 0
+      },
+      {
+       "id": "ee5whu",
+       "from": "n6my9j",
+       "to": "n7s5hk",
+       "port": 0
+      },
+      {
+       "id": "efpkvn",
+       "from": "n7s5hk",
+       "to": "n86tfr",
+       "port": 0
+      }
+     ],
+     "groups": []
+    },
+    "labels": {
+     "c_out": "output channels"
+    },
+    "lib": "blocks/unet_double_conv.json"
+   },
+   "bo53bb": {
+    "id": "bo53bb",
+    "name": "Down",
+    "graph": {
+     "name": "Down",
+     "symbols": {
+      "e": 8,
+      "c_in": 64,
+      "c_out": 128,
+      "H": 128,
+      "W": 128
+     },
+     "nodes": [
+      {
+       "id": "nhyvz6",
+       "type": "input",
+       "x": 200,
+       "y": 300,
+       "params": {
+        "name": "x",
+        "shape": "e, c_in, H, W",
+        "title": ""
+       }
+      },
+      {
+       "id": "nirrpo",
+       "type": "pool",
+       "x": 200,
+       "y": 230,
+       "params": {
+        "kind": "max",
+        "k": "2",
+        "stride": "",
+        "pad": "0",
+        "size": "1",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "nj6r1r",
+       "type": "block",
+       "x": 200,
+       "y": 160,
+       "params": {
+        "block": "bgz6x0",
+        "args": {
+         "c_out": "c_out"
+        },
+        "nIn": 1,
+        "repeat": 1,
+        "name": "conv",
+        "title": "",
+        "var": "",
+        "lib": "blocks/unet_double_conv.json",
+        "nOut": 1
+       }
+      },
+      {
+       "id": "nkmwgb",
+       "type": "output",
+       "x": 200,
+       "y": 90,
+       "params": {
+        "name": "out",
+        "title": ""
+       }
+      }
+     ],
+     "edges": [
+      {
+       "id": "elbbj2",
+       "from": "nhyvz6",
+       "to": "nirrpo",
+       "port": 0
+      },
+      {
+       "id": "em7h08",
+       "from": "nirrpo",
+       "to": "nj6r1r",
+       "port": 0
+      },
+      {
+       "id": "enb780",
+       "from": "nj6r1r",
+       "to": "nkmwgb",
+       "port": 0
+      }
+     ],
+     "groups": []
+    },
+    "labels": {
+     "c_out": "output channels"
+    },
+    "lib": "blocks/unet_down.json"
+   },
+   "b108sio": {
+    "id": "b108sio",
+    "name": "Up",
+    "graph": {
+     "name": "Up",
+     "symbols": {
+      "e": 8,
+      "c_in": 128,
+      "c_out": 64,
+      "H": 32,
+      "W": 32,
+      "H2": 64,
+      "W2": 64
+     },
+     "nodes": [
+      {
+       "id": "npm78c",
+       "type": "input",
+       "x": 200,
+       "y": 360,
+       "params": {
+        "name": "x1",
+        "shape": "e, c_in, H, W",
+        "title": ""
+       }
+      },
+      {
+       "id": "nqmnv4",
+       "type": "input",
+       "x": 400,
+       "y": 288,
+       "params": {
+        "name": "x2",
+        "shape": "e, c_out, H2, W2",
+        "title": ""
+       }
+      },
+      {
+       "id": "nrplwa",
+       "type": "conv",
+       "x": 200,
+       "y": 288,
+       "params": {
+        "in": "c_in",
+        "out": "c_out",
+        "k": "2",
+        "stride": "2",
+        "pad": "0",
+        "bias": true,
+        "transposed": true,
+        "name": "up",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "nsk0ml",
+       "type": "func",
+       "x": 300,
+       "y": 216,
+       "params": {
+        "fn": "torch.cat",
+        "extra": "dim=1",
+        "n": 2,
+        "init": "",
+        "name": "",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "nt8dae",
+       "type": "block",
+       "x": 300,
+       "y": 144,
+       "params": {
+        "block": "bgz6x0",
+        "args": {
+         "c_out": "c_out"
+        },
+        "nIn": 1,
+        "repeat": 1,
+        "name": "conv",
+        "title": "",
+        "var": "",
+        "lib": "blocks/unet_double_conv.json",
+        "nOut": 1
+       }
+      },
+      {
+       "id": "numdo2",
+       "type": "output",
+       "x": 300,
+       "y": 72,
+       "params": {
+        "name": "out",
+        "title": ""
+       }
+      }
+     ],
+     "edges": [
+      {
+       "id": "ev5gpc",
+       "from": "npm78c",
+       "to": "nrplwa",
+       "port": 0
+      },
+      {
+       "id": "ewgx46",
+       "from": "nqmnv4",
+       "to": "nsk0ml",
+       "port": 0
+      },
+      {
+       "id": "ex1g4m",
+       "from": "nrplwa",
+       "to": "nsk0ml",
+       "port": 1
+      },
+      {
+       "id": "eyg84c",
+       "from": "nsk0ml",
+       "to": "nt8dae",
+       "port": 0
+      },
+      {
+       "id": "ezx2q3",
+       "from": "nt8dae",
+       "to": "numdo2",
+       "port": 0
+      }
+     ],
+     "groups": []
+    },
+    "labels": {
+     "c_out": "output channels"
+    },
+    "lib": "blocks/unet_up.json"
+   }
+  }
+ }
+}

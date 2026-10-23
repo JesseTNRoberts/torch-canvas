@@ -1,0 +1,1175 @@
+{
+ "title": "YOLOv3 (416, COCO)",
+ "description": "YOLOv3 as in Darknet's yolov3.cfg: the Darknet-53 backbone (Conv-BN-LeakyReLU layers and 1 + 2 + 8 + 8 + 4 residual blocks), then detection at three scales: 13 × 13 for large objects, and 26 × 26 and 52 × 52 after upsampling and joining the backbone's features. Each output has 255 = 3 boxes × (4 coordinates + objectness + 80 classes) channels per cell. 61.9M parameters.",
+ "graph": {
+  "name": "YOLOv3",
+  "symbols": {
+   "e": 8
+  },
+  "nodes": [
+   {
+    "id": "n4kkgto",
+    "type": "input",
+    "x": 190,
+    "y": 1350,
+    "params": {
+     "name": "x",
+     "shape": "e, 3, 416, 416",
+     "title": ""
+    }
+   },
+   {
+    "id": "n4l0xh3",
+    "type": "block",
+    "x": 190,
+    "y": 1276,
+    "params": {
+     "block": "b3mjkhh",
+     "args": {
+      "c_out": "32",
+      "k": "3",
+      "stride": "1"
+     },
+     "nIn": 1,
+     "repeat": 1,
+     "name": "stem",
+     "title": "",
+     "var": "",
+     "lib": "blocks/darknet_conv.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n4mbu4o",
+    "type": "block",
+    "x": 190,
+    "y": 1202,
+    "params": {
+     "block": "b3mjkhh",
+     "args": {
+      "c_out": "64",
+      "k": "3",
+      "stride": "2"
+     },
+     "nIn": 1,
+     "repeat": 1,
+     "name": "down1",
+     "title": "",
+     "var": "",
+     "lib": "blocks/darknet_conv.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n4nqnmo",
+    "type": "block",
+    "x": 190,
+    "y": 1128,
+    "params": {
+     "block": "b3xd83m",
+     "args": {},
+     "nIn": 1,
+     "repeat": 1,
+     "name": "stage1",
+     "title": "",
+     "var": "",
+     "lib": "blocks/darknet_residual.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n4o8qeh",
+    "type": "block",
+    "x": 190,
+    "y": 1054,
+    "params": {
+     "block": "b3mjkhh",
+     "args": {
+      "c_out": "128",
+      "k": "3",
+      "stride": "2"
+     },
+     "nIn": 1,
+     "repeat": 1,
+     "name": "down2",
+     "title": "",
+     "var": "",
+     "lib": "blocks/darknet_conv.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n4pjfp6",
+    "type": "block",
+    "x": 190,
+    "y": 970,
+    "params": {
+     "block": "b3xd83m",
+     "args": {},
+     "nIn": 1,
+     "repeat": 2,
+     "name": "stage2",
+     "title": "",
+     "var": "",
+     "lib": "blocks/darknet_residual.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n4qlvlz",
+    "type": "block",
+    "x": 190,
+    "y": 896,
+    "params": {
+     "block": "b3mjkhh",
+     "args": {
+      "c_out": "256",
+      "k": "3",
+      "stride": "2"
+     },
+     "nIn": 1,
+     "repeat": 1,
+     "name": "down3",
+     "title": "",
+     "var": "",
+     "lib": "blocks/darknet_conv.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n4rg90a",
+    "type": "block",
+    "x": 190,
+    "y": 812,
+    "params": {
+     "block": "b3xd83m",
+     "args": {},
+     "nIn": 1,
+     "repeat": 8,
+     "name": "stage3",
+     "title": "",
+     "var": "",
+     "lib": "blocks/darknet_residual.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n4scywe",
+    "type": "block",
+    "x": 190,
+    "y": 738,
+    "params": {
+     "block": "b3mjkhh",
+     "args": {
+      "c_out": "512",
+      "k": "3",
+      "stride": "2"
+     },
+     "nIn": 1,
+     "repeat": 1,
+     "name": "down4",
+     "title": "",
+     "var": "",
+     "lib": "blocks/darknet_conv.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n4tf728",
+    "type": "block",
+    "x": 190,
+    "y": 654,
+    "params": {
+     "block": "b3xd83m",
+     "args": {},
+     "nIn": 1,
+     "repeat": 8,
+     "name": "stage4",
+     "title": "",
+     "var": "",
+     "lib": "blocks/darknet_residual.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n4ubtgt",
+    "type": "block",
+    "x": 190,
+    "y": 580,
+    "params": {
+     "block": "b3mjkhh",
+     "args": {
+      "c_out": "1024",
+      "k": "3",
+      "stride": "2"
+     },
+     "nIn": 1,
+     "repeat": 1,
+     "name": "down5",
+     "title": "",
+     "var": "",
+     "lib": "blocks/darknet_conv.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n4vyfbo",
+    "type": "block",
+    "x": 190,
+    "y": 496,
+    "params": {
+     "block": "b3xd83m",
+     "args": {},
+     "nIn": 1,
+     "repeat": 4,
+     "name": "stage5",
+     "title": "",
+     "var": "",
+     "lib": "blocks/darknet_residual.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n57o4m2",
+    "type": "block",
+    "x": 190,
+    "y": 416,
+    "params": {
+     "block": "b4bit0f",
+     "args": {
+      "c": "512"
+     },
+     "nIn": 1,
+     "repeat": 1,
+     "name": "head1",
+     "title": "",
+     "var": "",
+     "lib": "blocks/yolo_conv_set.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n58mis1",
+    "type": "block",
+    "x": 190,
+    "y": 342,
+    "params": {
+     "block": "b4ja4x8",
+     "args": {
+      "n_out": "255"
+     },
+     "nIn": 1,
+     "repeat": 1,
+     "name": "detect1",
+     "title": "",
+     "var": "",
+     "lib": "blocks/yolo_detect.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n59duwa",
+    "type": "output",
+    "x": 190,
+    "y": 268,
+    "params": {
+     "name": "large",
+     "title": ""
+    }
+   },
+   {
+    "id": "n5d04fh",
+    "type": "block",
+    "x": 470,
+    "y": 416,
+    "params": {
+     "block": "b3mjkhh",
+     "args": {
+      "c_out": "256",
+      "k": "1",
+      "stride": "1"
+     },
+     "nIn": 1,
+     "repeat": 1,
+     "name": "reduce1",
+     "title": "",
+     "var": "",
+     "lib": "blocks/darknet_conv.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n5edwed",
+    "type": "upsample",
+    "x": 470,
+    "y": 535,
+    "params": {
+     "scale": "2",
+     "mode": "nearest",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n5f1ge2",
+    "type": "func",
+    "x": 470,
+    "y": 654,
+    "params": {
+     "fn": "torch.cat",
+     "extra": "dim=1",
+     "n": 2,
+     "init": "",
+     "name": "",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n5gtt1z",
+    "type": "block",
+    "x": 750,
+    "y": 654,
+    "params": {
+     "block": "b4bit0f",
+     "args": {
+      "c": "256"
+     },
+     "nIn": 1,
+     "repeat": 1,
+     "name": "head2",
+     "title": "",
+     "var": "",
+     "lib": "blocks/yolo_conv_set.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n5hweor",
+    "type": "block",
+    "x": 750,
+    "y": 574,
+    "params": {
+     "block": "b4ja4x8",
+     "args": {
+      "n_out": "255"
+     },
+     "nIn": 1,
+     "repeat": 1,
+     "name": "detect2",
+     "title": "",
+     "var": "",
+     "lib": "blocks/yolo_detect.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n5i0jo9",
+    "type": "output",
+    "x": 750,
+    "y": 500,
+    "params": {
+     "name": "medium",
+     "title": ""
+    }
+   },
+   {
+    "id": "n5qn51z",
+    "type": "block",
+    "x": 1030,
+    "y": 654,
+    "params": {
+     "block": "b3mjkhh",
+     "args": {
+      "c_out": "128",
+      "k": "1",
+      "stride": "1"
+     },
+     "nIn": 1,
+     "repeat": 1,
+     "name": "reduce2",
+     "title": "",
+     "var": "",
+     "lib": "blocks/darknet_conv.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n5rdu5u",
+    "type": "upsample",
+    "x": 1030,
+    "y": 733,
+    "params": {
+     "scale": "2",
+     "mode": "nearest",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n5svoe6",
+    "type": "func",
+    "x": 1030,
+    "y": 812,
+    "params": {
+     "fn": "torch.cat",
+     "extra": "dim=1",
+     "n": 2,
+     "init": "",
+     "name": "",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n5t9gl6",
+    "type": "block",
+    "x": 1310,
+    "y": 812,
+    "params": {
+     "block": "b4bit0f",
+     "args": {
+      "c": "128"
+     },
+     "nIn": 1,
+     "repeat": 1,
+     "name": "head3",
+     "title": "",
+     "var": "",
+     "lib": "blocks/yolo_conv_set.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n5u63cf",
+    "type": "block",
+    "x": 1310,
+    "y": 732,
+    "params": {
+     "block": "b4ja4x8",
+     "args": {
+      "n_out": "255"
+     },
+     "nIn": 1,
+     "repeat": 1,
+     "name": "detect3",
+     "title": "",
+     "var": "",
+     "lib": "blocks/yolo_detect.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n5v8ir5",
+    "type": "output",
+    "x": 1310,
+    "y": 658,
+    "params": {
+     "name": "small",
+     "title": ""
+    }
+   }
+  ],
+  "edges": [
+   {
+    "id": "e4w0fze",
+    "from": "n4kkgto",
+    "to": "n4l0xh3",
+    "port": 0
+   },
+   {
+    "id": "e4xw7tx",
+    "from": "n4l0xh3",
+    "to": "n4mbu4o",
+    "port": 0
+   },
+   {
+    "id": "e4ysz1v",
+    "from": "n4mbu4o",
+    "to": "n4nqnmo",
+    "port": 0
+   },
+   {
+    "id": "e4znqte",
+    "from": "n4nqnmo",
+    "to": "n4o8qeh",
+    "port": 0
+   },
+   {
+    "id": "e50w08z",
+    "from": "n4o8qeh",
+    "to": "n4pjfp6",
+    "port": 0
+   },
+   {
+    "id": "e51ogm2",
+    "from": "n4pjfp6",
+    "to": "n4qlvlz",
+    "port": 0
+   },
+   {
+    "id": "e52b881",
+    "from": "n4qlvlz",
+    "to": "n4rg90a",
+    "port": 0
+   },
+   {
+    "id": "e53ujxy",
+    "from": "n4rg90a",
+    "to": "n4scywe",
+    "port": 0
+   },
+   {
+    "id": "e54affw",
+    "from": "n4scywe",
+    "to": "n4tf728",
+    "port": 0
+   },
+   {
+    "id": "e55g3yv",
+    "from": "n4tf728",
+    "to": "n4ubtgt",
+    "port": 0
+   },
+   {
+    "id": "e563m7o",
+    "from": "n4ubtgt",
+    "to": "n4vyfbo",
+    "port": 0
+   },
+   {
+    "id": "e5ac7pj",
+    "from": "n4vyfbo",
+    "to": "n57o4m2",
+    "port": 0
+   },
+   {
+    "id": "e5bqc4h",
+    "from": "n57o4m2",
+    "to": "n58mis1",
+    "port": 0
+   },
+   {
+    "id": "e5c6jxe",
+    "from": "n58mis1",
+    "to": "n59duwa",
+    "port": 0
+   },
+   {
+    "id": "e5j1790",
+    "from": "n57o4m2",
+    "to": "n5d04fh",
+    "port": 0
+   },
+   {
+    "id": "e5kdb6p",
+    "from": "n5d04fh",
+    "to": "n5edwed",
+    "port": 0
+   },
+   {
+    "id": "e5lpirw",
+    "from": "n5edwed",
+    "to": "n5f1ge2",
+    "port": 0
+   },
+   {
+    "id": "e5m8cpx",
+    "from": "n4tf728",
+    "to": "n5f1ge2",
+    "port": 1
+   },
+   {
+    "id": "e5n8cpj",
+    "from": "n5f1ge2",
+    "to": "n5gtt1z",
+    "port": 0
+   },
+   {
+    "id": "e5ogost",
+    "from": "n5gtt1z",
+    "to": "n5hweor",
+    "port": 0
+   },
+   {
+    "id": "e5phe63",
+    "from": "n5hweor",
+    "to": "n5i0jo9",
+    "port": 0
+   },
+   {
+    "id": "e5wqt3k",
+    "from": "n5gtt1z",
+    "to": "n5qn51z",
+    "port": 0
+   },
+   {
+    "id": "e5xwsih",
+    "from": "n5qn51z",
+    "to": "n5rdu5u",
+    "port": 0
+   },
+   {
+    "id": "e5y6gji",
+    "from": "n5rdu5u",
+    "to": "n5svoe6",
+    "port": 0
+   },
+   {
+    "id": "e5zvqsg",
+    "from": "n4rg90a",
+    "to": "n5svoe6",
+    "port": 1
+   },
+   {
+    "id": "e60fhi3",
+    "from": "n5svoe6",
+    "to": "n5t9gl6",
+    "port": 0
+   },
+   {
+    "id": "e610wzp",
+    "from": "n5t9gl6",
+    "to": "n5u63cf",
+    "port": 0
+   },
+   {
+    "id": "e623kkj",
+    "from": "n5u63cf",
+    "to": "n5v8ir5",
+    "port": 0
+   }
+  ],
+  "groups": [],
+  "blocks": {
+   "b3mjkhh": {
+    "id": "b3mjkhh",
+    "name": "DarknetConv",
+    "graph": {
+     "name": "DarknetConv",
+     "symbols": {
+      "e": 8,
+      "c_in": 32,
+      "c_out": 64,
+      "k": 3,
+      "stride": 1,
+      "H": 416,
+      "W": 416
+     },
+     "nodes": [
+      {
+       "id": "n3d5pn0",
+       "type": "input",
+       "x": 200,
+       "y": 400,
+       "params": {
+        "name": "x",
+        "shape": "e, c_in, H, W",
+        "title": ""
+       }
+      },
+      {
+       "id": "n3eutgg",
+       "type": "conv",
+       "x": 200,
+       "y": 338,
+       "params": {
+        "in": "c_in",
+        "out": "c_out",
+        "k": "k",
+        "stride": "stride",
+        "pad": "k//2",
+        "bias": false,
+        "name": "conv",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n3fd76q",
+       "type": "norm",
+       "x": 200,
+       "y": 276,
+       "params": {
+        "kind": "BatchNorm2d",
+        "dim": "c_out",
+        "groups": 8,
+        "eps": "",
+        "name": "bn",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n3gdntg",
+       "type": "act",
+       "x": 200,
+       "y": 214,
+       "params": {
+        "fn": "leaky_relu",
+        "dim": "-1",
+        "title": "",
+        "var": "",
+        "slope": "0.1"
+       }
+      },
+      {
+       "id": "n3hapwv",
+       "type": "output",
+       "x": 200,
+       "y": 152,
+       "params": {
+        "name": "out",
+        "title": ""
+       }
+      }
+     ],
+     "edges": [
+      {
+       "id": "e3iz3qn",
+       "from": "n3d5pn0",
+       "to": "n3eutgg",
+       "port": 0
+      },
+      {
+       "id": "e3jw3ym",
+       "from": "n3eutgg",
+       "to": "n3fd76q",
+       "port": 0
+      },
+      {
+       "id": "e3kolvf",
+       "from": "n3fd76q",
+       "to": "n3gdntg",
+       "port": 0
+      },
+      {
+       "id": "e3l2yqu",
+       "from": "n3gdntg",
+       "to": "n3hapwv",
+       "port": 0
+      }
+     ],
+     "groups": []
+    },
+    "labels": {
+     "c_out": "output channels",
+     "k": "kernel",
+     "stride": "stride"
+    },
+    "lib": "blocks/darknet_conv.json"
+   },
+   "b3xd83m": {
+    "id": "b3xd83m",
+    "name": "DarknetResidual",
+    "graph": {
+     "name": "DarknetResidual",
+     "symbols": {
+      "e": 8,
+      "c": 64,
+      "H": 208,
+      "W": 208
+     },
+     "nodes": [
+      {
+       "id": "n3nwic5",
+       "type": "input",
+       "x": 200,
+       "y": 400,
+       "params": {
+        "name": "x",
+        "shape": "e, c, H, W",
+        "title": ""
+       }
+      },
+      {
+       "id": "n3oinnr",
+       "type": "block",
+       "x": 200,
+       "y": 330,
+       "params": {
+        "block": "b3mjkhh",
+        "args": {
+         "c_out": "c//2",
+         "k": "1",
+         "stride": "1"
+        },
+        "nIn": 1,
+        "repeat": 1,
+        "name": "conv1",
+        "title": "",
+        "var": "",
+        "lib": "blocks/darknet_conv.json",
+        "nOut": 1
+       }
+      },
+      {
+       "id": "n3pktw1",
+       "type": "block",
+       "x": 200,
+       "y": 260,
+       "params": {
+        "block": "b3mjkhh",
+        "args": {
+         "c_out": "c",
+         "k": "3",
+         "stride": "1"
+        },
+        "nIn": 1,
+        "repeat": 1,
+        "name": "conv2",
+        "title": "",
+        "var": "",
+        "lib": "blocks/darknet_conv.json",
+        "nOut": 1
+       }
+      },
+      {
+       "id": "n3qobfa",
+       "type": "binop",
+       "x": 200,
+       "y": 196,
+       "params": {
+        "op": "+",
+        "const": "",
+        "rev": false,
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n3r76l6",
+       "type": "output",
+       "x": 200,
+       "y": 132,
+       "params": {
+        "name": "out",
+        "title": ""
+       }
+      }
+     ],
+     "edges": [
+      {
+       "id": "e3sph4y",
+       "from": "n3nwic5",
+       "to": "n3oinnr",
+       "port": 0
+      },
+      {
+       "id": "e3tj8kx",
+       "from": "n3oinnr",
+       "to": "n3pktw1",
+       "port": 0
+      },
+      {
+       "id": "e3uoy6p",
+       "from": "n3pktw1",
+       "to": "n3qobfa",
+       "port": 0
+      },
+      {
+       "id": "e3vrumw",
+       "from": "n3nwic5",
+       "to": "n3qobfa",
+       "port": 1
+      },
+      {
+       "id": "e3wwksu",
+       "from": "n3qobfa",
+       "to": "n3r76l6",
+       "port": 0
+      }
+     ],
+     "groups": []
+    },
+    "labels": {},
+    "lib": "blocks/darknet_residual.json"
+   },
+   "b4bit0f": {
+    "id": "b4bit0f",
+    "name": "YoloConvSet",
+    "graph": {
+     "name": "YoloConvSet",
+     "symbols": {
+      "e": 8,
+      "c_in": 1024,
+      "c": 512,
+      "H": 13,
+      "W": 13
+     },
+     "nodes": [
+      {
+       "id": "n3yj1w4",
+       "type": "input",
+       "x": 200,
+       "y": 520,
+       "params": {
+        "name": "x",
+        "shape": "e, c_in, H, W",
+        "title": ""
+       }
+      },
+      {
+       "id": "n3z6uca",
+       "type": "block",
+       "x": 200,
+       "y": 446,
+       "params": {
+        "block": "b3mjkhh",
+        "args": {
+         "c_out": "c",
+         "k": "1",
+         "stride": "1"
+        },
+        "nIn": 1,
+        "repeat": 1,
+        "name": "conv1",
+        "title": "",
+        "var": "",
+        "lib": "blocks/darknet_conv.json",
+        "nOut": 1
+       }
+      },
+      {
+       "id": "n40bw3r",
+       "type": "block",
+       "x": 200,
+       "y": 372,
+       "params": {
+        "block": "b3mjkhh",
+        "args": {
+         "c_out": "2*c",
+         "k": "3",
+         "stride": "1"
+        },
+        "nIn": 1,
+        "repeat": 1,
+        "name": "conv2",
+        "title": "",
+        "var": "",
+        "lib": "blocks/darknet_conv.json",
+        "nOut": 1
+       }
+      },
+      {
+       "id": "n41dhgi",
+       "type": "block",
+       "x": 200,
+       "y": 298,
+       "params": {
+        "block": "b3mjkhh",
+        "args": {
+         "c_out": "c",
+         "k": "1",
+         "stride": "1"
+        },
+        "nIn": 1,
+        "repeat": 1,
+        "name": "conv3",
+        "title": "",
+        "var": "",
+        "lib": "blocks/darknet_conv.json",
+        "nOut": 1
+       }
+      },
+      {
+       "id": "n42nbaj",
+       "type": "block",
+       "x": 200,
+       "y": 224,
+       "params": {
+        "block": "b3mjkhh",
+        "args": {
+         "c_out": "2*c",
+         "k": "3",
+         "stride": "1"
+        },
+        "nIn": 1,
+        "repeat": 1,
+        "name": "conv4",
+        "title": "",
+        "var": "",
+        "lib": "blocks/darknet_conv.json",
+        "nOut": 1
+       }
+      },
+      {
+       "id": "n43zhj9",
+       "type": "block",
+       "x": 200,
+       "y": 150,
+       "params": {
+        "block": "b3mjkhh",
+        "args": {
+         "c_out": "c",
+         "k": "1",
+         "stride": "1"
+        },
+        "nIn": 1,
+        "repeat": 1,
+        "name": "conv5",
+        "title": "",
+        "var": "",
+        "lib": "blocks/darknet_conv.json",
+        "nOut": 1
+       }
+      },
+      {
+       "id": "n44w4bv",
+       "type": "output",
+       "x": 200,
+       "y": 76,
+       "params": {
+        "name": "out",
+        "title": ""
+       }
+      }
+     ],
+     "edges": [
+      {
+       "id": "e45tcy6",
+       "from": "n3yj1w4",
+       "to": "n3z6uca",
+       "port": 0
+      },
+      {
+       "id": "e46ev91",
+       "from": "n3z6uca",
+       "to": "n40bw3r",
+       "port": 0
+      },
+      {
+       "id": "e47stae",
+       "from": "n40bw3r",
+       "to": "n41dhgi",
+       "port": 0
+      },
+      {
+       "id": "e48c8jn",
+       "from": "n41dhgi",
+       "to": "n42nbaj",
+       "port": 0
+      },
+      {
+       "id": "e497i3s",
+       "from": "n42nbaj",
+       "to": "n43zhj9",
+       "port": 0
+      },
+      {
+       "id": "e4acm2j",
+       "from": "n43zhj9",
+       "to": "n44w4bv",
+       "port": 0
+      }
+     ],
+     "groups": []
+    },
+    "labels": {
+     "c": "channels"
+    },
+    "lib": "blocks/yolo_conv_set.json"
+   },
+   "b4ja4x8": {
+    "id": "b4ja4x8",
+    "name": "YoloDetect",
+    "graph": {
+     "name": "YoloDetect",
+     "symbols": {
+      "e": 8,
+      "c": 512,
+      "n_out": 255,
+      "H": 13,
+      "W": 13
+     },
+     "nodes": [
+      {
+       "id": "n4clmgz",
+       "type": "input",
+       "x": 200,
+       "y": 330,
+       "params": {
+        "name": "x",
+        "shape": "e, c, H, W",
+        "title": ""
+       }
+      },
+      {
+       "id": "n4d8v7x",
+       "type": "block",
+       "x": 200,
+       "y": 258,
+       "params": {
+        "block": "b3mjkhh",
+        "args": {
+         "c_out": "2*c",
+         "k": "3",
+         "stride": "1"
+        },
+        "nIn": 1,
+        "repeat": 1,
+        "name": "conv",
+        "title": "",
+        "var": "",
+        "lib": "blocks/darknet_conv.json",
+        "nOut": 1
+       }
+      },
+      {
+       "id": "n4ecop4",
+       "type": "conv",
+       "x": 200,
+       "y": 186,
+       "params": {
+        "in": "2*c",
+        "out": "n_out",
+        "k": "1",
+        "stride": "1",
+        "pad": "0",
+        "bias": true,
+        "name": "pred",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n4fv558",
+       "type": "output",
+       "x": 200,
+       "y": 114,
+       "params": {
+        "name": "out",
+        "title": ""
+       }
+      }
+     ],
+     "edges": [
+      {
+       "id": "e4gjiel",
+       "from": "n4clmgz",
+       "to": "n4d8v7x",
+       "port": 0
+      },
+      {
+       "id": "e4hylny",
+       "from": "n4d8v7x",
+       "to": "n4ecop4",
+       "port": 0
+      },
+      {
+       "id": "e4iruvr",
+       "from": "n4ecop4",
+       "to": "n4fv558",
+       "port": 0
+      }
+     ],
+     "groups": []
+    },
+    "labels": {
+     "n_out": "outputs per cell: 3 × (5 + classes)"
+    },
+    "lib": "blocks/yolo_detect.json"
+   }
+  }
+ }
+}

@@ -1,0 +1,124 @@
+{
+ "title": "DarknetResidual",
+ "description": "Darknet-53 residual block: a 1×1 DarknetConv to half the channels, a 3×3 back to the channels, plus the input.",
+ "graph": {
+  "name": "DarknetResidual",
+  "symbols": {
+   "e": 8,
+   "c": 64,
+   "H": 208,
+   "W": 208
+  },
+  "nodes": [
+   {
+    "id": "n3nwic5",
+    "type": "input",
+    "x": 200,
+    "y": 400,
+    "params": {
+     "name": "x",
+     "shape": "e, c, H, W",
+     "title": ""
+    }
+   },
+   {
+    "id": "n3oinnr",
+    "type": "block",
+    "x": 200,
+    "y": 330,
+    "params": {
+     "block": "b3mjkhh",
+     "args": {
+      "c_out": "c//2",
+      "k": "1",
+      "stride": "1"
+     },
+     "nIn": 1,
+     "repeat": 1,
+     "name": "conv1",
+     "title": "",
+     "var": "",
+     "lib": "blocks/darknet_conv.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n3pktw1",
+    "type": "block",
+    "x": 200,
+    "y": 260,
+    "params": {
+     "block": "b3mjkhh",
+     "args": {
+      "c_out": "c",
+      "k": "3",
+      "stride": "1"
+     },
+     "nIn": 1,
+     "repeat": 1,
+     "name": "conv2",
+     "title": "",
+     "var": "",
+     "lib": "blocks/darknet_conv.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n3qobfa",
+    "type": "binop",
+    "x": 200,
+    "y": 196,
+    "params": {
+     "op": "+",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n3r76l6",
+    "type": "output",
+    "x": 200,
+    "y": 132,
+    "params": {
+     "name": "out",
+     "title": ""
+    }
+   }
+  ],
+  "edges": [
+   {
+    "id": "e3sph4y",
+    "from": "n3nwic5",
+    "to": "n3oinnr",
+    "port": 0
+   },
+   {
+    "id": "e3tj8kx",
+    "from": "n3oinnr",
+    "to": "n3pktw1",
+    "port": 0
+   },
+   {
+    "id": "e3uoy6p",
+    "from": "n3pktw1",
+    "to": "n3qobfa",
+    "port": 0
+   },
+   {
+    "id": "e3vrumw",
+    "from": "n3nwic5",
+    "to": "n3qobfa",
+    "port": 1
+   },
+   {
+    "id": "e3wwksu",
+    "from": "n3qobfa",
+    "to": "n3r76l6",
+    "port": 0
+   }
+  ],
+  "groups": []
+ }
+}

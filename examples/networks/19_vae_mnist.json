@@ -1,0 +1,402 @@
+{
+ "title": "VAE (MNIST)",
+ "description": "A variational autoencoder, as in PyTorch's examples/vae: the encoder (784 → 400, ReLU) gives the mean μ and log-variance of a 20-dimensional Gaussian; z = μ + ε·exp(½·logvar) with ε from a Noise node (the reparameterization trick, so gradients reach μ and σ); the decoder (20 → 400 → 784) gives pixel logits. The loss is the negative evidence lower bound: binary cross-entropy summed over the pixels (784 × the mean) plus the KL divergence of the latent Gaussian from N(0, 1). predict() applies the sigmoid. 652,824 parameters.",
+ "graph": {
+  "name": "VAE",
+  "symbols": {
+   "e": 8,
+   "d_in": 784,
+   "hidden": 400,
+   "latent": 20
+  },
+  "nodes": [
+   {
+    "id": "n1albh",
+    "type": "input",
+    "x": 300,
+    "y": 1020,
+    "params": {
+     "name": "x",
+     "shape": "e, d_in",
+     "title": ""
+    }
+   },
+   {
+    "id": "n22glx",
+    "type": "linear",
+    "x": 300,
+    "y": 940,
+    "params": {
+     "in": "d_in",
+     "out": "hidden",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "bias_init": "",
+     "tie": "",
+     "name": "fc1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n31zbb",
+    "type": "act",
+    "x": 300,
+    "y": 875,
+    "params": {
+     "fn": "relu",
+     "dim": "-1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n41k2t",
+    "type": "linear",
+    "x": 190,
+    "y": 800,
+    "params": {
+     "in": "hidden",
+     "out": "latent",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "bias_init": "",
+     "tie": "",
+     "name": "fc21",
+     "title": "",
+     "var": "mu"
+    }
+   },
+   {
+    "id": "n59ajw",
+    "type": "linear",
+    "x": 410,
+    "y": 800,
+    "params": {
+     "in": "hidden",
+     "out": "latent",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "bias_init": "",
+     "tie": "",
+     "name": "fc22",
+     "title": "",
+     "var": "logvar"
+    }
+   },
+   {
+    "id": "n6u9ew",
+    "type": "binop",
+    "x": 410,
+    "y": 735,
+    "params": {
+     "op": "*",
+     "const": "0.5",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n7pdnk",
+    "type": "func",
+    "x": 410,
+    "y": 680,
+    "params": {
+     "fn": "torch.exp",
+     "extra": "",
+     "n": 1,
+     "init": "",
+     "name": "",
+     "title": "",
+     "var": "std"
+    }
+   },
+   {
+    "id": "n857q8",
+    "type": "noise",
+    "x": 540,
+    "y": 625,
+    "params": {
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n9p2yo",
+    "type": "binop",
+    "x": 410,
+    "y": 570,
+    "params": {
+     "op": "*",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "na5fky",
+    "type": "binop",
+    "x": 300,
+    "y": 510,
+    "params": {
+     "op": "+",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": "z"
+    }
+   },
+   {
+    "id": "nbx15u",
+    "type": "linear",
+    "x": 300,
+    "y": 440,
+    "params": {
+     "in": "latent",
+     "out": "hidden",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "bias_init": "",
+     "tie": "",
+     "name": "fc3",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nc4dgz",
+    "type": "act",
+    "x": 300,
+    "y": 375,
+    "params": {
+     "fn": "relu",
+     "dim": "-1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nd6rt9",
+    "type": "linear",
+    "x": 300,
+    "y": 310,
+    "params": {
+     "in": "hidden",
+     "out": "d_in",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "bias_init": "",
+     "tie": "",
+     "name": "fc4",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nefaaj",
+    "type": "output",
+    "x": 300,
+    "y": 230,
+    "params": {
+     "name": "recon",
+     "title": ""
+    }
+   },
+   {
+    "id": "nfe1yx",
+    "type": "output",
+    "x": 40,
+    "y": 640,
+    "params": {
+     "name": "mu",
+     "title": ""
+    }
+   },
+   {
+    "id": "ng6p76",
+    "type": "output",
+    "x": 640,
+    "y": 760,
+    "params": {
+     "name": "logvar",
+     "title": ""
+    }
+   },
+   {
+    "id": "ny5fjm",
+    "type": "loss",
+    "x": 560,
+    "y": 230,
+    "params": {
+     "fn": "bce",
+     "mode": "given",
+     "label_smoothing": "",
+     "ignore_index": "",
+     "delta": "1.0",
+     "weight": "784",
+     "mask_prob": "0.15",
+     "mask_id": "",
+     "title": ""
+    }
+   },
+   {
+    "id": "n110tur",
+    "type": "loss",
+    "x": 40,
+    "y": 520,
+    "params": {
+     "fn": "kl",
+     "mode": "given",
+     "label_smoothing": "",
+     "ignore_index": "",
+     "delta": "1.0",
+     "weight": "1",
+     "mask_prob": "0.15",
+     "mask_id": "",
+     "title": ""
+    }
+   }
+  ],
+  "edges": [
+   {
+    "id": "eh3vz6",
+    "from": "n1albh",
+    "to": "n22glx",
+    "port": 0
+   },
+   {
+    "id": "eir5od",
+    "from": "n22glx",
+    "to": "n31zbb",
+    "port": 0
+   },
+   {
+    "id": "eja4io",
+    "from": "n31zbb",
+    "to": "n41k2t",
+    "port": 0
+   },
+   {
+    "id": "ekiy07",
+    "from": "n31zbb",
+    "to": "n59ajw",
+    "port": 0
+   },
+   {
+    "id": "el6i2s",
+    "from": "n59ajw",
+    "to": "n6u9ew",
+    "port": 0
+   },
+   {
+    "id": "embp8c",
+    "from": "n6u9ew",
+    "to": "n7pdnk",
+    "port": 0
+   },
+   {
+    "id": "enpgtf",
+    "from": "n7pdnk",
+    "to": "n857q8",
+    "port": 0
+   },
+   {
+    "id": "eo1a6y",
+    "from": "n857q8",
+    "to": "n9p2yo",
+    "port": 0
+   },
+   {
+    "id": "epmh1z",
+    "from": "n7pdnk",
+    "to": "n9p2yo",
+    "port": 1
+   },
+   {
+    "id": "eqw8ib",
+    "from": "n41k2t",
+    "to": "na5fky",
+    "port": 0
+   },
+   {
+    "id": "ermfz5",
+    "from": "n9p2yo",
+    "to": "na5fky",
+    "port": 1
+   },
+   {
+    "id": "esill0",
+    "from": "na5fky",
+    "to": "nbx15u",
+    "port": 0
+   },
+   {
+    "id": "et2kcu",
+    "from": "nbx15u",
+    "to": "nc4dgz",
+    "port": 0
+   },
+   {
+    "id": "eu8kx7",
+    "from": "nc4dgz",
+    "to": "nd6rt9",
+    "port": 0
+   },
+   {
+    "id": "evc4xd",
+    "from": "nd6rt9",
+    "to": "nefaaj",
+    "port": 0
+   },
+   {
+    "id": "ewtd02",
+    "from": "n41k2t",
+    "to": "nfe1yx",
+    "port": 0
+   },
+   {
+    "id": "exl4ho",
+    "from": "n59ajw",
+    "to": "ng6p76",
+    "port": 0
+   },
+   {
+    "id": "ezo6fg",
+    "from": "nd6rt9",
+    "to": "ny5fjm",
+    "port": 0
+   },
+   {
+    "id": "e10gkie",
+    "from": "n1albh",
+    "to": "ny5fjm",
+    "port": 1
+   },
+   {
+    "id": "e12884p",
+    "from": "n41k2t",
+    "to": "n110tur",
+    "port": 0
+   },
+   {
+    "id": "e13qkgs",
+    "from": "n59ajw",
+    "to": "n110tur",
+    "port": 1
+   }
+  ],
+  "groups": []
+ }
+}

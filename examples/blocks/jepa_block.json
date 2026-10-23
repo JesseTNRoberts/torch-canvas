@@ -1,0 +1,474 @@
+{
+ "title": "JEPABlock",
+ "description": "I-JEPA's Vision Transformer block (as timm's): pre-norm multi-head self-attention and a GELU MLP (4× width), each with a residual add; LayerNorm eps 1e-6; weights N(0, 0.02), zero biases.",
+ "labels": "n_head=heads, ff=MLP width",
+ "graph": {
+  "name": "JEPABlock",
+  "symbols": {
+   "e": 8,
+   "t": 64,
+   "d": 192,
+   "n_head": 3,
+   "ff": 768
+  },
+  "nodes": [
+   {
+    "id": "n1dxw0",
+    "type": "input",
+    "x": 70,
+    "y": 760,
+    "params": {
+     "name": "x",
+     "shape": "e, t, d",
+     "title": ""
+    }
+   },
+   {
+    "id": "n2h9r4",
+    "type": "norm",
+    "x": 380,
+    "y": 760,
+    "params": {
+     "kind": "LayerNorm",
+     "dim": "d",
+     "groups": 8,
+     "eps": "1e-6",
+     "name": "norm1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n3sp22",
+    "type": "linear",
+    "x": 205,
+    "y": 690,
+    "params": {
+     "in": "d",
+     "out": "d",
+     "bias": true,
+     "init": "normal",
+     "init_arg": "0.02",
+     "zero_bias": true,
+     "bias_init": "",
+     "tie": "",
+     "name": "q_proj",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n448z5",
+    "type": "linear",
+    "x": 380,
+    "y": 690,
+    "params": {
+     "in": "d",
+     "out": "d",
+     "bias": true,
+     "init": "normal",
+     "init_arg": "0.02",
+     "zero_bias": true,
+     "bias_init": "",
+     "tie": "",
+     "name": "k_proj",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n5b87p",
+    "type": "linear",
+    "x": 555,
+    "y": 690,
+    "params": {
+     "in": "d",
+     "out": "d",
+     "bias": true,
+     "init": "normal",
+     "init_arg": "0.02",
+     "zero_bias": true,
+     "bias_init": "",
+     "tie": "",
+     "name": "v_proj",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n6jc5j",
+    "type": "heads",
+    "x": 205,
+    "y": 630,
+    "params": {
+     "heads": "n_head",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n7tcsm",
+    "type": "heads",
+    "x": 380,
+    "y": 630,
+    "params": {
+     "heads": "n_head",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n8r35o",
+    "type": "heads",
+    "x": 555,
+    "y": 630,
+    "params": {
+     "heads": "n_head",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n9hauh",
+    "type": "scale",
+    "x": 205,
+    "y": 570,
+    "params": {
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nacymq",
+    "type": "transpose",
+    "x": 380,
+    "y": 570,
+    "params": {
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nbtlop",
+    "type": "binop",
+    "x": 292,
+    "y": 510,
+    "params": {
+     "op": "@",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nc6yix",
+    "type": "act",
+    "x": 292,
+    "y": 450,
+    "params": {
+     "fn": "softmax",
+     "dim": "-1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nddjvf",
+    "type": "binop",
+    "x": 420,
+    "y": 390,
+    "params": {
+     "op": "@",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "neak5z",
+    "type": "merge",
+    "x": 420,
+    "y": 335,
+    "params": {
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nfarj2",
+    "type": "linear",
+    "x": 420,
+    "y": 275,
+    "params": {
+     "in": "d",
+     "out": "d",
+     "bias": true,
+     "init": "normal",
+     "init_arg": "0.02",
+     "zero_bias": true,
+     "bias_init": "",
+     "tie": "",
+     "name": "proj",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "ngsq6z",
+    "type": "binop",
+    "x": 420,
+    "y": 200,
+    "params": {
+     "op": "+",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nhhdb5",
+    "type": "norm",
+    "x": 720,
+    "y": 470,
+    "params": {
+     "kind": "LayerNorm",
+     "dim": "d",
+     "groups": 8,
+     "eps": "1e-6",
+     "name": "norm2",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "ni0yu4",
+    "type": "linear",
+    "x": 720,
+    "y": 400,
+    "params": {
+     "in": "d",
+     "out": "ff",
+     "bias": true,
+     "init": "normal",
+     "init_arg": "0.02",
+     "zero_bias": true,
+     "bias_init": "",
+     "tie": "",
+     "name": "fc1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nj9ss3",
+    "type": "act",
+    "x": 720,
+    "y": 340,
+    "params": {
+     "fn": "gelu",
+     "dim": "-1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nk89kr",
+    "type": "linear",
+    "x": 720,
+    "y": 280,
+    "params": {
+     "in": "ff",
+     "out": "d",
+     "bias": true,
+     "init": "normal",
+     "init_arg": "0.02",
+     "zero_bias": true,
+     "bias_init": "",
+     "tie": "",
+     "name": "fc2",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nldoze",
+    "type": "binop",
+    "x": 720,
+    "y": 200,
+    "params": {
+     "op": "+",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nm36v1",
+    "type": "output",
+    "x": 870,
+    "y": 200,
+    "params": {
+     "name": "out",
+     "title": ""
+    }
+   }
+  ],
+  "edges": [
+   {
+    "id": "enp8xb",
+    "from": "n1dxw0",
+    "to": "n2h9r4",
+    "port": 0
+   },
+   {
+    "id": "eojia5",
+    "from": "n2h9r4",
+    "to": "n3sp22",
+    "port": 0
+   },
+   {
+    "id": "ephthi",
+    "from": "n2h9r4",
+    "to": "n448z5",
+    "port": 0
+   },
+   {
+    "id": "eqe0ah",
+    "from": "n2h9r4",
+    "to": "n5b87p",
+    "port": 0
+   },
+   {
+    "id": "errtt3",
+    "from": "n3sp22",
+    "to": "n6jc5j",
+    "port": 0
+   },
+   {
+    "id": "esxoyl",
+    "from": "n448z5",
+    "to": "n7tcsm",
+    "port": 0
+   },
+   {
+    "id": "ety6mz",
+    "from": "n5b87p",
+    "to": "n8r35o",
+    "port": 0
+   },
+   {
+    "id": "euq1qf",
+    "from": "n6jc5j",
+    "to": "n9hauh",
+    "port": 0
+   },
+   {
+    "id": "evh1br",
+    "from": "n7tcsm",
+    "to": "nacymq",
+    "port": 0
+   },
+   {
+    "id": "ewhl5i",
+    "from": "n9hauh",
+    "to": "nbtlop",
+    "port": 0
+   },
+   {
+    "id": "exvd47",
+    "from": "nacymq",
+    "to": "nbtlop",
+    "port": 1
+   },
+   {
+    "id": "eyw992",
+    "from": "nbtlop",
+    "to": "nc6yix",
+    "port": 0
+   },
+   {
+    "id": "ez194q",
+    "from": "nc6yix",
+    "to": "nddjvf",
+    "port": 0
+   },
+   {
+    "id": "e10pl2c",
+    "from": "n8r35o",
+    "to": "nddjvf",
+    "port": 1
+   },
+   {
+    "id": "e11uelj",
+    "from": "nddjvf",
+    "to": "neak5z",
+    "port": 0
+   },
+   {
+    "id": "e12ogum",
+    "from": "neak5z",
+    "to": "nfarj2",
+    "port": 0
+   },
+   {
+    "id": "e13criz",
+    "from": "n1dxw0",
+    "to": "ngsq6z",
+    "port": 0
+   },
+   {
+    "id": "e14nlgo",
+    "from": "nfarj2",
+    "to": "ngsq6z",
+    "port": 1
+   },
+   {
+    "id": "e15vvh0",
+    "from": "ngsq6z",
+    "to": "nhhdb5",
+    "port": 0
+   },
+   {
+    "id": "e16om3p",
+    "from": "nhhdb5",
+    "to": "ni0yu4",
+    "port": 0
+   },
+   {
+    "id": "e17ppi2",
+    "from": "ni0yu4",
+    "to": "nj9ss3",
+    "port": 0
+   },
+   {
+    "id": "e1885tw",
+    "from": "nj9ss3",
+    "to": "nk89kr",
+    "port": 0
+   },
+   {
+    "id": "e19fvtc",
+    "from": "ngsq6z",
+    "to": "nldoze",
+    "port": 0
+   },
+   {
+    "id": "e1a7sav",
+    "from": "nk89kr",
+    "to": "nldoze",
+    "port": 1
+   },
+   {
+    "id": "e1bjkd9",
+    "from": "nldoze",
+    "to": "nm36v1",
+    "port": 0
+   }
+  ],
+  "groups": []
+ }
+}

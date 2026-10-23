@@ -1,0 +1,97 @@
+{
+ "title": "YoloDetect",
+ "description": "A YOLOv3 detection head: a 3×3 DarknetConv to twice the channels, then a 1×1 convolution with bias to n_out = 3 × (5 + classes) values per cell.",
+ "labels": "n_out=outputs per cell: 3 × (5 + classes)",
+ "graph": {
+  "name": "YoloDetect",
+  "symbols": {
+   "e": 8,
+   "c": 512,
+   "n_out": 255,
+   "H": 13,
+   "W": 13
+  },
+  "nodes": [
+   {
+    "id": "n4clmgz",
+    "type": "input",
+    "x": 200,
+    "y": 330,
+    "params": {
+     "name": "x",
+     "shape": "e, c, H, W",
+     "title": ""
+    }
+   },
+   {
+    "id": "n4d8v7x",
+    "type": "block",
+    "x": 200,
+    "y": 258,
+    "params": {
+     "block": "b3mjkhh",
+     "args": {
+      "c_out": "2*c",
+      "k": "3",
+      "stride": "1"
+     },
+     "nIn": 1,
+     "repeat": 1,
+     "name": "conv",
+     "title": "",
+     "var": "",
+     "lib": "blocks/darknet_conv.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n4ecop4",
+    "type": "conv",
+    "x": 200,
+    "y": 186,
+    "params": {
+     "in": "2*c",
+     "out": "n_out",
+     "k": "1",
+     "stride": "1",
+     "pad": "0",
+     "bias": true,
+     "name": "pred",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n4fv558",
+    "type": "output",
+    "x": 200,
+    "y": 114,
+    "params": {
+     "name": "out",
+     "title": ""
+    }
+   }
+  ],
+  "edges": [
+   {
+    "id": "e4gjiel",
+    "from": "n4clmgz",
+    "to": "n4d8v7x",
+    "port": 0
+   },
+   {
+    "id": "e4hylny",
+    "from": "n4d8v7x",
+    "to": "n4ecop4",
+    "port": 0
+   },
+   {
+    "id": "e4iruvr",
+    "from": "n4ecop4",
+    "to": "n4fv558",
+    "port": 0
+   }
+  ],
+  "groups": []
+ }
+}

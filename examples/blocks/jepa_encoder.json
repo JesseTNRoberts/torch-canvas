@@ -1,0 +1,94 @@
+{
+ "title": "Encoder",
+ "description": "An I-JEPA encoder's transformer: JEPABlock × 6 and a final LayerNorm (eps 1e-6), on a sequence of patch embeddings.",
+ "labels": "n_head=heads, ff=MLP width",
+ "graph": {
+  "name": "Encoder",
+  "symbols": {
+   "e": 8,
+   "t": 64,
+   "d": 192,
+   "n_head": 3,
+   "ff": 768
+  },
+  "nodes": [
+   {
+    "id": "n1d6kvt",
+    "type": "input",
+    "x": 200,
+    "y": 300,
+    "params": {
+     "name": "x",
+     "shape": "e, t, d",
+     "title": ""
+    }
+   },
+   {
+    "id": "n1e8kv0",
+    "type": "block",
+    "x": 200,
+    "y": 220,
+    "params": {
+     "block": "b1cm1fv",
+     "args": {
+      "n_head": "n_head",
+      "ff": "ff"
+     },
+     "nIn": 1,
+     "repeat": 6,
+     "name": "blocks",
+     "title": "",
+     "var": "",
+     "lib": "blocks/jepa_block.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n1fvtmv",
+    "type": "norm",
+    "x": 200,
+    "y": 140,
+    "params": {
+     "kind": "LayerNorm",
+     "dim": "d",
+     "groups": 8,
+     "eps": "1e-6",
+     "name": "norm",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1gippt",
+    "type": "output",
+    "x": 200,
+    "y": 70,
+    "params": {
+     "name": "out",
+     "title": ""
+    }
+   }
+  ],
+  "edges": [
+   {
+    "id": "e1hnaq1",
+    "from": "n1d6kvt",
+    "to": "n1e8kv0",
+    "port": 0
+   },
+   {
+    "id": "e1i819s",
+    "from": "n1e8kv0",
+    "to": "n1fvtmv",
+    "port": 0
+   },
+   {
+    "id": "e1jgyaw",
+    "from": "n1fvtmv",
+    "to": "n1gippt",
+    "port": 0
+   }
+  ],
+  "groups": []
+ }
+}

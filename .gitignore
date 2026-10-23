@@ -6,3 +6,4 @@ Thumbs.db
 site/
 *.log
 /*.png
+tools/yolov3.cfg

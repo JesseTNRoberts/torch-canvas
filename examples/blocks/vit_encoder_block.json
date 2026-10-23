@@ -1,0 +1,468 @@
+{
+ "title": "ViTEncoderBlock",
+ "description": "Vision Transformer encoder block (torchvision's EncoderBlock): LayerNorm, multi-head self-attention without a mask, residual; LayerNorm, Linear → GELU → Linear, residual. LayerNorm eps 1e-6.",
+ "labels": "n_head=heads, ff=MLP width",
+ "graph": {
+  "name": "ViTEncoderBlock",
+  "symbols": {
+   "e": 8,
+   "t": 197,
+   "d": 768,
+   "n_head": 12,
+   "ff": 3072
+  },
+  "nodes": [
+   {
+    "id": "n1jmt5",
+    "type": "input",
+    "x": 70,
+    "y": 760,
+    "params": {
+     "name": "x",
+     "shape": "e, t, d",
+     "title": ""
+    }
+   },
+   {
+    "id": "n2ys8j",
+    "type": "norm",
+    "x": 380,
+    "y": 760,
+    "params": {
+     "kind": "LayerNorm",
+     "dim": "d",
+     "groups": 8,
+     "eps": "1e-6",
+     "name": "ln_1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n3pacf",
+    "type": "linear",
+    "x": 235,
+    "y": 690,
+    "params": {
+     "in": "d",
+     "out": "d",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "tie": "",
+     "name": "q_proj",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n4d76m",
+    "type": "linear",
+    "x": 380,
+    "y": 690,
+    "params": {
+     "in": "d",
+     "out": "d",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "tie": "",
+     "name": "k_proj",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n51b0r",
+    "type": "linear",
+    "x": 525,
+    "y": 690,
+    "params": {
+     "in": "d",
+     "out": "d",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "tie": "",
+     "name": "v_proj",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n6iull",
+    "type": "heads",
+    "x": 235,
+    "y": 630,
+    "params": {
+     "heads": "n_head",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n73s5e",
+    "type": "heads",
+    "x": 380,
+    "y": 630,
+    "params": {
+     "heads": "n_head",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n8m6ls",
+    "type": "heads",
+    "x": 525,
+    "y": 630,
+    "params": {
+     "heads": "n_head",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n9oez0",
+    "type": "scale",
+    "x": 235,
+    "y": 570,
+    "params": {
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nak1rf",
+    "type": "transpose",
+    "x": 380,
+    "y": 570,
+    "params": {
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nbx1zz",
+    "type": "binop",
+    "x": 308,
+    "y": 510,
+    "params": {
+     "op": "@",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "ncvtn2",
+    "type": "act",
+    "x": 308,
+    "y": 450,
+    "params": {
+     "fn": "softmax",
+     "dim": "-1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "ndfoif",
+    "type": "binop",
+    "x": 416,
+    "y": 390,
+    "params": {
+     "op": "@",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "neionj",
+    "type": "merge",
+    "x": 416,
+    "y": 335,
+    "params": {
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nfaqoa",
+    "type": "linear",
+    "x": 416,
+    "y": 275,
+    "params": {
+     "in": "d",
+     "out": "d",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "tie": "",
+     "name": "out_proj",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "ngm0ww",
+    "type": "binop",
+    "x": 416,
+    "y": 200,
+    "params": {
+     "op": "+",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nhunjp",
+    "type": "norm",
+    "x": 700,
+    "y": 470,
+    "params": {
+     "kind": "LayerNorm",
+     "dim": "d",
+     "groups": 8,
+     "eps": "1e-6",
+     "name": "ln_2",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nijksr",
+    "type": "linear",
+    "x": 700,
+    "y": 400,
+    "params": {
+     "in": "d",
+     "out": "ff",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "tie": "",
+     "name": "fc1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "njwbo3",
+    "type": "act",
+    "x": 700,
+    "y": 340,
+    "params": {
+     "fn": "gelu",
+     "dim": "-1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nkvef7",
+    "type": "linear",
+    "x": 700,
+    "y": 280,
+    "params": {
+     "in": "ff",
+     "out": "d",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "tie": "",
+     "name": "fc2",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nlajsh",
+    "type": "binop",
+    "x": 700,
+    "y": 200,
+    "params": {
+     "op": "+",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nmpjdg",
+    "type": "output",
+    "x": 850,
+    "y": 200,
+    "params": {
+     "name": "out",
+     "title": ""
+    }
+   }
+  ],
+  "edges": [
+   {
+    "id": "enjpdw",
+    "from": "n1jmt5",
+    "to": "n2ys8j",
+    "port": 0
+   },
+   {
+    "id": "eos0rd",
+    "from": "n2ys8j",
+    "to": "n3pacf",
+    "port": 0
+   },
+   {
+    "id": "epd1em",
+    "from": "n2ys8j",
+    "to": "n4d76m",
+    "port": 0
+   },
+   {
+    "id": "eqiqlq",
+    "from": "n2ys8j",
+    "to": "n51b0r",
+    "port": 0
+   },
+   {
+    "id": "erjfxd",
+    "from": "n3pacf",
+    "to": "n6iull",
+    "port": 0
+   },
+   {
+    "id": "esgdrk",
+    "from": "n4d76m",
+    "to": "n73s5e",
+    "port": 0
+   },
+   {
+    "id": "etb9xv",
+    "from": "n51b0r",
+    "to": "n8m6ls",
+    "port": 0
+   },
+   {
+    "id": "eux3dh",
+    "from": "n6iull",
+    "to": "n9oez0",
+    "port": 0
+   },
+   {
+    "id": "evbvoe",
+    "from": "n73s5e",
+    "to": "nak1rf",
+    "port": 0
+   },
+   {
+    "id": "ew7kwm",
+    "from": "n9oez0",
+    "to": "nbx1zz",
+    "port": 0
+   },
+   {
+    "id": "exe4ew",
+    "from": "nak1rf",
+    "to": "nbx1zz",
+    "port": 1
+   },
+   {
+    "id": "eynl4e",
+    "from": "nbx1zz",
+    "to": "ncvtn2",
+    "port": 0
+   },
+   {
+    "id": "ezvq87",
+    "from": "ncvtn2",
+    "to": "ndfoif",
+    "port": 0
+   },
+   {
+    "id": "e10kfe0",
+    "from": "n8m6ls",
+    "to": "ndfoif",
+    "port": 1
+   },
+   {
+    "id": "e11b09p",
+    "from": "ndfoif",
+    "to": "neionj",
+    "port": 0
+   },
+   {
+    "id": "e12g9io",
+    "from": "neionj",
+    "to": "nfaqoa",
+    "port": 0
+   },
+   {
+    "id": "e1372hk",
+    "from": "n1jmt5",
+    "to": "ngm0ww",
+    "port": 0
+   },
+   {
+    "id": "e14iilr",
+    "from": "nfaqoa",
+    "to": "ngm0ww",
+    "port": 1
+   },
+   {
+    "id": "e15z5ou",
+    "from": "ngm0ww",
+    "to": "nhunjp",
+    "port": 0
+   },
+   {
+    "id": "e16qkcn",
+    "from": "nhunjp",
+    "to": "nijksr",
+    "port": 0
+   },
+   {
+    "id": "e17z51y",
+    "from": "nijksr",
+    "to": "njwbo3",
+    "port": 0
+   },
+   {
+    "id": "e18guqp",
+    "from": "njwbo3",
+    "to": "nkvef7",
+    "port": 0
+   },
+   {
+    "id": "e19j8dl",
+    "from": "ngm0ww",
+    "to": "nlajsh",
+    "port": 0
+   },
+   {
+    "id": "e1a2jzl",
+    "from": "nkvef7",
+    "to": "nlajsh",
+    "port": 1
+   },
+   {
+    "id": "e1bjy6z",
+    "from": "nlajsh",
+    "to": "nmpjdg",
+    "port": 0
+   }
+  ],
+  "groups": []
+ }
+}

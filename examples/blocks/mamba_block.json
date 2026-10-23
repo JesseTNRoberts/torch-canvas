@@ -1,0 +1,777 @@
+{
+ "title": "MambaBlock",
+ "description": "Mamba residual block (transformers' MambaBlock with MambaMixer): RMSNorm; in_proj split into in_x and in_z; causal depthwise Conv1d and SiLU on x (u); x_proj split into Δ (low rank, then dt_proj and softplus), B and C; the selective scan h_t = exp(Δ_t·A) ⊙ h_{t−1} + Δ_t·B_t·u_t with A = −exp(A_log), drawn flat with a Delay; y = Σ_n h·C + D·u; gated by SiLU(z); out_proj; residual.",
+ "labels": "d_inner=inner width, d_state=state size, dt_rank=Δ rank",
+ "graph": {
+  "name": "MambaBlock",
+  "symbols": {
+   "e": 8,
+   "t": 64,
+   "d": 768,
+   "d_inner": 1536,
+   "d_state": 16,
+   "dt_rank": 48
+  },
+  "nodes": [
+   {
+    "id": "n1wlfb",
+    "type": "input",
+    "x": 120,
+    "y": 1180,
+    "params": {
+     "name": "x",
+     "shape": "e, t, d",
+     "title": ""
+    }
+   },
+   {
+    "id": "n2z1et",
+    "type": "norm",
+    "x": 380,
+    "y": 1180,
+    "params": {
+     "kind": "RMSNorm",
+     "dim": "d",
+     "groups": 8,
+     "eps": "1e-5",
+     "name": "norm",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n36vzo",
+    "type": "linear",
+    "x": 300,
+    "y": 1100,
+    "params": {
+     "in": "d",
+     "out": "d_inner",
+     "bias": false,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "bias_init": "",
+     "tie": "",
+     "name": "in_x",
+     "title": "",
+     "var": "xi"
+    }
+   },
+   {
+    "id": "n4rqcf",
+    "type": "conv1d",
+    "x": 300,
+    "y": 1030,
+    "params": {
+     "ch": "d_inner",
+     "k": "4",
+     "bias": true,
+     "name": "conv1d",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n5l2td",
+    "type": "act",
+    "x": 300,
+    "y": 965,
+    "params": {
+     "fn": "silu",
+     "dim": "-1",
+     "title": "",
+     "var": "u"
+    }
+   },
+   {
+    "id": "n6e4wq",
+    "type": "linear",
+    "x": 120,
+    "y": 890,
+    "params": {
+     "in": "d_inner",
+     "out": "dt_rank",
+     "bias": false,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "bias_init": "",
+     "tie": "",
+     "name": "x_dt",
+     "title": "",
+     "var": "r"
+    }
+   },
+   {
+    "id": "n7mju0",
+    "type": "linear",
+    "x": 120,
+    "y": 820,
+    "params": {
+     "in": "dt_rank",
+     "out": "d_inner",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "bias_init": "dt",
+     "tie": "",
+     "name": "dt_proj",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n8pcfr",
+    "type": "act",
+    "x": 120,
+    "y": 755,
+    "params": {
+     "fn": "softplus",
+     "dim": "-1",
+     "title": "",
+     "var": "dt"
+    }
+   },
+   {
+    "id": "n9b4cp",
+    "type": "param",
+    "x": -120,
+    "y": 820,
+    "params": {
+     "shape": "d_inner, d_state",
+     "init": "s4d",
+     "name": "A_log",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "na2bax",
+    "type": "func",
+    "x": -120,
+    "y": 755,
+    "params": {
+     "fn": "torch.exp",
+     "extra": "",
+     "n": 1,
+     "init": "",
+     "name": "",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nbdzvz",
+    "type": "binop",
+    "x": -120,
+    "y": 700,
+    "params": {
+     "op": "*",
+     "const": "-1",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "ncq3wt",
+    "type": "func",
+    "x": 40,
+    "y": 700,
+    "params": {
+     "fn": ".unsqueeze",
+     "extra": "-1",
+     "n": 1,
+     "init": "",
+     "name": "",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "ndnyjw",
+    "type": "binop",
+    "x": -40,
+    "y": 640,
+    "params": {
+     "op": "*",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nedx8o",
+    "type": "func",
+    "x": -40,
+    "y": 580,
+    "params": {
+     "fn": "torch.exp",
+     "extra": "",
+     "n": 1,
+     "init": "",
+     "name": "",
+     "title": "",
+     "var": "dA"
+    }
+   },
+   {
+    "id": "nf12ut",
+    "type": "linear",
+    "x": 300,
+    "y": 890,
+    "params": {
+     "in": "d_inner",
+     "out": "d_state",
+     "bias": false,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "bias_init": "",
+     "tie": "",
+     "name": "x_B",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "ngrukd",
+    "type": "binop",
+    "x": 200,
+    "y": 700,
+    "params": {
+     "op": "*",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nhm92i",
+    "type": "func",
+    "x": 200,
+    "y": 640,
+    "params": {
+     "fn": ".unsqueeze",
+     "extra": "-1",
+     "n": 1,
+     "init": "",
+     "name": "",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nin9gj",
+    "type": "func",
+    "x": 360,
+    "y": 640,
+    "params": {
+     "fn": ".unsqueeze",
+     "extra": "-2",
+     "n": 1,
+     "init": "",
+     "name": "",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "njk4r4",
+    "type": "binop",
+    "x": 270,
+    "y": 580,
+    "params": {
+     "op": "*",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": "dBu"
+    }
+   },
+   {
+    "id": "nk6v1z",
+    "type": "delay",
+    "x": -200,
+    "y": 520,
+    "params": {
+     "name": "h",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nlknwk",
+    "type": "binop",
+    "x": -40,
+    "y": 470,
+    "params": {
+     "op": "*",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nm8m47",
+    "type": "binop",
+    "x": 120,
+    "y": 420,
+    "params": {
+     "op": "+",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": "h"
+    }
+   },
+   {
+    "id": "nnd32o",
+    "type": "linear",
+    "x": 640,
+    "y": 890,
+    "params": {
+     "in": "d_inner",
+     "out": "d_state",
+     "bias": false,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "bias_init": "",
+     "tie": "",
+     "name": "x_C",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "no4vne",
+    "type": "func",
+    "x": 640,
+    "y": 470,
+    "params": {
+     "fn": ".unsqueeze",
+     "extra": "-2",
+     "n": 1,
+     "init": "",
+     "name": "",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "npdq96",
+    "type": "binop",
+    "x": 380,
+    "y": 370,
+    "params": {
+     "op": "*",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nqmvbs",
+    "type": "func",
+    "x": 380,
+    "y": 310,
+    "params": {
+     "fn": ".sum",
+     "extra": "-1",
+     "n": 1,
+     "init": "",
+     "name": "",
+     "title": "",
+     "var": "y"
+    }
+   },
+   {
+    "id": "nr7er9",
+    "type": "param",
+    "x": 560,
+    "y": 380,
+    "params": {
+     "shape": "d_inner",
+     "init": "ones",
+     "name": "D",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "ns8u3x",
+    "type": "binop",
+    "x": 560,
+    "y": 310,
+    "params": {
+     "op": "*",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "ntvn39",
+    "type": "binop",
+    "x": 460,
+    "y": 250,
+    "params": {
+     "op": "+",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nuk78f",
+    "type": "linear",
+    "x": 860,
+    "y": 1100,
+    "params": {
+     "in": "d",
+     "out": "d_inner",
+     "bias": false,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "bias_init": "",
+     "tie": "",
+     "name": "in_z",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nvfxhu",
+    "type": "act",
+    "x": 860,
+    "y": 250,
+    "params": {
+     "fn": "silu",
+     "dim": "-1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nw12i3",
+    "type": "binop",
+    "x": 640,
+    "y": 190,
+    "params": {
+     "op": "*",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nxc10a",
+    "type": "linear",
+    "x": 640,
+    "y": 130,
+    "params": {
+     "in": "d_inner",
+     "out": "d",
+     "bias": false,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "bias_init": "",
+     "tie": "",
+     "name": "out_proj",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "ny8wm9",
+    "type": "binop",
+    "x": 640,
+    "y": 60,
+    "params": {
+     "op": "+",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nzh9sf",
+    "type": "output",
+    "x": 820,
+    "y": 60,
+    "params": {
+     "name": "out",
+     "title": ""
+    }
+   }
+  ],
+  "edges": [
+   {
+    "id": "e10v149",
+    "from": "n1wlfb",
+    "to": "n2z1et",
+    "port": 0
+   },
+   {
+    "id": "e11h2nq",
+    "from": "n2z1et",
+    "to": "n36vzo",
+    "port": 0
+   },
+   {
+    "id": "e12z6gb",
+    "from": "n2z1et",
+    "to": "nuk78f",
+    "port": 0
+   },
+   {
+    "id": "e13rzln",
+    "from": "n36vzo",
+    "to": "n4rqcf",
+    "port": 0
+   },
+   {
+    "id": "e14pwy8",
+    "from": "n4rqcf",
+    "to": "n5l2td",
+    "port": 0
+   },
+   {
+    "id": "e15tugt",
+    "from": "n5l2td",
+    "to": "n6e4wq",
+    "port": 0
+   },
+   {
+    "id": "e16uiwd",
+    "from": "n5l2td",
+    "to": "nf12ut",
+    "port": 0
+   },
+   {
+    "id": "e179egy",
+    "from": "n5l2td",
+    "to": "nnd32o",
+    "port": 0
+   },
+   {
+    "id": "e18ggiy",
+    "from": "n6e4wq",
+    "to": "n7mju0",
+    "port": 0
+   },
+   {
+    "id": "e19f5is",
+    "from": "n7mju0",
+    "to": "n8pcfr",
+    "port": 0
+   },
+   {
+    "id": "e1a5mkn",
+    "from": "n9b4cp",
+    "to": "na2bax",
+    "port": 0
+   },
+   {
+    "id": "e1bpr54",
+    "from": "na2bax",
+    "to": "nbdzvz",
+    "port": 0
+   },
+   {
+    "id": "e1cuupb",
+    "from": "n8pcfr",
+    "to": "ncq3wt",
+    "port": 0
+   },
+   {
+    "id": "e1dcn19",
+    "from": "ncq3wt",
+    "to": "ndnyjw",
+    "port": 0
+   },
+   {
+    "id": "e1ea0dz",
+    "from": "nbdzvz",
+    "to": "ndnyjw",
+    "port": 1
+   },
+   {
+    "id": "e1f9mq1",
+    "from": "ndnyjw",
+    "to": "nedx8o",
+    "port": 0
+   },
+   {
+    "id": "e1gka9b",
+    "from": "n8pcfr",
+    "to": "ngrukd",
+    "port": 0
+   },
+   {
+    "id": "e1hgod7",
+    "from": "n5l2td",
+    "to": "ngrukd",
+    "port": 1
+   },
+   {
+    "id": "e1i6cy7",
+    "from": "ngrukd",
+    "to": "nhm92i",
+    "port": 0
+   },
+   {
+    "id": "e1je2yg",
+    "from": "nf12ut",
+    "to": "nin9gj",
+    "port": 0
+   },
+   {
+    "id": "e1kppo5",
+    "from": "nhm92i",
+    "to": "njk4r4",
+    "port": 0
+   },
+   {
+    "id": "e1los78",
+    "from": "nin9gj",
+    "to": "njk4r4",
+    "port": 1
+   },
+   {
+    "id": "e1makqa",
+    "from": "nedx8o",
+    "to": "nlknwk",
+    "port": 0
+   },
+   {
+    "id": "e1nue8j",
+    "from": "nk6v1z",
+    "to": "nlknwk",
+    "port": 1
+   },
+   {
+    "id": "e1ocw4g",
+    "from": "nlknwk",
+    "to": "nm8m47",
+    "port": 0
+   },
+   {
+    "id": "e1pp9b8",
+    "from": "njk4r4",
+    "to": "nm8m47",
+    "port": 1
+   },
+   {
+    "id": "e1q7gp5",
+    "from": "nm8m47",
+    "to": "nk6v1z",
+    "port": 0
+   },
+   {
+    "id": "e1rhs5s",
+    "from": "nnd32o",
+    "to": "no4vne",
+    "port": 0
+   },
+   {
+    "id": "e1sxl2h",
+    "from": "nm8m47",
+    "to": "npdq96",
+    "port": 0
+   },
+   {
+    "id": "e1tp9e6",
+    "from": "no4vne",
+    "to": "npdq96",
+    "port": 1
+   },
+   {
+    "id": "e1uv19b",
+    "from": "npdq96",
+    "to": "nqmvbs",
+    "port": 0
+   },
+   {
+    "id": "e1vt99j",
+    "from": "n5l2td",
+    "to": "ns8u3x",
+    "port": 0
+   },
+   {
+    "id": "e1wr4hj",
+    "from": "nr7er9",
+    "to": "ns8u3x",
+    "port": 1
+   },
+   {
+    "id": "e1x7h0d",
+    "from": "nqmvbs",
+    "to": "ntvn39",
+    "port": 0
+   },
+   {
+    "id": "e1yeds3",
+    "from": "ns8u3x",
+    "to": "ntvn39",
+    "port": 1
+   },
+   {
+    "id": "e1zqjph",
+    "from": "nuk78f",
+    "to": "nvfxhu",
+    "port": 0
+   },
+   {
+    "id": "e20pq7a",
+    "from": "ntvn39",
+    "to": "nw12i3",
+    "port": 0
+   },
+   {
+    "id": "e21lc86",
+    "from": "nvfxhu",
+    "to": "nw12i3",
+    "port": 1
+   },
+   {
+    "id": "e22q64e",
+    "from": "nw12i3",
+    "to": "nxc10a",
+    "port": 0
+   },
+   {
+    "id": "e23iv80",
+    "from": "n1wlfb",
+    "to": "ny8wm9",
+    "port": 0
+   },
+   {
+    "id": "e24536b",
+    "from": "nxc10a",
+    "to": "ny8wm9",
+    "port": 1
+   },
+   {
+    "id": "e25xtu9",
+    "from": "ny8wm9",
+    "to": "nzh9sf",
+    "port": 0
+   }
+  ],
+  "groups": []
+ }
+}

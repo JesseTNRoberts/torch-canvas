@@ -1,0 +1,626 @@
+{
+ "title": "LSTM",
+ "description": "A long short-term memory network drawn flat: four gates (input i, forget f, cell g, output o), each from x and from h_prev; then c = f ⊙ c_prev + i ⊙ g and h = o ⊙ tanh(c). Delays carry h and c to the next step. Same parameters and outputs as nn.LSTM(16, 64) (its weight_ih is the four gates' ih weights stacked); a Linear reads 8 values out of every step, trained by mean squared error against a target sequence.",
+ "graph": {
+  "name": "LSTM",
+  "symbols": {
+   "e": 8,
+   "t": 20,
+   "d_in": 16,
+   "hidden": 64,
+   "d_out": 8
+  },
+  "nodes": [
+   {
+    "id": "nlpno1",
+    "type": "input",
+    "x": 560,
+    "y": 900,
+    "params": {
+     "name": "x",
+     "shape": "e, t, d_in",
+     "title": ""
+    }
+   },
+   {
+    "id": "nmhksb",
+    "type": "delay",
+    "x": 1080,
+    "y": 990,
+    "params": {
+     "name": "h",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nn1grs",
+    "type": "delay",
+    "x": 1080,
+    "y": 560,
+    "params": {
+     "name": "c",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "no83td",
+    "type": "linear",
+    "x": 92,
+    "y": 800,
+    "params": {
+     "in": "d_in",
+     "out": "hidden",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "tie": "",
+     "name": "ih_i",
+     "title": "",
+     "var": "xi"
+    }
+   },
+   {
+    "id": "npqvzc",
+    "type": "linear",
+    "x": 208,
+    "y": 800,
+    "params": {
+     "in": "hidden",
+     "out": "hidden",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "tie": "",
+     "name": "hh_i",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nqtv98",
+    "type": "binop",
+    "x": 150,
+    "y": 720,
+    "params": {
+     "op": "+",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nrzkc8",
+    "type": "act",
+    "x": 150,
+    "y": 650,
+    "params": {
+     "fn": "sigmoid",
+     "dim": "-1",
+     "title": "",
+     "var": "i"
+    }
+   },
+   {
+    "id": "nxgu82",
+    "type": "linear",
+    "x": 342,
+    "y": 800,
+    "params": {
+     "in": "d_in",
+     "out": "hidden",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "tie": "",
+     "name": "ih_f",
+     "title": "",
+     "var": "xf"
+    }
+   },
+   {
+    "id": "ny6l8w",
+    "type": "linear",
+    "x": 458,
+    "y": 800,
+    "params": {
+     "in": "hidden",
+     "out": "hidden",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "tie": "",
+     "name": "hh_f",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nzj0vq",
+    "type": "binop",
+    "x": 400,
+    "y": 720,
+    "params": {
+     "op": "+",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n101exw",
+    "type": "act",
+    "x": 400,
+    "y": 650,
+    "params": {
+     "fn": "sigmoid",
+     "dim": "-1",
+     "title": "",
+     "var": "f"
+    }
+   },
+   {
+    "id": "n16byqu",
+    "type": "linear",
+    "x": 592,
+    "y": 800,
+    "params": {
+     "in": "d_in",
+     "out": "hidden",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "tie": "",
+     "name": "ih_g",
+     "title": "",
+     "var": "xg"
+    }
+   },
+   {
+    "id": "n1750sr",
+    "type": "linear",
+    "x": 708,
+    "y": 800,
+    "params": {
+     "in": "hidden",
+     "out": "hidden",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "tie": "",
+     "name": "hh_g",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n18l4jb",
+    "type": "binop",
+    "x": 650,
+    "y": 720,
+    "params": {
+     "op": "+",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1942vh",
+    "type": "act",
+    "x": 650,
+    "y": 650,
+    "params": {
+     "fn": "tanh",
+     "dim": "-1",
+     "title": "",
+     "var": "g"
+    }
+   },
+   {
+    "id": "n1f5s59",
+    "type": "linear",
+    "x": 842,
+    "y": 800,
+    "params": {
+     "in": "d_in",
+     "out": "hidden",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "tie": "",
+     "name": "ih_o",
+     "title": "",
+     "var": "xo"
+    }
+   },
+   {
+    "id": "n1gn5tk",
+    "type": "linear",
+    "x": 958,
+    "y": 800,
+    "params": {
+     "in": "hidden",
+     "out": "hidden",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "tie": "",
+     "name": "hh_o",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1h349k",
+    "type": "binop",
+    "x": 900,
+    "y": 720,
+    "params": {
+     "op": "+",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1iatzd",
+    "type": "act",
+    "x": 900,
+    "y": 650,
+    "params": {
+     "fn": "sigmoid",
+     "dim": "-1",
+     "title": "",
+     "var": "o"
+    }
+   },
+   {
+    "id": "n1oq4hu",
+    "type": "binop",
+    "x": 400,
+    "y": 560,
+    "params": {
+     "op": "*",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1pxj36",
+    "type": "binop",
+    "x": 275,
+    "y": 560,
+    "params": {
+     "op": "*",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1q4762",
+    "type": "binop",
+    "x": 400,
+    "y": 470,
+    "params": {
+     "op": "+",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": "c"
+    }
+   },
+   {
+    "id": "n1rfg0c",
+    "type": "act",
+    "x": 525,
+    "y": 400,
+    "params": {
+     "fn": "tanh",
+     "dim": "-1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1srz06",
+    "type": "binop",
+    "x": 900,
+    "y": 400,
+    "params": {
+     "op": "*",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": "h"
+    }
+   },
+   {
+    "id": "n1tvda5",
+    "type": "linear",
+    "x": 900,
+    "y": 300,
+    "params": {
+     "in": "hidden",
+     "out": "d_out",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "tie": "",
+     "name": "out",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1ugjbw",
+    "type": "output",
+    "x": 900,
+    "y": 220,
+    "params": {
+     "name": "y",
+     "title": ""
+    }
+   },
+   {
+    "id": "n28ue8j",
+    "type": "loss",
+    "x": 1140,
+    "y": 220,
+    "params": {
+     "fn": "mse",
+     "mode": "given",
+     "label_smoothing": "",
+     "ignore_index": "",
+     "delta": "1.0",
+     "weight": "1",
+     "mask_prob": "0.15",
+     "mask_id": "",
+     "title": ""
+    }
+   },
+   {
+    "id": "n29syuf",
+    "type": "input",
+    "x": 1230,
+    "y": 390,
+    "params": {
+     "name": "target",
+     "shape": "e, t, d_out",
+     "title": ""
+    }
+   }
+  ],
+  "edges": [
+   {
+    "id": "ese8z5",
+    "from": "nlpno1",
+    "to": "no83td",
+    "port": 0
+   },
+   {
+    "id": "etxoeb",
+    "from": "nmhksb",
+    "to": "npqvzc",
+    "port": 0
+   },
+   {
+    "id": "euxk3y",
+    "from": "no83td",
+    "to": "nqtv98",
+    "port": 0
+   },
+   {
+    "id": "evx07v",
+    "from": "npqvzc",
+    "to": "nqtv98",
+    "port": 1
+   },
+   {
+    "id": "ewlrym",
+    "from": "nqtv98",
+    "to": "nrzkc8",
+    "port": 0
+   },
+   {
+    "id": "e11xumj",
+    "from": "nlpno1",
+    "to": "nxgu82",
+    "port": 0
+   },
+   {
+    "id": "e12jw2u",
+    "from": "nmhksb",
+    "to": "ny6l8w",
+    "port": 0
+   },
+   {
+    "id": "e13wuk2",
+    "from": "nxgu82",
+    "to": "nzj0vq",
+    "port": 0
+   },
+   {
+    "id": "e14iaob",
+    "from": "ny6l8w",
+    "to": "nzj0vq",
+    "port": 1
+   },
+   {
+    "id": "e15zbpj",
+    "from": "nzj0vq",
+    "to": "n101exw",
+    "port": 0
+   },
+   {
+    "id": "e1a718b",
+    "from": "nlpno1",
+    "to": "n16byqu",
+    "port": 0
+   },
+   {
+    "id": "e1bd2f7",
+    "from": "nmhksb",
+    "to": "n1750sr",
+    "port": 0
+   },
+   {
+    "id": "e1crc9w",
+    "from": "n16byqu",
+    "to": "n18l4jb",
+    "port": 0
+   },
+   {
+    "id": "e1d8nyp",
+    "from": "n1750sr",
+    "to": "n18l4jb",
+    "port": 1
+   },
+   {
+    "id": "e1e3y33",
+    "from": "n18l4jb",
+    "to": "n1942vh",
+    "port": 0
+   },
+   {
+    "id": "e1jlurb",
+    "from": "nlpno1",
+    "to": "n1f5s59",
+    "port": 0
+   },
+   {
+    "id": "e1knhgp",
+    "from": "nmhksb",
+    "to": "n1gn5tk",
+    "port": 0
+   },
+   {
+    "id": "e1l01s5",
+    "from": "n1f5s59",
+    "to": "n1h349k",
+    "port": 0
+   },
+   {
+    "id": "e1m86tb",
+    "from": "n1gn5tk",
+    "to": "n1h349k",
+    "port": 1
+   },
+   {
+    "id": "e1nc1z9",
+    "from": "n1h349k",
+    "to": "n1iatzd",
+    "port": 0
+   },
+   {
+    "id": "e1vk52i",
+    "from": "n101exw",
+    "to": "n1oq4hu",
+    "port": 0
+   },
+   {
+    "id": "e1wnib3",
+    "from": "nn1grs",
+    "to": "n1oq4hu",
+    "port": 1
+   },
+   {
+    "id": "e1x1wry",
+    "from": "nrzkc8",
+    "to": "n1pxj36",
+    "port": 0
+   },
+   {
+    "id": "e1y6p1h",
+    "from": "n1942vh",
+    "to": "n1pxj36",
+    "port": 1
+   },
+   {
+    "id": "e1zxl9w",
+    "from": "n1oq4hu",
+    "to": "n1q4762",
+    "port": 0
+   },
+   {
+    "id": "e20i9io",
+    "from": "n1pxj36",
+    "to": "n1q4762",
+    "port": 1
+   },
+   {
+    "id": "e21le8r",
+    "from": "n1q4762",
+    "to": "nn1grs",
+    "port": 0
+   },
+   {
+    "id": "e22y0ye",
+    "from": "n1q4762",
+    "to": "n1rfg0c",
+    "port": 0
+   },
+   {
+    "id": "e232hdu",
+    "from": "n1iatzd",
+    "to": "n1srz06",
+    "port": 0
+   },
+   {
+    "id": "e2466ia",
+    "from": "n1rfg0c",
+    "to": "n1srz06",
+    "port": 1
+   },
+   {
+    "id": "e25wqfd",
+    "from": "n1srz06",
+    "to": "nmhksb",
+    "port": 0
+   },
+   {
+    "id": "e26pj5z",
+    "from": "n1srz06",
+    "to": "n1tvda5",
+    "port": 0
+   },
+   {
+    "id": "e277ixk",
+    "from": "n1tvda5",
+    "to": "n1ugjbw",
+    "port": 0
+   },
+   {
+    "id": "e2ann1d",
+    "from": "n1tvda5",
+    "to": "n28ue8j",
+    "port": 0
+   },
+   {
+    "id": "e2b32tg",
+    "from": "n29syuf",
+    "to": "n28ue8j",
+    "port": 1
+   }
+  ],
+  "groups": []
+ }
+}

@@ -1,0 +1,93 @@
+{
+ "title": "Down",
+ "description": "A U-Net step down: max pool 2 (half the size), then DoubleConv.",
+ "labels": "c_out=output channels",
+ "graph": {
+  "name": "Down",
+  "symbols": {
+   "e": 8,
+   "c_in": 64,
+   "c_out": 128,
+   "H": 128,
+   "W": 128
+  },
+  "nodes": [
+   {
+    "id": "nhyvz6",
+    "type": "input",
+    "x": 200,
+    "y": 300,
+    "params": {
+     "name": "x",
+     "shape": "e, c_in, H, W",
+     "title": ""
+    }
+   },
+   {
+    "id": "nirrpo",
+    "type": "pool",
+    "x": 200,
+    "y": 230,
+    "params": {
+     "kind": "max",
+     "k": "2",
+     "stride": "",
+     "pad": "0",
+     "size": "1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nj6r1r",
+    "type": "block",
+    "x": 200,
+    "y": 160,
+    "params": {
+     "block": "bgz6x0",
+     "args": {
+      "c_out": "c_out"
+     },
+     "nIn": 1,
+     "repeat": 1,
+     "name": "conv",
+     "title": "",
+     "var": "",
+     "lib": "blocks/unet_double_conv.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "nkmwgb",
+    "type": "output",
+    "x": 200,
+    "y": 90,
+    "params": {
+     "name": "out",
+     "title": ""
+    }
+   }
+  ],
+  "edges": [
+   {
+    "id": "elbbj2",
+    "from": "nhyvz6",
+    "to": "nirrpo",
+    "port": 0
+   },
+   {
+    "id": "em7h08",
+    "from": "nirrpo",
+    "to": "nj6r1r",
+    "port": 0
+   },
+   {
+    "id": "enb780",
+    "from": "nj6r1r",
+    "to": "nkmwgb",
+    "port": 0
+   }
+  ],
+  "groups": []
+ }
+}

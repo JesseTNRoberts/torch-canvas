@@ -1,0 +1,218 @@
+{
+ "title": "RNN (Elman)",
+ "description": "A basic recurrent network drawn flat: h = tanh(W_ih·x + W_hh·h_prev), where h_prev comes from a Delay (the previous time step, zeros at the start). The code runs it as a loop over time. Same parameters and outputs as nn.RNN(16, 64) with tanh; a Linear reads 8 values out of every step, trained by mean squared error against a target sequence.",
+ "graph": {
+  "name": "RNN",
+  "symbols": {
+   "e": 8,
+   "t": 20,
+   "d_in": 16,
+   "hidden": 64,
+   "d_out": 8
+  },
+  "nodes": [
+   {
+    "id": "n1q58e",
+    "type": "input",
+    "x": 240,
+    "y": 720,
+    "params": {
+     "name": "x",
+     "shape": "e, t, d_in",
+     "title": ""
+    }
+   },
+   {
+    "id": "n22u9j",
+    "type": "linear",
+    "x": 240,
+    "y": 620,
+    "params": {
+     "in": "d_in",
+     "out": "hidden",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "tie": "",
+     "name": "ih",
+     "title": "",
+     "var": "xh"
+    }
+   },
+   {
+    "id": "n3xrzi",
+    "type": "delay",
+    "x": 470,
+    "y": 720,
+    "params": {
+     "name": "h",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n431u3",
+    "type": "linear",
+    "x": 470,
+    "y": 620,
+    "params": {
+     "in": "hidden",
+     "out": "hidden",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "tie": "",
+     "name": "hh",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n5l8hc",
+    "type": "binop",
+    "x": 240,
+    "y": 530,
+    "params": {
+     "op": "+",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n6iq1l",
+    "type": "act",
+    "x": 240,
+    "y": 450,
+    "params": {
+     "fn": "tanh",
+     "dim": "-1",
+     "title": "",
+     "var": "h"
+    }
+   },
+   {
+    "id": "n7li9y",
+    "type": "linear",
+    "x": 240,
+    "y": 340,
+    "params": {
+     "in": "hidden",
+     "out": "d_out",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "tie": "",
+     "name": "out",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n8zf6r",
+    "type": "output",
+    "x": 240,
+    "y": 260,
+    "params": {
+     "name": "y",
+     "title": ""
+    }
+   },
+   {
+    "id": "nh51yt",
+    "type": "loss",
+    "x": 480,
+    "y": 260,
+    "params": {
+     "fn": "mse",
+     "mode": "given",
+     "label_smoothing": "",
+     "ignore_index": "",
+     "delta": "1.0",
+     "weight": "1",
+     "mask_prob": "0.15",
+     "mask_id": "",
+     "title": ""
+    }
+   },
+   {
+    "id": "niojer",
+    "type": "input",
+    "x": 570,
+    "y": 430,
+    "params": {
+     "name": "target",
+     "shape": "e, t, d_out",
+     "title": ""
+    }
+   }
+  ],
+  "edges": [
+   {
+    "id": "e95eyp",
+    "from": "n1q58e",
+    "to": "n22u9j",
+    "port": 0
+   },
+   {
+    "id": "ealnbc",
+    "from": "n22u9j",
+    "to": "n5l8hc",
+    "port": 0
+   },
+   {
+    "id": "eb2fu0",
+    "from": "n3xrzi",
+    "to": "n431u3",
+    "port": 0
+   },
+   {
+    "id": "ecz4kv",
+    "from": "n431u3",
+    "to": "n5l8hc",
+    "port": 1
+   },
+   {
+    "id": "eddk8v",
+    "from": "n5l8hc",
+    "to": "n6iq1l",
+    "port": 0
+   },
+   {
+    "id": "eer1dm",
+    "from": "n6iq1l",
+    "to": "n3xrzi",
+    "port": 0
+   },
+   {
+    "id": "efvyeh",
+    "from": "n6iq1l",
+    "to": "n7li9y",
+    "port": 0
+   },
+   {
+    "id": "egdcn4",
+    "from": "n7li9y",
+    "to": "n8zf6r",
+    "port": 0
+   },
+   {
+    "id": "ej3nfa",
+    "from": "n7li9y",
+    "to": "nh51yt",
+    "port": 0
+   },
+   {
+    "id": "ekk0kv",
+    "from": "niojer",
+    "to": "nh51yt",
+    "port": 1
+   }
+  ],
+  "groups": []
+ }
+}

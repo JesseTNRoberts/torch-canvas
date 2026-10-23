@@ -1,0 +1,315 @@
+{
+ "title": "Basic CNN (MNIST)",
+ "description": "A plain convolutional classifier for 28 × 28 digits, no blocks: two Conv 3×3 → ReLU → max pool stages (32 and 64 channels), then flatten, Linear 3136 → 128 → ReLU → dropout → Linear 128 → 10, trained with cross-entropy.",
+ "graph": {
+  "name": "MNISTConvNet",
+  "symbols": {
+   "e": 8,
+   "c1": 32,
+   "c2": 64,
+   "h": 128,
+   "classes": 10
+  },
+  "nodes": [
+   {
+    "id": "n144pu",
+    "type": "input",
+    "x": 220,
+    "y": 1060,
+    "params": {
+     "name": "x",
+     "shape": "e, 1, 28, 28",
+     "title": ""
+    }
+   },
+   {
+    "id": "n2kvr6",
+    "type": "conv",
+    "x": 220,
+    "y": 994,
+    "params": {
+     "in": "1",
+     "out": "c1",
+     "k": "3",
+     "stride": "1",
+     "pad": "1",
+     "bias": true,
+     "name": "conv1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n30zxa",
+    "type": "act",
+    "x": 220,
+    "y": 928,
+    "params": {
+     "fn": "relu",
+     "dim": "-1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n43uf6",
+    "type": "pool",
+    "x": 220,
+    "y": 862,
+    "params": {
+     "kind": "max",
+     "k": "2",
+     "stride": "",
+     "pad": "0",
+     "size": "1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n526gd",
+    "type": "conv",
+    "x": 220,
+    "y": 796,
+    "params": {
+     "in": "c1",
+     "out": "c2",
+     "k": "3",
+     "stride": "1",
+     "pad": "1",
+     "bias": true,
+     "name": "conv2",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n6oke6",
+    "type": "act",
+    "x": 220,
+    "y": 730,
+    "params": {
+     "fn": "relu",
+     "dim": "-1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n79wsg",
+    "type": "pool",
+    "x": 220,
+    "y": 664,
+    "params": {
+     "kind": "max",
+     "k": "2",
+     "stride": "",
+     "pad": "0",
+     "size": "1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n82kgm",
+    "type": "func",
+    "x": 220,
+    "y": 598,
+    "params": {
+     "fn": ".flatten",
+     "extra": "1",
+     "n": 1,
+     "init": "",
+     "name": "",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n965o3",
+    "type": "linear",
+    "x": 220,
+    "y": 532,
+    "params": {
+     "in": "c2*7*7",
+     "out": "h",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "tie": "",
+     "name": "fc1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "naeyq9",
+    "type": "act",
+    "x": 220,
+    "y": 466,
+    "params": {
+     "fn": "relu",
+     "dim": "-1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nbcw9s",
+    "type": "dropout",
+    "x": 220,
+    "y": 400,
+    "params": {
+     "p": 0.5,
+     "name": "drop",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "ncyml0",
+    "type": "linear",
+    "x": 220,
+    "y": 334,
+    "params": {
+     "in": "h",
+     "out": "classes",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "tie": "",
+     "name": "fc2",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "ndz8wo",
+    "type": "output",
+    "x": 220,
+    "y": 268,
+    "params": {
+     "name": "logits",
+     "title": ""
+    }
+   },
+   {
+    "id": "nqsdz0",
+    "type": "loss",
+    "x": 450,
+    "y": 268,
+    "params": {
+     "fn": "cross_entropy",
+     "mode": "given",
+     "label_smoothing": "",
+     "ignore_index": "",
+     "delta": "1.0",
+     "weight": "1",
+     "mask_prob": "0.15",
+     "mask_id": "",
+     "title": ""
+    }
+   },
+   {
+    "id": "nrs81z",
+    "type": "input",
+    "x": 510,
+    "y": 466,
+    "params": {
+     "name": "y",
+     "shape": "e",
+     "title": ""
+    }
+   }
+  ],
+  "edges": [
+   {
+    "id": "eezzb4",
+    "from": "n144pu",
+    "to": "n2kvr6",
+    "port": 0
+   },
+   {
+    "id": "ef5l2k",
+    "from": "n2kvr6",
+    "to": "n30zxa",
+    "port": 0
+   },
+   {
+    "id": "eg3sez",
+    "from": "n30zxa",
+    "to": "n43uf6",
+    "port": 0
+   },
+   {
+    "id": "ehiywa",
+    "from": "n43uf6",
+    "to": "n526gd",
+    "port": 0
+   },
+   {
+    "id": "eika0i",
+    "from": "n526gd",
+    "to": "n6oke6",
+    "port": 0
+   },
+   {
+    "id": "ejxswr",
+    "from": "n6oke6",
+    "to": "n79wsg",
+    "port": 0
+   },
+   {
+    "id": "ekpai0",
+    "from": "n79wsg",
+    "to": "n82kgm",
+    "port": 0
+   },
+   {
+    "id": "eljgsn",
+    "from": "n82kgm",
+    "to": "n965o3",
+    "port": 0
+   },
+   {
+    "id": "emwssg",
+    "from": "n965o3",
+    "to": "naeyq9",
+    "port": 0
+   },
+   {
+    "id": "enhe9s",
+    "from": "naeyq9",
+    "to": "nbcw9s",
+    "port": 0
+   },
+   {
+    "id": "eo3o6s",
+    "from": "nbcw9s",
+    "to": "ncyml0",
+    "port": 0
+   },
+   {
+    "id": "ep3aht",
+    "from": "ncyml0",
+    "to": "ndz8wo",
+    "port": 0
+   },
+   {
+    "id": "esw5za",
+    "from": "ncyml0",
+    "to": "nqsdz0",
+    "port": 0
+   },
+   {
+    "id": "etqrlv",
+    "from": "nrs81z",
+    "to": "nqsdz0",
+    "port": 1
+   }
+  ],
+  "groups": []
+ }
+}

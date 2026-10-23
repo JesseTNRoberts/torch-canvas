@@ -1,0 +1,304 @@
+{
+ "title": "BottleneckDown",
+ "description": "The first ResNet bottleneck block of a stage: like Bottleneck, but it changes the channels (and halves the size with stride 2, on the 3×3), so its shortcut is a 1×1 convolution with the same stride and a BatchNorm.",
+ "labels": "width=width, stride=stride, c_out=output channels",
+ "graph": {
+  "name": "BottleneckDown",
+  "symbols": {
+   "e": 8,
+   "c_in": 256,
+   "width": 128,
+   "stride": 2,
+   "c_out": 512,
+   "H": 56,
+   "W": 56
+  },
+  "nodes": [
+   {
+    "id": "n1iczca",
+    "type": "input",
+    "x": 220,
+    "y": 760,
+    "params": {
+     "name": "x",
+     "shape": "e, c_in, H, W",
+     "title": ""
+    }
+   },
+   {
+    "id": "n1jcccl",
+    "type": "conv",
+    "x": 220,
+    "y": 702,
+    "params": {
+     "in": "c_in",
+     "out": "width",
+     "k": "1",
+     "stride": "1",
+     "pad": "0",
+     "bias": false,
+     "name": "conv1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1k5syw",
+    "type": "norm",
+    "x": 220,
+    "y": 644,
+    "params": {
+     "kind": "BatchNorm2d",
+     "dim": "width",
+     "groups": 8,
+     "eps": "",
+     "name": "bn1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1l8xi5",
+    "type": "act",
+    "x": 220,
+    "y": 586,
+    "params": {
+     "fn": "relu",
+     "dim": "-1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1mp39d",
+    "type": "conv",
+    "x": 220,
+    "y": 528,
+    "params": {
+     "in": "width",
+     "out": "width",
+     "k": "3",
+     "stride": "stride",
+     "pad": "1",
+     "bias": false,
+     "name": "conv2",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1n37ez",
+    "type": "norm",
+    "x": 220,
+    "y": 470,
+    "params": {
+     "kind": "BatchNorm2d",
+     "dim": "width",
+     "groups": 8,
+     "eps": "",
+     "name": "bn2",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1of5qc",
+    "type": "act",
+    "x": 220,
+    "y": 412,
+    "params": {
+     "fn": "relu",
+     "dim": "-1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1ppslm",
+    "type": "conv",
+    "x": 220,
+    "y": 354,
+    "params": {
+     "in": "width",
+     "out": "c_out",
+     "k": "1",
+     "stride": "1",
+     "pad": "0",
+     "bias": false,
+     "name": "conv3",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1q7e3j",
+    "type": "norm",
+    "x": 220,
+    "y": 296,
+    "params": {
+     "kind": "BatchNorm2d",
+     "dim": "c_out",
+     "groups": 8,
+     "eps": "",
+     "name": "bn3",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1r0o03",
+    "type": "conv",
+    "x": 430,
+    "y": 528,
+    "params": {
+     "in": "c_in",
+     "out": "c_out",
+     "k": "1",
+     "stride": "stride",
+     "pad": "0",
+     "bias": false,
+     "name": "down_conv",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1sk84g",
+    "type": "norm",
+    "x": 430,
+    "y": 412,
+    "params": {
+     "kind": "BatchNorm2d",
+     "dim": "c_out",
+     "groups": 8,
+     "eps": "",
+     "name": "down_bn",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1t24br",
+    "type": "binop",
+    "x": 220,
+    "y": 238,
+    "params": {
+     "op": "+",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1ug9mt",
+    "type": "act",
+    "x": 220,
+    "y": 180,
+    "params": {
+     "fn": "relu",
+     "dim": "-1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1vnu5y",
+    "type": "output",
+    "x": 220,
+    "y": 122,
+    "params": {
+     "name": "out",
+     "title": ""
+    }
+   }
+  ],
+  "edges": [
+   {
+    "id": "e1w40f6",
+    "from": "n1iczca",
+    "to": "n1jcccl",
+    "port": 0
+   },
+   {
+    "id": "e1x7alz",
+    "from": "n1jcccl",
+    "to": "n1k5syw",
+    "port": 0
+   },
+   {
+    "id": "e1yoi4v",
+    "from": "n1k5syw",
+    "to": "n1l8xi5",
+    "port": 0
+   },
+   {
+    "id": "e1zqfv6",
+    "from": "n1l8xi5",
+    "to": "n1mp39d",
+    "port": 0
+   },
+   {
+    "id": "e207sx7",
+    "from": "n1mp39d",
+    "to": "n1n37ez",
+    "port": 0
+   },
+   {
+    "id": "e21gtmk",
+    "from": "n1n37ez",
+    "to": "n1of5qc",
+    "port": 0
+   },
+   {
+    "id": "e227gzo",
+    "from": "n1of5qc",
+    "to": "n1ppslm",
+    "port": 0
+   },
+   {
+    "id": "e2357yi",
+    "from": "n1ppslm",
+    "to": "n1q7e3j",
+    "port": 0
+   },
+   {
+    "id": "e24a01j",
+    "from": "n1iczca",
+    "to": "n1r0o03",
+    "port": 0
+   },
+   {
+    "id": "e2550ks",
+    "from": "n1r0o03",
+    "to": "n1sk84g",
+    "port": 0
+   },
+   {
+    "id": "e26roth",
+    "from": "n1q7e3j",
+    "to": "n1t24br",
+    "port": 0
+   },
+   {
+    "id": "e27izz1",
+    "from": "n1sk84g",
+    "to": "n1t24br",
+    "port": 1
+   },
+   {
+    "id": "e28t5d0",
+    "from": "n1t24br",
+    "to": "n1ug9mt",
+    "port": 0
+   },
+   {
+    "id": "e298xv5",
+    "from": "n1ug9mt",
+    "to": "n1vnu5y",
+    "port": 0
+   }
+  ],
+  "groups": []
+ }
+}

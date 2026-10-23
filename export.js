@@ -52,7 +52,12 @@ const NNExport = (() => {
     const tup = a => `(${a.join(', ')}${a.length === 1 ? ',' : ''})`;
     // dataset tensors: the forward inputs, then targets that aren't forward inputs (masked labels are made per batch)
     const data = [];
+    // inputs that give positions to take_positions (I-JEPA's masks) are drawn per batch, not stored: two of them
+    // picking from the same sequence are I-JEPA's context and target blocks, others random distinct positions
+    const idx = lp.fwdInputs.map(n => ({ n, N: C.indexInputRange(g, ix, n, sym) })).filter(z => z.N);
+    const idxInfo = idx.length ? { names: idx.map(z => ident(z.n.params.name)), N: idx[0].N, K: idx.map(z => C.evalDim(C.parseShape(z.n.params.shape)[1], sym) ?? 1), ijepa: idx.length === 2 && idx[1].N === idx[0].N && Number.isInteger(Math.sqrt(idx[0].N)) } : null;
     for (const n of lp.fwdInputs) {
+      if (idx.some(z => z.n === n)) continue;
       const name = ident(n.params.name), dims = perSample(C.parseShape(n.params.shape)), tok = tokOf(n);
       const vocab = tok ? C.evalDim(tok.params.num, sym) : null;
       data.push({ name, expr: tok ? `torch.randint(0, ${vocab}, ${tup(['n', ...dims])})` : `torch.randn(${['n', ...dims].join(', ')})`, what: tok ? `token ids in [0, ${vocab})` : 'floats', vocab });
@@ -62,8 +67,9 @@ const NNExport = (() => {
       if (data.some(d => d.name === a) || a === 'labels' && masked) continue;
       const t = lp.terms.find(z => z.targetName === a); if (!t) continue;
       const P = shapes.get(ix.ins.get(t.outputId)[0]) || [], pd = perSample(P);
-      const C_ = pd[pd.length - 1];
-      const expr = t.fn === 'cross_entropy' ? `torch.randint(0, ${C_}, ${tup(['n', ...pd.slice(0, -1)])})` : t.fn === 'bce' ? `torch.randint(0, 2, ${tup(['n', ...pd])}).float()` : `torch.randn(${['n', ...pd].join(', ')})`;
+      // an image's classes are its channels (per-pixel labels are n × H × W)
+      const img = P.length === 4, C_ = img ? pd[0] : pd[pd.length - 1];
+      const expr = t.fn === 'cross_entropy' ? `torch.randint(0, ${C_}, ${tup(['n', ...(img ? pd.slice(1) : pd.slice(0, -1))])})` : t.fn === 'bce' ? `torch.randint(0, 2, ${tup(['n', ...pd])}).float()` : `torch.randn(${['n', ...pd].join(', ')})`;
       data.push({ name: a, expr, what: t.fn === 'cross_entropy' ? `class indices in [0, ${C_})` : t.fn === 'bce' ? '0/1 labels' : 'targets', target: true });
     }
     let mask = null;
@@ -73,9 +79,11 @@ const NNExport = (() => {
       mask = { input: ident(src ? src.params.name : 'input_ids'), vocab, prob: masked.maskProb, id: masked.maskId !== '' && masked.maskId != null ? +masked.maskId : (vocab ? vocab - 1 : 0) };
     }
     const blockClasses = [...new Set((C.expandBlocks(g).flat.groups || []).map(gr => clsName(gr.cls)))];
-    return { errors: [], lp, data, mask, hasSeq: posSyms.size > 0, fwd: lp.fwdInputs.map(n => ident(n.params.name)), outs: lp.outputs.map(o => ident(o.params.name || 'out')), args: lp.args, blockClasses };
+    const flatG = C.expandBlocks(g).flat, follows = flatG.nodes.some(n => n.params.follows) || (flatG.groups || []).some(gr => gr.follows);
+    return { errors: [], lp, data, mask, idx: idxInfo, follows, hasSeq: posSyms.size > 0, fwd: lp.fwdInputs.map(n => ident(n.params.name)), outs: lp.outputs.map(o => ident(o.params.name || 'out')), args: lp.args, blockClasses };
   }
 
+  const SAMPLER = "def sample_masks(batch, n, device):\n    \"\"\"I-JEPA's multi-block masks for a batch on a square grid of n patches: four target blocks (15-20% of the\n    patches each, aspect ratio 0.75-1.5) and a context block (85-100%) with the targets taken out. Block sizes are\n    shared by the batch, places drawn per image; every index list is cut to the batch's shortest. Returns the\n    context and the target positions, (batch, k_ctx) and (batch, k_tgt). (I-JEPA predicts each target block in a\n    pass of its own; here the four are predicted together.)\"\"\"\n    g = int(round(n ** 0.5))\n    def size(scale, aspect):\n        s = random.uniform(*scale) * g * g\n        a = math.exp(random.uniform(math.log(aspect[0]), math.log(aspect[1])))\n        return max(1, min(g - 1, round(math.sqrt(s * a)))), max(1, min(g - 1, round(math.sqrt(s / a))))\n    def block(h, w):\n        m = torch.zeros(g, g, dtype=torch.bool)\n        top, left = random.randint(0, g - h), random.randint(0, g - w)\n        m[top:top + h, left:left + w] = True\n        return m\n    (ph, pw), (eh, ew) = size((0.15, 0.2), (0.75, 1.5)), size((0.85, 1.0), (1.0, 1.0))\n    ctx, tgt = [], []\n    for _ in range(batch):\n        t = block(ph, pw) | block(ph, pw) | block(ph, pw) | block(ph, pw)\n        c = block(eh, ew) & ~t\n        if c.sum() < 4:\n            c = ~t\n        ctx.append(c.flatten().nonzero().flatten())\n        tgt.append(t.flatten().nonzero().flatten())\n    kc, kt = min(len(c) for c in ctx), min(len(t) for t in tgt)\n    return torch.stack([c[:kc] for c in ctx]).to(device), torch.stack([t[:kt] for t in tgt]).to(device)";
   // Python number literals: 3e-4 rather than 0.0003, and floats keep a decimal point
   const pf = v => { v = +v; if (v !== 0 && Math.abs(v) < 1e-3) return v.toExponential().replace('e-', 'e-'); return Number.isInteger(v) ? v.toFixed(1) : String(v); };
   const pi = v => String(Math.round(+v));
@@ -114,7 +122,8 @@ const NNExport = (() => {
     push(`${Q}Train ${name}: written by Torch Canvas, with model.py next to it.`, '',
       'The settings below come from the export dialog; change them right here. As written, the script trains',
       'on stand-in random data with the right shapes, so you can check everything runs, then swap', `make_dataset() for your own data.${Q}`);
-    push(...[ckpt && 'import functools', 'import os', 'import time'].filter(Boolean), '', 'import torch');
+    const sampler = P.idx && P.idx.ijepa;
+    push(...[ckpt && 'import functools', sampler && 'import math', 'import os', sampler && 'import random', 'import time'].filter(Boolean), '', 'import torch');
     if (groups) push('import torch.nn as nn');
     push(`from torch.utils.data import DataLoader, TensorDataset${val ? ', random_split' : ''}`);
     if (ema) push('from torch.optim.swa_utils import AveragedModel, get_ema_multi_avg_fn');
@@ -162,6 +171,7 @@ const NNExport = (() => {
       `    items are (${tensors.join(', ')}):`);
     for (const d of P.data) push(`        ${d.name}: ${d.what}${d.target ? ' (target)' : ''}`);
     if (P.mask) push(`    Masked-token labels are made from ${P.mask.input} batch by batch (mask_tokens), so they aren't stored.`);
+    if (P.idx) push(`    The positions ${P.idx.names.join(' and ')} are drawn for every batch (${P.idx.ijepa ? 'sample_masks' : 'random distinct positions'}), so they aren't stored.`);
     else if (P.lp.terms.some(t => t.mode === 'next')) push(`    Next-token targets are the inputs themselves, shifted by one inside loss().`);
     push(`    ${Q}`, '    n = NUM_SAMPLES');
     for (const d of P.data) push(`    ${d.name} = ${d.expr}`);
@@ -173,9 +183,15 @@ const NNExport = (() => {
         '    ids = ids.clone()', '    r = torch.rand(ids.shape, device=ids.device)', '    ids[picked & (r < 0.8)] = MASK_ID',
         '    swap = picked & (r >= 0.8) & (r < 0.9)', `    ids[swap] = torch.randint(0, ${P.mask.vocab}, (int(swap.sum()),), device=ids.device)`, '    return ids, labels', '', '');
     }
+    if (P.idx && P.idx.ijepa) push(...SAMPLER.split('\n'), '', '');
     push('def compute_loss(model, batch):', `    ${Q}One batch: forward(), then loss() with the targets.${Q}`,
       `    ${tensors.join(', ')}${tensors.length === 1 ? ',' : ''} = batch`);
     if (P.mask) push(`    ${P.mask.input}, labels = mask_tokens(${P.mask.input})`);
+    if (P.idx) {
+      const b0 = tensors[0];
+      if (P.idx.ijepa) push(`    ${P.idx.names.join(', ')} = sample_masks(${b0}.size(0), ${P.idx.N}, ${b0}.device)`);
+      else P.idx.names.forEach((nm, i) => push(`    ${nm} = torch.rand(${b0}.size(0), ${P.idx.N}, device=${b0}.device).argsort(dim=1)[:, :${P.idx.K[i]}]`));
+    }
     push(`    ${P.outs.join(', ')} = model(${P.fwd.join(', ')})`, `    return model.loss(${P.args.join(', ')})`, '', '');
 
     // ── precision ──
@@ -186,6 +202,7 @@ const NNExport = (() => {
     }
 
     // ── optimizer ──
+    const frozen = (() => { try { const fl = C.expandBlocks(g).flat; return fl.nodes.some(n => n.params.frozen || n.params.follows) || (fl.groups || []).some(gr => gr.frozen || gr.follows); } catch (e) { return false; } })();
     const kw = ['lr=LR'];
     if (opt === 'adam' || opt === 'adamw') { if (b1 !== 0.9 || b2 !== 0.999) kw.push(`betas=(${pf(b1).replace(/\.0$/, '.0')}, ${pf(b2)})`); if (eps !== 1e-8) kw.push(`eps=${pf(eps)}`); }
     if (opt === 'sgd' && momentum > 0) { kw.push(`momentum=${pf(momentum)}`); if (s.nesterov) kw.push('nesterov=True'); }
@@ -195,14 +212,15 @@ const NNExport = (() => {
     if (groups) {
       push('def make_optimizer(model):', `    ${Q}${OPTIMIZERS[opt]} with weight decay on the weight matrices only: biases, norm weights and embeddings`, `    are left undecayed.${Q}`,
         '    embeddings = {id(m.weight) for m in model.modules() if isinstance(m, nn.Embedding)}',
-        '    decay = [p for p in model.parameters() if p.dim() >= 2 and id(p) not in embeddings]',
-        '    no_decay = [p for p in model.parameters() if p.dim() < 2 or id(p) in embeddings]',
+        `    decay = [p for p in model.parameters() if ${frozen ? 'p.requires_grad and ' : ''}p.dim() >= 2 and id(p) not in embeddings]`,
+        `    no_decay = [p for p in model.parameters() if ${frozen ? 'p.requires_grad and ' : ''}(p.dim() < 2 or id(p) in embeddings)]`,
         '    groups = [{"params": decay, "weight_decay": WEIGHT_DECAY}, {"params": no_decay, "weight_decay": 0.0}]',
         `    return ${ctor}(groups, ${kw.join(', ')})`, '', '');
       optLine = 'optimizer = make_optimizer(model)';
     } else {
       if (wd > 0) kw.push('weight_decay=WEIGHT_DECAY'); else if (opt === 'adamw') kw.push('weight_decay=0.0');
-      optLine = `optimizer = ${ctor}(model.parameters(), ${kw.join(', ')})`;
+      // frozen weights stay out of the optimizer
+      optLine = `optimizer = ${ctor}(${frozen ? '(p for p in model.parameters() if p.requires_grad)' : 'model.parameters()'}, ${kw.join(', ')})`;
     }
 
     // ── schedule (PyTorch's own schedulers) ──
@@ -250,6 +268,7 @@ const NNExport = (() => {
     m('', `model = ${name}().to(device)`);
     if (ckpt) m('checkpoint_blocks(model)');
     m('print(f"{sum(p.numel() for p in model.parameters()):,} parameters on {device}")');
+    if (frozen) m('print(f"{sum(p.numel() for p in model.parameters() if p.requires_grad):,} of them trained (the rest are frozen)")');
     if (compile) m('compiled = torch.compile(model)  # used for the forward passes; model keeps the weights');
     m('', 'data = make_dataset()');
     if (val) {
@@ -308,6 +327,7 @@ const NNExport = (() => {
     l('optimizer.zero_grad(set_to_none=True)');
     if (hasSched) l('scheduler.step()');
     if (ema) l('ema.update_parameters(model)');
+    if (P.follows) l('model.ema_update((step + 1) / total_steps)  # followers (EMA ties) move toward what they follow');
     l('step += 1', 'count += 1', '', 'if step % LOG_EVERY == 0:');
     l(`    log({"train/loss": running / count, "lr": optimizer.param_groups[0]["lr"], ${clip > 0 ? '"grad_norm": grad_norm.item(), ' : ''}"sec/step": (time.time() - t0) / count})`,
       '    running, count, t0 = 0.0, 0, time.time()');

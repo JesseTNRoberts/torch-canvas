@@ -1,0 +1,1011 @@
+{
+ "title": "ResNet-50 (ImageNet)",
+ "description": "ResNet-50 as in torchvision (v1.5, stride on the 3×3): a 7×7 stem and max pool, then four stages of bottleneck blocks (3, 4, 6, 3) at 256 / 512 / 1024 / 2048 channels, global average pooling and a 1000-way Linear. 25.6M parameters; the same layers, in the same order, as torchvision.models.resnet50.",
+ "graph": {
+  "name": "ResNet50",
+  "symbols": {
+   "e": 8
+  },
+  "nodes": [
+   {
+    "id": "n2cjbeu",
+    "type": "input",
+    "x": 220,
+    "y": 1400,
+    "params": {
+     "name": "x",
+     "shape": "e, 3, 224, 224",
+     "title": ""
+    }
+   },
+   {
+    "id": "n2dfcv7",
+    "type": "conv",
+    "x": 220,
+    "y": 1336,
+    "params": {
+     "in": "3",
+     "out": "64",
+     "k": "7",
+     "stride": "2",
+     "pad": "3",
+     "bias": false,
+     "name": "conv1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n2e35og",
+    "type": "norm",
+    "x": 220,
+    "y": 1272,
+    "params": {
+     "kind": "BatchNorm2d",
+     "dim": "64",
+     "groups": 8,
+     "eps": "",
+     "name": "bn1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n2fykpg",
+    "type": "act",
+    "x": 220,
+    "y": 1208,
+    "params": {
+     "fn": "relu",
+     "dim": "-1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n2gnz1n",
+    "type": "pool",
+    "x": 220,
+    "y": 1144,
+    "params": {
+     "kind": "max",
+     "k": "3",
+     "stride": "2",
+     "pad": "1",
+     "size": "1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n2ha520",
+    "type": "block",
+    "x": 220,
+    "y": 1044,
+    "params": {
+     "block": "b2ber8w",
+     "args": {
+      "width": "64",
+      "stride": "1",
+      "c_out": "256"
+     },
+     "nIn": 1,
+     "repeat": 1,
+     "name": "layer1_down",
+     "title": "",
+     "var": "",
+     "lib": "blocks/resnet_bottleneck_down.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n2iyzm2",
+    "type": "block",
+    "x": 220,
+    "y": 936,
+    "params": {
+     "block": "b2aueq3",
+     "args": {
+      "width": "64"
+     },
+     "nIn": 1,
+     "repeat": 2,
+     "name": "layer1",
+     "title": "",
+     "var": "",
+     "lib": "blocks/resnet_bottleneck.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n2jbtqt",
+    "type": "block",
+    "x": 220,
+    "y": 836,
+    "params": {
+     "block": "b2ber8w",
+     "args": {
+      "width": "128",
+      "stride": "2",
+      "c_out": "512"
+     },
+     "nIn": 1,
+     "repeat": 1,
+     "name": "layer2_down",
+     "title": "",
+     "var": "",
+     "lib": "blocks/resnet_bottleneck_down.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n2kkz5a",
+    "type": "block",
+    "x": 220,
+    "y": 728,
+    "params": {
+     "block": "b2aueq3",
+     "args": {
+      "width": "128"
+     },
+     "nIn": 1,
+     "repeat": 3,
+     "name": "layer2",
+     "title": "",
+     "var": "",
+     "lib": "blocks/resnet_bottleneck.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n2lt35m",
+    "type": "block",
+    "x": 220,
+    "y": 628,
+    "params": {
+     "block": "b2ber8w",
+     "args": {
+      "width": "256",
+      "stride": "2",
+      "c_out": "1024"
+     },
+     "nIn": 1,
+     "repeat": 1,
+     "name": "layer3_down",
+     "title": "",
+     "var": "",
+     "lib": "blocks/resnet_bottleneck_down.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n2mj6ty",
+    "type": "block",
+    "x": 220,
+    "y": 520,
+    "params": {
+     "block": "b2aueq3",
+     "args": {
+      "width": "256"
+     },
+     "nIn": 1,
+     "repeat": 5,
+     "name": "layer3",
+     "title": "",
+     "var": "",
+     "lib": "blocks/resnet_bottleneck.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n2n2vxi",
+    "type": "block",
+    "x": 220,
+    "y": 420,
+    "params": {
+     "block": "b2ber8w",
+     "args": {
+      "width": "512",
+      "stride": "2",
+      "c_out": "2048"
+     },
+     "nIn": 1,
+     "repeat": 1,
+     "name": "layer4_down",
+     "title": "",
+     "var": "",
+     "lib": "blocks/resnet_bottleneck_down.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n2otamb",
+    "type": "block",
+    "x": 220,
+    "y": 312,
+    "params": {
+     "block": "b2aueq3",
+     "args": {
+      "width": "512"
+     },
+     "nIn": 1,
+     "repeat": 2,
+     "name": "layer4",
+     "title": "",
+     "var": "",
+     "lib": "blocks/resnet_bottleneck.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "n2pz5rb",
+    "type": "pool",
+    "x": 220,
+    "y": 242,
+    "params": {
+     "kind": "adaptive",
+     "k": "2",
+     "stride": "",
+     "pad": "0",
+     "size": "1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n2q7p5h",
+    "type": "func",
+    "x": 220,
+    "y": 178,
+    "params": {
+     "fn": ".flatten",
+     "extra": "1",
+     "n": 1,
+     "init": "",
+     "name": "",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n2rxojg",
+    "type": "linear",
+    "x": 220,
+    "y": 114,
+    "params": {
+     "in": "2048",
+     "out": "1000",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": true,
+     "tie": "",
+     "name": "fc",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n2sh3nt",
+    "type": "output",
+    "x": 220,
+    "y": 50,
+    "params": {
+     "name": "logits",
+     "title": ""
+    }
+   },
+   {
+    "id": "n39kdtv",
+    "type": "loss",
+    "x": 470,
+    "y": 50,
+    "params": {
+     "fn": "cross_entropy",
+     "mode": "given",
+     "label_smoothing": "",
+     "ignore_index": "",
+     "delta": "1.0",
+     "weight": "1",
+     "mask_prob": "0.15",
+     "mask_id": "",
+     "title": ""
+    }
+   },
+   {
+    "id": "n3adzm6",
+    "type": "input",
+    "x": 520,
+    "y": 242,
+    "params": {
+     "name": "y",
+     "shape": "e",
+     "title": ""
+    }
+   }
+  ],
+  "edges": [
+   {
+    "id": "e2tkmzt",
+    "from": "n2cjbeu",
+    "to": "n2dfcv7",
+    "port": 0
+   },
+   {
+    "id": "e2ugmk4",
+    "from": "n2dfcv7",
+    "to": "n2e35og",
+    "port": 0
+   },
+   {
+    "id": "e2vxubx",
+    "from": "n2e35og",
+    "to": "n2fykpg",
+    "port": 0
+   },
+   {
+    "id": "e2w9h4i",
+    "from": "n2fykpg",
+    "to": "n2gnz1n",
+    "port": 0
+   },
+   {
+    "id": "e2x3q9p",
+    "from": "n2gnz1n",
+    "to": "n2ha520",
+    "port": 0
+   },
+   {
+    "id": "e2yf8gv",
+    "from": "n2ha520",
+    "to": "n2iyzm2",
+    "port": 0
+   },
+   {
+    "id": "e2z8yg4",
+    "from": "n2iyzm2",
+    "to": "n2jbtqt",
+    "port": 0
+   },
+   {
+    "id": "e30nzi6",
+    "from": "n2jbtqt",
+    "to": "n2kkz5a",
+    "port": 0
+   },
+   {
+    "id": "e31em61",
+    "from": "n2kkz5a",
+    "to": "n2lt35m",
+    "port": 0
+   },
+   {
+    "id": "e326rd6",
+    "from": "n2lt35m",
+    "to": "n2mj6ty",
+    "port": 0
+   },
+   {
+    "id": "e33kwqb",
+    "from": "n2mj6ty",
+    "to": "n2n2vxi",
+    "port": 0
+   },
+   {
+    "id": "e34j79t",
+    "from": "n2n2vxi",
+    "to": "n2otamb",
+    "port": 0
+   },
+   {
+    "id": "e351fb6",
+    "from": "n2otamb",
+    "to": "n2pz5rb",
+    "port": 0
+   },
+   {
+    "id": "e366p0f",
+    "from": "n2pz5rb",
+    "to": "n2q7p5h",
+    "port": 0
+   },
+   {
+    "id": "e37kakr",
+    "from": "n2q7p5h",
+    "to": "n2rxojg",
+    "port": 0
+   },
+   {
+    "id": "e387gts",
+    "from": "n2rxojg",
+    "to": "n2sh3nt",
+    "port": 0
+   },
+   {
+    "id": "e3b945z",
+    "from": "n2rxojg",
+    "to": "n39kdtv",
+    "port": 0
+   },
+   {
+    "id": "e3caz83",
+    "from": "n3adzm6",
+    "to": "n39kdtv",
+    "port": 1
+   }
+  ],
+  "groups": [],
+  "blocks": {
+   "b2aueq3": {
+    "id": "b2aueq3",
+    "name": "Bottleneck",
+    "graph": {
+     "name": "Bottleneck",
+     "symbols": {
+      "e": 8,
+      "c": 256,
+      "width": 64,
+      "H": 56,
+      "W": 56
+     },
+     "nodes": [
+      {
+       "id": "nuuep9",
+       "type": "input",
+       "x": 220,
+       "y": 760,
+       "params": {
+        "name": "x",
+        "shape": "e, c, H, W",
+        "title": ""
+       }
+      },
+      {
+       "id": "nvph99",
+       "type": "conv",
+       "x": 220,
+       "y": 702,
+       "params": {
+        "in": "c",
+        "out": "width",
+        "k": "1",
+        "stride": "1",
+        "pad": "0",
+        "bias": false,
+        "name": "conv1",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "nwtb1n",
+       "type": "norm",
+       "x": 220,
+       "y": 644,
+       "params": {
+        "kind": "BatchNorm2d",
+        "dim": "width",
+        "groups": 8,
+        "eps": "",
+        "name": "bn1",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "nx6m2s",
+       "type": "act",
+       "x": 220,
+       "y": 586,
+       "params": {
+        "fn": "relu",
+        "dim": "-1",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "nyq0lh",
+       "type": "conv",
+       "x": 220,
+       "y": 528,
+       "params": {
+        "in": "width",
+        "out": "width",
+        "k": "3",
+        "stride": "1",
+        "pad": "1",
+        "bias": false,
+        "name": "conv2",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "nzaauz",
+       "type": "norm",
+       "x": 220,
+       "y": 470,
+       "params": {
+        "kind": "BatchNorm2d",
+        "dim": "width",
+        "groups": 8,
+        "eps": "",
+        "name": "bn2",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n10s320",
+       "type": "act",
+       "x": 220,
+       "y": 412,
+       "params": {
+        "fn": "relu",
+        "dim": "-1",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n117ujz",
+       "type": "conv",
+       "x": 220,
+       "y": 354,
+       "params": {
+        "in": "width",
+        "out": "c",
+        "k": "1",
+        "stride": "1",
+        "pad": "0",
+        "bias": false,
+        "name": "conv3",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n122xlm",
+       "type": "norm",
+       "x": 220,
+       "y": 296,
+       "params": {
+        "kind": "BatchNorm2d",
+        "dim": "c",
+        "groups": 8,
+        "eps": "",
+        "name": "bn3",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n134reo",
+       "type": "binop",
+       "x": 220,
+       "y": 238,
+       "params": {
+        "op": "+",
+        "const": "",
+        "rev": false,
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n14bnn9",
+       "type": "act",
+       "x": 220,
+       "y": 180,
+       "params": {
+        "fn": "relu",
+        "dim": "-1",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n15jwoh",
+       "type": "output",
+       "x": 220,
+       "y": 122,
+       "params": {
+        "name": "out",
+        "title": ""
+       }
+      }
+     ],
+     "edges": [
+      {
+       "id": "e16kr96",
+       "from": "nuuep9",
+       "to": "nvph99",
+       "port": 0
+      },
+      {
+       "id": "e17di96",
+       "from": "nvph99",
+       "to": "nwtb1n",
+       "port": 0
+      },
+      {
+       "id": "e184jrx",
+       "from": "nwtb1n",
+       "to": "nx6m2s",
+       "port": 0
+      },
+      {
+       "id": "e19krlu",
+       "from": "nx6m2s",
+       "to": "nyq0lh",
+       "port": 0
+      },
+      {
+       "id": "e1anjtm",
+       "from": "nyq0lh",
+       "to": "nzaauz",
+       "port": 0
+      },
+      {
+       "id": "e1bwhv9",
+       "from": "nzaauz",
+       "to": "n10s320",
+       "port": 0
+      },
+      {
+       "id": "e1cx20j",
+       "from": "n10s320",
+       "to": "n117ujz",
+       "port": 0
+      },
+      {
+       "id": "e1dmmu1",
+       "from": "n117ujz",
+       "to": "n122xlm",
+       "port": 0
+      },
+      {
+       "id": "e1em9u7",
+       "from": "n122xlm",
+       "to": "n134reo",
+       "port": 0
+      },
+      {
+       "id": "e1fvodz",
+       "from": "nuuep9",
+       "to": "n134reo",
+       "port": 1
+      },
+      {
+       "id": "e1goff1",
+       "from": "n134reo",
+       "to": "n14bnn9",
+       "port": 0
+      },
+      {
+       "id": "e1h5a5p",
+       "from": "n14bnn9",
+       "to": "n15jwoh",
+       "port": 0
+      }
+     ],
+     "groups": []
+    },
+    "labels": {
+     "width": "width"
+    },
+    "lib": "blocks/resnet_bottleneck.json"
+   },
+   "b2ber8w": {
+    "id": "b2ber8w",
+    "name": "BottleneckDown",
+    "graph": {
+     "name": "BottleneckDown",
+     "symbols": {
+      "e": 8,
+      "c_in": 256,
+      "width": 128,
+      "stride": 2,
+      "c_out": 512,
+      "H": 56,
+      "W": 56
+     },
+     "nodes": [
+      {
+       "id": "n1iczca",
+       "type": "input",
+       "x": 220,
+       "y": 760,
+       "params": {
+        "name": "x",
+        "shape": "e, c_in, H, W",
+        "title": ""
+       }
+      },
+      {
+       "id": "n1jcccl",
+       "type": "conv",
+       "x": 220,
+       "y": 702,
+       "params": {
+        "in": "c_in",
+        "out": "width",
+        "k": "1",
+        "stride": "1",
+        "pad": "0",
+        "bias": false,
+        "name": "conv1",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n1k5syw",
+       "type": "norm",
+       "x": 220,
+       "y": 644,
+       "params": {
+        "kind": "BatchNorm2d",
+        "dim": "width",
+        "groups": 8,
+        "eps": "",
+        "name": "bn1",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n1l8xi5",
+       "type": "act",
+       "x": 220,
+       "y": 586,
+       "params": {
+        "fn": "relu",
+        "dim": "-1",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n1mp39d",
+       "type": "conv",
+       "x": 220,
+       "y": 528,
+       "params": {
+        "in": "width",
+        "out": "width",
+        "k": "3",
+        "stride": "stride",
+        "pad": "1",
+        "bias": false,
+        "name": "conv2",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n1n37ez",
+       "type": "norm",
+       "x": 220,
+       "y": 470,
+       "params": {
+        "kind": "BatchNorm2d",
+        "dim": "width",
+        "groups": 8,
+        "eps": "",
+        "name": "bn2",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n1of5qc",
+       "type": "act",
+       "x": 220,
+       "y": 412,
+       "params": {
+        "fn": "relu",
+        "dim": "-1",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n1ppslm",
+       "type": "conv",
+       "x": 220,
+       "y": 354,
+       "params": {
+        "in": "width",
+        "out": "c_out",
+        "k": "1",
+        "stride": "1",
+        "pad": "0",
+        "bias": false,
+        "name": "conv3",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n1q7e3j",
+       "type": "norm",
+       "x": 220,
+       "y": 296,
+       "params": {
+        "kind": "BatchNorm2d",
+        "dim": "c_out",
+        "groups": 8,
+        "eps": "",
+        "name": "bn3",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n1r0o03",
+       "type": "conv",
+       "x": 430,
+       "y": 528,
+       "params": {
+        "in": "c_in",
+        "out": "c_out",
+        "k": "1",
+        "stride": "stride",
+        "pad": "0",
+        "bias": false,
+        "name": "down_conv",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n1sk84g",
+       "type": "norm",
+       "x": 430,
+       "y": 412,
+       "params": {
+        "kind": "BatchNorm2d",
+        "dim": "c_out",
+        "groups": 8,
+        "eps": "",
+        "name": "down_bn",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n1t24br",
+       "type": "binop",
+       "x": 220,
+       "y": 238,
+       "params": {
+        "op": "+",
+        "const": "",
+        "rev": false,
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n1ug9mt",
+       "type": "act",
+       "x": 220,
+       "y": 180,
+       "params": {
+        "fn": "relu",
+        "dim": "-1",
+        "title": "",
+        "var": ""
+       }
+      },
+      {
+       "id": "n1vnu5y",
+       "type": "output",
+       "x": 220,
+       "y": 122,
+       "params": {
+        "name": "out",
+        "title": ""
+       }
+      }
+     ],
+     "edges": [
+      {
+       "id": "e1w40f6",
+       "from": "n1iczca",
+       "to": "n1jcccl",
+       "port": 0
+      },
+      {
+       "id": "e1x7alz",
+       "from": "n1jcccl",
+       "to": "n1k5syw",
+       "port": 0
+      },
+      {
+       "id": "e1yoi4v",
+       "from": "n1k5syw",
+       "to": "n1l8xi5",
+       "port": 0
+      },
+      {
+       "id": "e1zqfv6",
+       "from": "n1l8xi5",
+       "to": "n1mp39d",
+       "port": 0
+      },
+      {
+       "id": "e207sx7",
+       "from": "n1mp39d",
+       "to": "n1n37ez",
+       "port": 0
+      },
+      {
+       "id": "e21gtmk",
+       "from": "n1n37ez",
+       "to": "n1of5qc",
+       "port": 0
+      },
+      {
+       "id": "e227gzo",
+       "from": "n1of5qc",
+       "to": "n1ppslm",
+       "port": 0
+      },
+      {
+       "id": "e2357yi",
+       "from": "n1ppslm",
+       "to": "n1q7e3j",
+       "port": 0
+      },
+      {
+       "id": "e24a01j",
+       "from": "n1iczca",
+       "to": "n1r0o03",
+       "port": 0
+      },
+      {
+       "id": "e2550ks",
+       "from": "n1r0o03",
+       "to": "n1sk84g",
+       "port": 0
+      },
+      {
+       "id": "e26roth",
+       "from": "n1q7e3j",
+       "to": "n1t24br",
+       "port": 0
+      },
+      {
+       "id": "e27izz1",
+       "from": "n1sk84g",
+       "to": "n1t24br",
+       "port": 1
+      },
+      {
+       "id": "e28t5d0",
+       "from": "n1t24br",
+       "to": "n1ug9mt",
+       "port": 0
+      },
+      {
+       "id": "e298xv5",
+       "from": "n1ug9mt",
+       "to": "n1vnu5y",
+       "port": 0
+      }
+     ],
+     "groups": []
+    },
+    "labels": {
+     "width": "width",
+     "stride": "stride",
+     "c_out": "output channels"
+    },
+    "lib": "blocks/resnet_bottleneck_down.json"
+   }
+  }
+ }
+}

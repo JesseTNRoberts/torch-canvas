@@ -1,0 +1,112 @@
+{
+ "title": "DarknetConv",
+ "description": "Darknet's convolutional layer: Conv k×k with padding k // 2 and no bias, BatchNorm, LeakyReLU(0.1).",
+ "labels": "c_out=output channels, k=kernel, stride=stride",
+ "graph": {
+  "name": "DarknetConv",
+  "symbols": {
+   "e": 8,
+   "c_in": 32,
+   "c_out": 64,
+   "k": 3,
+   "stride": 1,
+   "H": 416,
+   "W": 416
+  },
+  "nodes": [
+   {
+    "id": "n3d5pn0",
+    "type": "input",
+    "x": 200,
+    "y": 400,
+    "params": {
+     "name": "x",
+     "shape": "e, c_in, H, W",
+     "title": ""
+    }
+   },
+   {
+    "id": "n3eutgg",
+    "type": "conv",
+    "x": 200,
+    "y": 338,
+    "params": {
+     "in": "c_in",
+     "out": "c_out",
+     "k": "k",
+     "stride": "stride",
+     "pad": "k//2",
+     "bias": false,
+     "name": "conv",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n3fd76q",
+    "type": "norm",
+    "x": 200,
+    "y": 276,
+    "params": {
+     "kind": "BatchNorm2d",
+     "dim": "c_out",
+     "groups": 8,
+     "eps": "",
+     "name": "bn",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n3gdntg",
+    "type": "act",
+    "x": 200,
+    "y": 214,
+    "params": {
+     "fn": "leaky_relu",
+     "dim": "-1",
+     "title": "",
+     "var": "",
+     "slope": "0.1"
+    }
+   },
+   {
+    "id": "n3hapwv",
+    "type": "output",
+    "x": 200,
+    "y": 152,
+    "params": {
+     "name": "out",
+     "title": ""
+    }
+   }
+  ],
+  "edges": [
+   {
+    "id": "e3iz3qn",
+    "from": "n3d5pn0",
+    "to": "n3eutgg",
+    "port": 0
+   },
+   {
+    "id": "e3jw3ym",
+    "from": "n3eutgg",
+    "to": "n3fd76q",
+    "port": 0
+   },
+   {
+    "id": "e3kolvf",
+    "from": "n3fd76q",
+    "to": "n3gdntg",
+    "port": 0
+   },
+   {
+    "id": "e3l2yqu",
+    "from": "n3gdntg",
+    "to": "n3hapwv",
+    "port": 0
+   }
+  ],
+  "groups": []
+ }
+}

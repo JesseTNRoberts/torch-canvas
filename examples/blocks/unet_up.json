@@ -1,0 +1,136 @@
+{
+ "title": "Up",
+ "description": "A U-Net step up: ConvTranspose 2×2 with stride 2 on the deeper map (twice the size, c_out channels), joined along the channels with the skip connection from the way down (x2 first), then DoubleConv.",
+ "labels": "c_out=output channels",
+ "graph": {
+  "name": "Up",
+  "symbols": {
+   "e": 8,
+   "c_in": 128,
+   "c_out": 64,
+   "H": 32,
+   "W": 32,
+   "H2": 64,
+   "W2": 64
+  },
+  "nodes": [
+   {
+    "id": "npm78c",
+    "type": "input",
+    "x": 200,
+    "y": 360,
+    "params": {
+     "name": "x1",
+     "shape": "e, c_in, H, W",
+     "title": ""
+    }
+   },
+   {
+    "id": "nqmnv4",
+    "type": "input",
+    "x": 400,
+    "y": 288,
+    "params": {
+     "name": "x2",
+     "shape": "e, c_out, H2, W2",
+     "title": ""
+    }
+   },
+   {
+    "id": "nrplwa",
+    "type": "conv",
+    "x": 200,
+    "y": 288,
+    "params": {
+     "in": "c_in",
+     "out": "c_out",
+     "k": "2",
+     "stride": "2",
+     "pad": "0",
+     "bias": true,
+     "transposed": true,
+     "name": "up",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nsk0ml",
+    "type": "func",
+    "x": 300,
+    "y": 216,
+    "params": {
+     "fn": "torch.cat",
+     "extra": "dim=1",
+     "n": 2,
+     "init": "",
+     "name": "",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nt8dae",
+    "type": "block",
+    "x": 300,
+    "y": 144,
+    "params": {
+     "block": "bgz6x0",
+     "args": {
+      "c_out": "c_out"
+     },
+     "nIn": 1,
+     "repeat": 1,
+     "name": "conv",
+     "title": "",
+     "var": "",
+     "lib": "blocks/unet_double_conv.json",
+     "nOut": 1
+    }
+   },
+   {
+    "id": "numdo2",
+    "type": "output",
+    "x": 300,
+    "y": 72,
+    "params": {
+     "name": "out",
+     "title": ""
+    }
+   }
+  ],
+  "edges": [
+   {
+    "id": "ev5gpc",
+    "from": "npm78c",
+    "to": "nrplwa",
+    "port": 0
+   },
+   {
+    "id": "ewgx46",
+    "from": "nqmnv4",
+    "to": "nsk0ml",
+    "port": 0
+   },
+   {
+    "id": "ex1g4m",
+    "from": "nrplwa",
+    "to": "nsk0ml",
+    "port": 1
+   },
+   {
+    "id": "eyg84c",
+    "from": "nsk0ml",
+    "to": "nt8dae",
+    "port": 0
+   },
+   {
+    "id": "ezx2q3",
+    "from": "nt8dae",
+    "to": "numdo2",
+    "port": 0
+   }
+  ],
+  "groups": []
+ }
+}

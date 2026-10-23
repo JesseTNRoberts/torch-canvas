@@ -1,0 +1,173 @@
+{
+ "title": "DoubleConv",
+ "description": "U-Net's double convolution: (Conv 3×3 with padding 1, no bias → BatchNorm → ReLU) twice.",
+ "labels": "c_out=output channels",
+ "graph": {
+  "name": "DoubleConv",
+  "symbols": {
+   "e": 8,
+   "c_in": 64,
+   "c_out": 128,
+   "H": 64,
+   "W": 64
+  },
+  "nodes": [
+   {
+    "id": "n1fkpj",
+    "type": "input",
+    "x": 200,
+    "y": 470,
+    "params": {
+     "name": "x",
+     "shape": "e, c_in, H, W",
+     "title": ""
+    }
+   },
+   {
+    "id": "n21j5c",
+    "type": "conv",
+    "x": 200,
+    "y": 406,
+    "params": {
+     "in": "c_in",
+     "out": "c_out",
+     "k": "3",
+     "stride": "1",
+     "pad": "1",
+     "bias": false,
+     "transposed": false,
+     "name": "conv1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n3bm87",
+    "type": "norm",
+    "x": 200,
+    "y": 342,
+    "params": {
+     "kind": "BatchNorm2d",
+     "dim": "c_out",
+     "groups": 8,
+     "eps": "",
+     "name": "bn1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n4bjk4",
+    "type": "act",
+    "x": 200,
+    "y": 284,
+    "params": {
+     "fn": "relu",
+     "dim": "-1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n53rwk",
+    "type": "conv",
+    "x": 200,
+    "y": 220,
+    "params": {
+     "in": "c_out",
+     "out": "c_out",
+     "k": "3",
+     "stride": "1",
+     "pad": "1",
+     "bias": false,
+     "transposed": false,
+     "name": "conv2",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n6my9j",
+    "type": "norm",
+    "x": 200,
+    "y": 156,
+    "params": {
+     "kind": "BatchNorm2d",
+     "dim": "c_out",
+     "groups": 8,
+     "eps": "",
+     "name": "bn2",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n7s5hk",
+    "type": "act",
+    "x": 200,
+    "y": 98,
+    "params": {
+     "fn": "relu",
+     "dim": "-1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n86tfr",
+    "type": "output",
+    "x": 200,
+    "y": 34,
+    "params": {
+     "name": "out",
+     "title": ""
+    }
+   }
+  ],
+  "edges": [
+   {
+    "id": "e9uyiq",
+    "from": "n1fkpj",
+    "to": "n21j5c",
+    "port": 0
+   },
+   {
+    "id": "ea4qtz",
+    "from": "n21j5c",
+    "to": "n3bm87",
+    "port": 0
+   },
+   {
+    "id": "ebeie7",
+    "from": "n3bm87",
+    "to": "n4bjk4",
+    "port": 0
+   },
+   {
+    "id": "ecj1gc",
+    "from": "n4bjk4",
+    "to": "n53rwk",
+    "port": 0
+   },
+   {
+    "id": "edqe1i",
+    "from": "n53rwk",
+    "to": "n6my9j",
+    "port": 0
+   },
+   {
+    "id": "ee5whu",
+    "from": "n6my9j",
+    "to": "n7s5hk",
+    "port": 0
+   },
+   {
+    "id": "efpkvn",
+    "from": "n7s5hk",
+    "to": "n86tfr",
+    "port": 0
+   }
+  ],
+  "groups": []
+ }
+}
