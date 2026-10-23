@@ -3,16 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-def split_heads(x, n_head):
-    """(B, T, C) -> (B, n_head, T, C // n_head)"""
-    return x.unflatten(-1, (n_head, -1)).transpose(1, 2)
-
-
-def merge_heads(x):
-    """(B, n_head, T, D) -> (B, T, n_head * D)"""
-    return x.transpose(1, 2).flatten(2)
-
-
 class BertLayer(nn.Module):
     def __init__(self, d=768, n_head=12, ff=3072):
         super().__init__()
@@ -42,15 +32,15 @@ class BertLayer(nn.Module):
         self.ff_norm = nn.LayerNorm(d, eps=1e-12)
 
     def forward(self, x):
-        q = split_heads(self.query(x), self.n_head)  # (e, n_head, t, d/n_head)
+        q = self.query(x).unflatten(-1, (self.n_head, -1)).transpose(1, 2)  # (e, n_head, t, d/n_head)
         q = q * q.size(-1) ** -0.5  # (e, n_head, t, d/n_head)
-        k = split_heads(self.key(x), self.n_head)  # (e, n_head, t, d/n_head)
+        k = self.key(x).unflatten(-1, (self.n_head, -1)).transpose(1, 2)  # (e, n_head, t, d/n_head)
         att = q @ k.transpose(-2, -1)  # (e, n_head, t, t)
         att = torch.softmax(att, dim=-1)  # (e, n_head, t, t)
         att = self.attn_drop(att)  # (e, n_head, t, t)
-        v = split_heads(self.value(x), self.n_head)  # (e, n_head, t, d/n_head)
+        v = self.value(x).unflatten(-1, (self.n_head, -1)).transpose(1, 2)  # (e, n_head, t, d/n_head)
         y = att @ v  # (e, n_head, t, d/n_head)
-        y = merge_heads(y)  # (e, t, d)
+        y = y.transpose(1, 2).flatten(2)  # (e, t, d)
         h = self.attn_out(y)  # (e, t, d)
         x = x + self.attn_out_drop(h)  # (e, t, d)
         x = self.attn_norm(x)  # (e, t, d)

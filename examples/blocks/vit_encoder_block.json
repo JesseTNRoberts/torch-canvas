@@ -1,6 +1,6 @@
 {
  "title": "ViTEncoderBlock",
- "description": "Vision Transformer encoder block (torchvision's EncoderBlock): LayerNorm, multi-head self-attention without a mask, residual; LayerNorm, Linear → GELU → Linear, residual. LayerNorm eps 1e-6.",
+ "description": "Vision Transformer encoder block (torchvision's EncoderBlock): LayerNorm, multi-head self-attention without a mask, residual; LayerNorm, Linear \u2192 GELU \u2192 Linear, residual. LayerNorm eps 1e-6.",
  "labels": "n_head=heads, ff=MLP width",
  "graph": {
   "name": "ViTEncoderBlock",
@@ -15,8 +15,8 @@
    {
     "id": "n1jmt5",
     "type": "input",
-    "x": 70,
-    "y": 760,
+    "x": 130.2,
+    "y": 768,
     "params": {
      "name": "x",
      "shape": "e, t, d",
@@ -26,8 +26,8 @@
    {
     "id": "n2ys8j",
     "type": "norm",
-    "x": 380,
-    "y": 760,
+    "x": 575,
+    "y": 768,
     "params": {
      "kind": "LayerNorm",
      "dim": "d",
@@ -41,8 +41,8 @@
    {
     "id": "n3pacf",
     "type": "linear",
-    "x": 235,
-    "y": 690,
+    "x": 455,
+    "y": 699,
     "params": {
      "in": "d",
      "out": "d",
@@ -59,8 +59,8 @@
    {
     "id": "n4d76m",
     "type": "linear",
-    "x": 380,
-    "y": 690,
+    "x": 575,
+    "y": 699,
     "params": {
      "in": "d",
      "out": "d",
@@ -77,8 +77,8 @@
    {
     "id": "n51b0r",
     "type": "linear",
-    "x": 525,
-    "y": 690,
+    "x": 695,
+    "y": 699,
     "params": {
      "in": "d",
      "out": "d",
@@ -94,62 +94,75 @@
    },
    {
     "id": "n6iull",
-    "type": "heads",
-    "x": 235,
-    "y": 630,
+    "type": "reshape",
+    "x": 356,
+    "y": 619,
     "params": {
-     "heads": "n_head",
-     "title": "",
+     "pattern": "e t (h d) -> e h t d",
+     "sizes": "h=n_head",
+     "note": "",
+     "title": "split heads",
      "var": ""
     }
    },
    {
     "id": "n73s5e",
-    "type": "heads",
-    "x": 380,
-    "y": 630,
+    "type": "reshape",
+    "x": 575,
+    "y": 619,
     "params": {
-     "heads": "n_head",
-     "title": "",
+     "pattern": "e t (h d) -> e h t d",
+     "sizes": "h=n_head",
+     "note": "",
+     "title": "split heads",
      "var": ""
     }
    },
    {
     "id": "n8m6ls",
-    "type": "heads",
-    "x": 525,
-    "y": 630,
+    "type": "reshape",
+    "x": 794,
+    "y": 619,
     "params": {
-     "heads": "n_head",
-     "title": "",
+     "pattern": "e t (h d) -> e h t d",
+     "sizes": "h=n_head",
+     "note": "",
+     "title": "split heads",
      "var": ""
     }
    },
    {
     "id": "n9oez0",
-    "type": "scale",
-    "x": 235,
-    "y": 570,
+    "type": "binop",
+    "x": 397,
+    "y": 532,
     "params": {
+     "op": "*",
+     "const": "(d / n_head) ** -0.5",
+     "rev": false,
+     "note": "Keeps the attention scores from growing with the head width. Each score q \u00b7 k adds up one product per feature of the head; with q and k of variance about 1, that sum has variance equal to the head width. Multiplying by 1/\u221a(head width) brings it back to about 1, so the softmax stays smooth instead of putting nearly all the weight on one key.",
      "title": "",
      "var": ""
     }
    },
    {
     "id": "nak1rf",
-    "type": "transpose",
-    "x": 380,
-    "y": 570,
+    "type": "reshape",
+    "x": 664,
+    "y": 532,
     "params": {
-     "title": "",
+     "pattern": "e h t d -> e h d t",
+     "sizes": "",
+     "note": "",
+     "title": "k\u1d40",
      "var": ""
     }
    },
    {
     "id": "nbx1zz",
     "type": "binop",
-    "x": 308,
-    "y": 510,
+    "x": 575,
+    "y": 458,
     "params": {
      "op": "@",
      "const": "",
@@ -161,8 +174,8 @@
    {
     "id": "ncvtn2",
     "type": "act",
-    "x": 308,
-    "y": 450,
+    "x": 575,
+    "y": 396,
     "params": {
      "fn": "softmax",
      "dim": "-1",
@@ -173,8 +186,8 @@
    {
     "id": "ndfoif",
     "type": "binop",
-    "x": 416,
-    "y": 390,
+    "x": 575,
+    "y": 334,
     "params": {
      "op": "@",
      "const": "",
@@ -185,19 +198,22 @@
    },
    {
     "id": "neionj",
-    "type": "merge",
-    "x": 416,
-    "y": 335,
+    "type": "reshape",
+    "x": 575,
+    "y": 261,
     "params": {
-     "title": "",
+     "pattern": "e h t d -> e t (h d)",
+     "sizes": "",
+     "note": "",
+     "title": "merge heads",
      "var": ""
     }
    },
    {
     "id": "nfaqoa",
     "type": "linear",
-    "x": 416,
-    "y": 275,
+    "x": 575,
+    "y": 180,
     "params": {
      "in": "d",
      "out": "d",
@@ -214,8 +230,8 @@
    {
     "id": "ngm0ww",
     "type": "binop",
-    "x": 416,
-    "y": 200,
+    "x": 575,
+    "y": 100,
     "params": {
      "op": "+",
      "const": "",
@@ -227,8 +243,8 @@
    {
     "id": "nhunjp",
     "type": "norm",
-    "x": 700,
-    "y": 470,
+    "x": 1007,
+    "y": 387,
     "params": {
      "kind": "LayerNorm",
      "dim": "d",
@@ -242,8 +258,8 @@
    {
     "id": "nijksr",
     "type": "linear",
-    "x": 700,
-    "y": 400,
+    "x": 1007,
+    "y": 318,
     "params": {
      "in": "d",
      "out": "ff",
@@ -260,8 +276,8 @@
    {
     "id": "njwbo3",
     "type": "act",
-    "x": 700,
-    "y": 340,
+    "x": 1007,
+    "y": 249,
     "params": {
      "fn": "gelu",
      "dim": "-1",
@@ -272,8 +288,8 @@
    {
     "id": "nkvef7",
     "type": "linear",
-    "x": 700,
-    "y": 280,
+    "x": 1007,
+    "y": 180,
     "params": {
      "in": "ff",
      "out": "d",
@@ -290,8 +306,8 @@
    {
     "id": "nlajsh",
     "type": "binop",
-    "x": 700,
-    "y": 200,
+    "x": 1007,
+    "y": 100,
     "params": {
      "op": "+",
      "const": "",
@@ -303,8 +319,8 @@
    {
     "id": "nmpjdg",
     "type": "output",
-    "x": 850,
-    "y": 200,
+    "x": 1148,
+    "y": 100,
     "params": {
      "name": "out",
      "title": ""

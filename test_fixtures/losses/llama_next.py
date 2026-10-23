@@ -3,16 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-def split_heads(x, n_head):
-    """(B, T, C) -> (B, n_head, T, C // n_head)"""
-    return x.unflatten(-1, (n_head, -1)).transpose(1, 2)
-
-
-def merge_heads(x):
-    """(B, n_head, T, D) -> (B, T, n_head * D)"""
-    return x.transpose(1, 2).flatten(2)
-
-
 def apply_rope(x, base=10000.0):
     """Rotary position embedding on (B, n_head, T, D): rotates feature pairs (i, i + D/2) by position-dependent angles."""
     t, d = x.size(-2), x.size(-1)
@@ -53,17 +43,17 @@ class LlamaDecoderLayer(nn.Module):
 
     def forward(self, x):
         n = self.input_layernorm(x)  # (e, t, d)
-        q = split_heads(self.q_proj(n), self.n_head)  # (e, n_head, t, d/n_head)
+        q = self.q_proj(n).unflatten(-1, (self.n_head, -1)).transpose(1, 2)  # (e, n_head, t, d/n_head)
         q = apply_rope(q)  # (e, n_head, t, d/n_head)
         q = q * q.size(-1) ** -0.5  # (e, n_head, t, d/n_head)
-        k = split_heads(self.k_proj(n), self.n_head)  # (e, n_head, t, d/n_head)
+        k = self.k_proj(n).unflatten(-1, (self.n_head, -1)).transpose(1, 2)  # (e, n_head, t, d/n_head)
         k = apply_rope(k)  # (e, n_head, t, d/n_head)
         att = q @ k.transpose(-2, -1)  # (e, n_head, t, t)
         att = causal_mask(att)  # (e, n_head, t, t)
         att = torch.softmax(att, dim=-1)  # (e, n_head, t, t)
-        v = split_heads(self.v_proj(n), self.n_head)  # (e, n_head, t, d/n_head)
+        v = self.v_proj(n).unflatten(-1, (self.n_head, -1)).transpose(1, 2)  # (e, n_head, t, d/n_head)
         y = att @ v  # (e, n_head, t, d/n_head)
-        y = merge_heads(y)  # (e, t, d)
+        y = y.transpose(1, 2).flatten(2)  # (e, t, d)
         x = x + self.o_proj(y)  # (e, t, d)
         n = self.post_attention_layernorm(x)  # (e, t, d)
         h = F.silu(self.gate_proj(n)) * self.up_proj(n)  # (e, t, ff)

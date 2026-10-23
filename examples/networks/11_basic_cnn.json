@@ -112,16 +112,14 @@
    },
    {
     "id": "n82kgm",
-    "type": "func",
+    "type": "reshape",
     "x": 220,
     "y": 598,
     "params": {
-     "fn": ".flatten",
-     "extra": "1",
-     "n": 1,
-     "init": "",
-     "name": "",
-     "title": "",
+     "pattern": "e c h w -> e (c h w)",
+     "sizes": "",
+     "note": "",
+     "title": "image → vector",
      "var": ""
     }
    },

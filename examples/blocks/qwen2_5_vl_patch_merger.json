@@ -37,32 +37,15 @@
     }
    },
    {
-    "id": "n2bfz9a",
-    "type": "func",
-    "x": 112,
-    "y": 452,
-    "params": {
-     "fn": ".unflatten",
-     "extra": "0, (-1, 4)",
-     "n": 1,
-     "init": "",
-     "name": "",
-     "title": "",
-     "var": ""
-    }
-   },
-   {
     "id": "n2djg83",
-    "type": "func",
+    "type": "reshape",
     "x": 112,
     "y": 378,
     "params": {
-     "fn": ".flatten",
-     "extra": "1",
-     "n": 1,
-     "init": "",
-     "name": "",
-     "title": "",
+     "pattern": "(n g) d -> n (g d)",
+     "sizes": "g=4",
+     "note": "Each group of 4 neighbouring patches (a 2 × 2 square, already next to each other in the patch order) becomes one token with their features side by side.",
+     "title": "merge 4 patches",
      "var": ""
     }
    },
@@ -133,14 +116,8 @@
     "port": 0
    },
    {
-    "id": "e2c8dim",
-    "from": "n298gfy",
-    "to": "n2bfz9a",
-    "port": 0
-   },
-   {
     "id": "e2evmhh",
-    "from": "n2bfz9a",
+    "from": "n298gfy",
     "to": "n2djg83",
     "port": 0
    },

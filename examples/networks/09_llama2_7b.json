@@ -1,6 +1,6 @@
 {
  "title": "Llama 2 7B",
- "description": "Llama 2 7B as LlamaForCausalLM: token embedding, 32 × LlamaDecoderLayer (pre-norm with RMSNorm; causal self-attention with rotary position embeddings on q and k; a SwiGLU MLP, down(silu(gate(x)) · up(x))), a final RMSNorm and an untied LM head. No biases. 6,738,415,616 parameters, initialization N(0, 0.02). The code builds the full model, about 27 GB in float32.",
+ "description": "Llama 2 7B as LlamaForCausalLM: token embedding, 32 \u00d7 LlamaDecoderLayer (pre-norm with RMSNorm; causal self-attention with rotary position embeddings on q and k; a SwiGLU MLP, down(silu(gate(x)) \u00b7 up(x))), a final RMSNorm and an untied LM head. No biases. 6,738,415,616 parameters, initialization N(0, 0.02). The code builds the full model, about 27 GB in float32.",
  "graph": {
   "name": "LlamaForCausalLM",
   "symbols": {
@@ -181,8 +181,8 @@
       {
        "id": "n16ild7a",
        "type": "input",
-       "x": 70,
-       "y": 868,
+       "x": 130.2,
+       "y": 920,
        "params": {
         "name": "x",
         "shape": "e, t, d",
@@ -192,8 +192,8 @@
       {
        "id": "n16jen4g",
        "type": "norm",
-       "x": 380,
-       "y": 848,
+       "x": 575,
+       "y": 920,
        "params": {
         "kind": "RMSNorm",
         "dim": "d",
@@ -207,8 +207,8 @@
       {
        "id": "n16k7and",
        "type": "linear",
-       "x": 235,
-       "y": 790,
+       "x": 437,
+       "y": 845,
        "params": {
         "in": "d",
         "out": "d",
@@ -225,8 +225,8 @@
       {
        "id": "n16lco62",
        "type": "linear",
-       "x": 380,
-       "y": 790,
+       "x": 575,
+       "y": 845,
        "params": {
         "in": "d",
         "out": "d",
@@ -243,8 +243,8 @@
       {
        "id": "n16m8b4b",
        "type": "linear",
-       "x": 525,
-       "y": 790,
+       "x": 713,
+       "y": 845,
        "params": {
         "in": "d",
         "out": "d",
@@ -260,42 +260,48 @@
       },
       {
        "id": "n16n144p",
-       "type": "heads",
-       "x": 235,
-       "y": 732,
+       "type": "reshape",
+       "x": 356,
+       "y": 759,
        "params": {
-        "heads": "n_head",
-        "title": "",
+        "pattern": "e t (h d) -> e h t d",
+        "sizes": "h=n_head",
+        "note": "",
+        "title": "split heads",
         "var": "q"
        }
       },
       {
        "id": "n16ogcxw",
-       "type": "heads",
-       "x": 380,
-       "y": 732,
+       "type": "reshape",
+       "x": 575,
+       "y": 759,
        "params": {
-        "heads": "n_head",
-        "title": "",
+        "pattern": "e t (h d) -> e h t d",
+        "sizes": "h=n_head",
+        "note": "",
+        "title": "split heads",
         "var": "k"
        }
       },
       {
        "id": "n16pevuz",
-       "type": "heads",
-       "x": 525,
-       "y": 732,
+       "type": "reshape",
+       "x": 794,
+       "y": 759,
        "params": {
-        "heads": "n_head",
-        "title": "",
+        "pattern": "e t (h d) -> e h t d",
+        "sizes": "h=n_head",
+        "note": "",
+        "title": "split heads",
         "var": "v"
        }
       },
       {
        "id": "n16q2b5g",
        "type": "rope",
-       "x": 235,
-       "y": 674,
+       "x": 503,
+       "y": 683,
        "params": {
         "base": "10000",
         "title": "",
@@ -305,8 +311,8 @@
       {
        "id": "n16rivad",
        "type": "rope",
-       "x": 380,
-       "y": 674,
+       "x": 646,
+       "y": 683,
        "params": {
         "base": "10000",
         "title": "",
@@ -315,29 +321,36 @@
       },
       {
        "id": "n16siz89",
-       "type": "scale",
-       "x": 235,
-       "y": 616,
+       "type": "binop",
+       "x": 397,
+       "y": 608,
        "params": {
+        "op": "*",
+        "const": "(d / n_head) ** -0.5",
+        "rev": false,
+        "note": "Keeps the attention scores from growing with the head width. Each score q \u00b7 k adds up one product per feature of the head; with q and k of variance about 1, that sum has variance equal to the head width. Multiplying by 1/\u221a(head width) brings it back to about 1, so the softmax stays smooth instead of putting nearly all the weight on one key.",
         "title": "",
         "var": "q"
        }
       },
       {
        "id": "n16t7we3",
-       "type": "transpose",
-       "x": 380,
-       "y": 616,
+       "type": "reshape",
+       "x": 664,
+       "y": 608,
        "params": {
-        "title": "",
+        "pattern": "e h t d -> e h d t",
+        "sizes": "",
+        "note": "",
+        "title": "k\u1d40",
         "var": ""
        }
       },
       {
        "id": "n16ujg1d",
        "type": "binop",
-       "x": 308,
-       "y": 558,
+       "x": 575,
+       "y": 534,
        "params": {
         "op": "@",
         "const": "",
@@ -349,8 +362,8 @@
       {
        "id": "n16vrnxg",
        "type": "mask",
-       "x": 308,
-       "y": 500,
+       "x": 575,
+       "y": 472,
        "params": {
         "title": "",
         "var": "att"
@@ -359,8 +372,8 @@
       {
        "id": "n16wltn0",
        "type": "act",
-       "x": 308,
-       "y": 442,
+       "x": 575,
+       "y": 408,
        "params": {
         "fn": "softmax",
         "dim": "-1",
@@ -371,7 +384,7 @@
       {
        "id": "n16x5uc2",
        "type": "binop",
-       "x": 416,
+       "x": 575,
        "y": 346,
        "params": {
         "op": "@",
@@ -383,19 +396,22 @@
       },
       {
        "id": "n16ycwyj",
-       "type": "merge",
-       "x": 416,
-       "y": 288,
+       "type": "reshape",
+       "x": 575,
+       "y": 273,
        "params": {
-        "title": "",
+        "pattern": "e h t d -> e t (h d)",
+        "sizes": "",
+        "note": "",
+        "title": "merge heads",
         "var": "y"
        }
       },
       {
        "id": "n16zsqw6",
        "type": "linear",
-       "x": 416,
-       "y": 230,
+       "x": 575,
+       "y": 186,
        "params": {
         "in": "d",
         "out": "d",
@@ -412,7 +428,7 @@
       {
        "id": "n170wzn4",
        "type": "binop",
-       "x": 416,
+       "x": 575,
        "y": 100,
        "params": {
         "op": "+",
@@ -425,8 +441,8 @@
       {
        "id": "n17m16k8",
        "type": "norm",
-       "x": 740,
-       "y": 500,
+       "x": 1083,
+       "y": 471,
        "params": {
         "kind": "RMSNorm",
         "dim": "d",
@@ -440,8 +456,8 @@
       {
        "id": "n17n2pp8",
        "type": "linear",
-       "x": 670,
-       "y": 442,
+       "x": 1014,
+       "y": 396,
        "params": {
         "in": "d",
         "out": "ff",
@@ -458,8 +474,8 @@
       {
        "id": "n17ouxh1",
        "type": "linear",
-       "x": 810,
-       "y": 442,
+       "x": 1152,
+       "y": 396,
        "params": {
         "in": "d",
         "out": "ff",
@@ -476,8 +492,8 @@
       {
        "id": "n17p0ydo",
        "type": "act",
-       "x": 670,
-       "y": 384,
+       "x": 1083,
+       "y": 321,
        "params": {
         "fn": "silu",
         "dim": "-1",
@@ -488,8 +504,8 @@
       {
        "id": "n17qgvk3",
        "type": "binop",
-       "x": 740,
-       "y": 326,
+       "x": 1083,
+       "y": 259,
        "params": {
         "op": "*",
         "const": "",
@@ -501,8 +517,8 @@
       {
        "id": "n17rf8bl",
        "type": "linear",
-       "x": 740,
-       "y": 268,
+       "x": 1083,
+       "y": 186,
        "params": {
         "in": "ff",
         "out": "d",
@@ -519,7 +535,7 @@
       {
        "id": "n17srl2x",
        "type": "binop",
-       "x": 740,
+       "x": 1083,
        "y": 100,
        "params": {
         "op": "+",
@@ -532,7 +548,7 @@
       {
        "id": "n17ts5zl",
        "type": "output",
-       "x": 900,
+       "x": 1224,
        "y": 100,
        "params": {
         "name": "out",

@@ -254,16 +254,14 @@
    },
    {
     "id": "n2q7p5h",
-    "type": "func",
+    "type": "reshape",
     "x": 220,
     "y": 178,
     "params": {
-     "fn": ".flatten",
-     "extra": "1",
-     "n": 1,
-     "init": "",
-     "name": "",
-     "title": "",
+     "pattern": "e c h w -> e (c h w)",
+     "sizes": "",
+     "note": "",
+     "title": "image \u2192 vector",
      "var": ""
     }
    },

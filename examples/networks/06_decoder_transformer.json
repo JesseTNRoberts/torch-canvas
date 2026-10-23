@@ -16,8 +16,8 @@
    {
     "id": "n1uxqc",
     "type": "input",
-    "x": 135,
-    "y": 840,
+    "x": 111.7,
+    "y": 180,
     "params": {
      "name": "idx",
      "shape": "e, t",
@@ -27,8 +27,8 @@
    {
     "id": "n29xos",
     "type": "embed",
-    "x": 40,
-    "y": 750,
+    "x": 112,
+    "y": 99,
     "params": {
      "num": "vocab",
      "dim": "d",
@@ -44,8 +44,8 @@
    {
     "id": "n34k03",
     "type": "embed",
-    "x": 230,
-    "y": 750,
+    "x": 307,
+    "y": 180,
     "params": {
      "num": "block",
      "dim": "d",
@@ -61,8 +61,8 @@
    {
     "id": "n48jew",
     "type": "binop",
-    "x": 135,
-    "y": 660,
+    "x": 307,
+    "y": 100,
     "params": {
      "op": "+",
      "const": "",
@@ -74,8 +74,8 @@
    {
     "id": "n9gp3n",
     "type": "norm",
-    "x": 520,
-    "y": 744,
+    "x": 731,
+    "y": 832,
     "params": {
      "kind": "LayerNorm",
      "dim": "d",
@@ -89,8 +89,8 @@
    {
     "id": "na5u8p",
     "type": "linear",
-    "x": 375,
-    "y": 674,
+    "x": 611,
+    "y": 763,
     "params": {
      "in": "d",
      "out": "d",
@@ -107,8 +107,8 @@
    {
     "id": "nbdyex",
     "type": "linear",
-    "x": 520,
-    "y": 674,
+    "x": 731,
+    "y": 763,
     "params": {
      "in": "d",
      "out": "d",
@@ -125,8 +125,8 @@
    {
     "id": "nct0k2",
     "type": "linear",
-    "x": 665,
-    "y": 674,
+    "x": 851,
+    "y": 763,
     "params": {
      "in": "d",
      "out": "d",
@@ -142,62 +142,75 @@
    },
    {
     "id": "ndzeur",
-    "type": "heads",
-    "x": 375,
-    "y": 616,
+    "type": "reshape",
+    "x": 540,
+    "y": 683,
     "params": {
-     "heads": "n_head",
-     "title": "",
+     "pattern": "e t (h d) -> e h t d",
+     "sizes": "h=n_head",
+     "note": "",
+     "title": "split heads",
      "var": "q"
     }
    },
    {
     "id": "nepomy",
-    "type": "heads",
-    "x": 520,
-    "y": 616,
+    "type": "reshape",
+    "x": 731,
+    "y": 683,
     "params": {
-     "heads": "n_head",
-     "title": "",
+     "pattern": "e t (h d) -> e h t d",
+     "sizes": "h=n_head",
+     "note": "",
+     "title": "split heads",
      "var": "k"
     }
    },
    {
     "id": "nfgfin",
-    "type": "heads",
-    "x": 665,
-    "y": 616,
+    "type": "reshape",
+    "x": 921,
+    "y": 683,
     "params": {
-     "heads": "n_head",
-     "title": "",
+     "pattern": "e t (h d) -> e h t d",
+     "sizes": "h=n_head",
+     "note": "",
+     "title": "split heads",
      "var": "v"
     }
    },
    {
     "id": "ng7vhj",
-    "type": "scale",
-    "x": 375,
-    "y": 558,
+    "type": "binop",
+    "x": 579,
+    "y": 596,
     "params": {
+     "op": "*",
+     "const": "(d / n_head) ** -0.5",
+     "rev": false,
+     "note": "Keeps the attention scores from growing with the head width. Each score q \u00b7 k adds up one product per feature of the head; with q and k of variance about 1, that sum has variance equal to the head width. Multiplying by 1/\u221a(head width) brings it back to about 1, so the softmax stays smooth instead of putting nearly all the weight on one key.",
      "title": "",
      "var": "q"
     }
    },
    {
     "id": "nhq0ly",
-    "type": "transpose",
-    "x": 520,
-    "y": 558,
+    "type": "reshape",
+    "x": 820,
+    "y": 596,
     "params": {
-     "title": "",
+     "pattern": "e h t d -> e h d t",
+     "sizes": "",
+     "note": "",
+     "title": "k\u1d40",
      "var": ""
     }
    },
    {
     "id": "nij3y8",
     "type": "binop",
-    "x": 448,
-    "y": 500,
+    "x": 731,
+    "y": 522,
     "params": {
      "op": "@",
      "const": "",
@@ -209,8 +222,8 @@
    {
     "id": "nj0wa4",
     "type": "mask",
-    "x": 448,
-    "y": 442,
+    "x": 731,
+    "y": 460,
     "params": {
      "title": "",
      "var": "att"
@@ -219,8 +232,8 @@
    {
     "id": "nk6omt",
     "type": "act",
-    "x": 448,
-    "y": 384,
+    "x": 731,
+    "y": 396,
     "params": {
      "fn": "softmax",
      "dim": "-1",
@@ -231,8 +244,8 @@
    {
     "id": "nlu22n",
     "type": "binop",
-    "x": 556,
-    "y": 326,
+    "x": 731,
+    "y": 334,
     "params": {
      "op": "@",
      "const": "",
@@ -243,19 +256,22 @@
    },
    {
     "id": "nmkia6",
-    "type": "merge",
-    "x": 556,
-    "y": 268,
+    "type": "reshape",
+    "x": 731,
+    "y": 261,
     "params": {
-     "title": "",
+     "pattern": "e h t d -> e t (h d)",
+     "sizes": "",
+     "note": "",
+     "title": "merge heads",
      "var": "y"
     }
    },
    {
     "id": "nn3lbj",
     "type": "linear",
-    "x": 556,
-    "y": 210,
+    "x": 731,
+    "y": 180,
     "params": {
      "in": "d",
      "out": "d",
@@ -272,8 +288,8 @@
    {
     "id": "noro1k",
     "type": "binop",
-    "x": 556,
-    "y": 140,
+    "x": 731,
+    "y": 100,
     "params": {
      "op": "+",
      "const": "",
@@ -285,8 +301,8 @@
    {
     "id": "n18duzy",
     "type": "norm",
-    "x": 880,
-    "y": 396,
+    "x": 1121,
+    "y": 387,
     "params": {
      "kind": "LayerNorm",
      "dim": "d",
@@ -300,8 +316,8 @@
    {
     "id": "n192asr",
     "type": "linear",
-    "x": 880,
-    "y": 326,
+    "x": 1121,
+    "y": 318,
     "params": {
      "in": "d",
      "out": "ff",
@@ -318,8 +334,8 @@
    {
     "id": "n1awewm",
     "type": "act",
-    "x": 880,
-    "y": 268,
+    "x": 1121,
+    "y": 249,
     "params": {
      "fn": "gelu",
      "dim": "-1",
@@ -330,8 +346,8 @@
    {
     "id": "n1bhrsx",
     "type": "linear",
-    "x": 880,
-    "y": 210,
+    "x": 1121,
+    "y": 180,
     "params": {
      "in": "ff",
      "out": "d",
@@ -348,8 +364,8 @@
    {
     "id": "n1c3b04",
     "type": "binop",
-    "x": 880,
-    "y": 140,
+    "x": 1121,
+    "y": 100,
     "params": {
      "op": "+",
      "const": "",
@@ -361,8 +377,8 @@
    {
     "id": "n1jb4ko",
     "type": "norm",
-    "x": 1180,
-    "y": 744,
+    "x": 1511,
+    "y": 832,
     "params": {
      "kind": "LayerNorm",
      "dim": "d",
@@ -376,8 +392,8 @@
    {
     "id": "n1kzh1z",
     "type": "linear",
-    "x": 1035,
-    "y": 674,
+    "x": 1391,
+    "y": 763,
     "params": {
      "in": "d",
      "out": "d",
@@ -394,8 +410,8 @@
    {
     "id": "n1lg2g2",
     "type": "linear",
-    "x": 1180,
-    "y": 674,
+    "x": 1511,
+    "y": 763,
     "params": {
      "in": "d",
      "out": "d",
@@ -412,8 +428,8 @@
    {
     "id": "n1mkhgc",
     "type": "linear",
-    "x": 1325,
-    "y": 674,
+    "x": 1631,
+    "y": 763,
     "params": {
      "in": "d",
      "out": "d",
@@ -429,62 +445,75 @@
    },
    {
     "id": "n1n848r",
-    "type": "heads",
-    "x": 1035,
-    "y": 616,
+    "type": "reshape",
+    "x": 1320,
+    "y": 683,
     "params": {
-     "heads": "n_head",
-     "title": "",
+     "pattern": "e t (h d) -> e h t d",
+     "sizes": "h=n_head",
+     "note": "",
+     "title": "split heads",
      "var": "q"
     }
    },
    {
     "id": "n1osijg",
-    "type": "heads",
-    "x": 1180,
-    "y": 616,
+    "type": "reshape",
+    "x": 1511,
+    "y": 683,
     "params": {
-     "heads": "n_head",
-     "title": "",
+     "pattern": "e t (h d) -> e h t d",
+     "sizes": "h=n_head",
+     "note": "",
+     "title": "split heads",
      "var": "k"
     }
    },
    {
     "id": "n1pimhx",
-    "type": "heads",
-    "x": 1325,
-    "y": 616,
+    "type": "reshape",
+    "x": 1702,
+    "y": 683,
     "params": {
-     "heads": "n_head",
-     "title": "",
+     "pattern": "e t (h d) -> e h t d",
+     "sizes": "h=n_head",
+     "note": "",
+     "title": "split heads",
      "var": "v"
     }
    },
    {
     "id": "n1qpqxl",
-    "type": "scale",
-    "x": 1035,
-    "y": 558,
+    "type": "binop",
+    "x": 1359,
+    "y": 596,
     "params": {
+     "op": "*",
+     "const": "(d / n_head) ** -0.5",
+     "rev": false,
+     "note": "Keeps the attention scores from growing with the head width. Each score q \u00b7 k adds up one product per feature of the head; with q and k of variance about 1, that sum has variance equal to the head width. Multiplying by 1/\u221a(head width) brings it back to about 1, so the softmax stays smooth instead of putting nearly all the weight on one key.",
      "title": "",
      "var": "q"
     }
    },
    {
     "id": "n1rjsag",
-    "type": "transpose",
-    "x": 1180,
-    "y": 558,
+    "type": "reshape",
+    "x": 1600,
+    "y": 596,
     "params": {
-     "title": "",
+     "pattern": "e h t d -> e h d t",
+     "sizes": "",
+     "note": "",
+     "title": "k\u1d40",
      "var": ""
     }
    },
    {
     "id": "n1srpv5",
     "type": "binop",
-    "x": 1108,
-    "y": 500,
+    "x": 1511,
+    "y": 522,
     "params": {
      "op": "@",
      "const": "",
@@ -496,8 +525,8 @@
    {
     "id": "n1t03g8",
     "type": "mask",
-    "x": 1108,
-    "y": 442,
+    "x": 1511,
+    "y": 460,
     "params": {
      "title": "",
      "var": "att"
@@ -506,8 +535,8 @@
    {
     "id": "n1ub3pw",
     "type": "act",
-    "x": 1108,
-    "y": 384,
+    "x": 1511,
+    "y": 396,
     "params": {
      "fn": "softmax",
      "dim": "-1",
@@ -518,8 +547,8 @@
    {
     "id": "n1vhufe",
     "type": "binop",
-    "x": 1216,
-    "y": 326,
+    "x": 1511,
+    "y": 334,
     "params": {
      "op": "@",
      "const": "",
@@ -530,19 +559,22 @@
    },
    {
     "id": "n1w1fn5",
-    "type": "merge",
-    "x": 1216,
-    "y": 268,
+    "type": "reshape",
+    "x": 1511,
+    "y": 261,
     "params": {
-     "title": "",
+     "pattern": "e h t d -> e t (h d)",
+     "sizes": "",
+     "note": "",
+     "title": "merge heads",
      "var": "y"
     }
    },
    {
     "id": "n1x2qdg",
     "type": "linear",
-    "x": 1216,
-    "y": 210,
+    "x": 1511,
+    "y": 180,
     "params": {
      "in": "d",
      "out": "d",
@@ -559,8 +591,8 @@
    {
     "id": "n1ysx3k",
     "type": "binop",
-    "x": 1216,
-    "y": 140,
+    "x": 1511,
+    "y": 100,
     "params": {
      "op": "+",
      "const": "",
@@ -572,8 +604,8 @@
    {
     "id": "n2iz04o",
     "type": "norm",
-    "x": 1540,
-    "y": 396,
+    "x": 1901,
+    "y": 387,
     "params": {
      "kind": "LayerNorm",
      "dim": "d",
@@ -587,8 +619,8 @@
    {
     "id": "n2jh0no",
     "type": "linear",
-    "x": 1540,
-    "y": 326,
+    "x": 1901,
+    "y": 318,
     "params": {
      "in": "d",
      "out": "ff",
@@ -605,8 +637,8 @@
    {
     "id": "n2kfz1y",
     "type": "act",
-    "x": 1540,
-    "y": 268,
+    "x": 1901,
+    "y": 249,
     "params": {
      "fn": "gelu",
      "dim": "-1",
@@ -617,8 +649,8 @@
    {
     "id": "n2lus40",
     "type": "linear",
-    "x": 1540,
-    "y": 210,
+    "x": 1901,
+    "y": 180,
     "params": {
      "in": "ff",
      "out": "d",
@@ -635,8 +667,8 @@
    {
     "id": "n2mq85j",
     "type": "binop",
-    "x": 1540,
-    "y": 140,
+    "x": 1901,
+    "y": 100,
     "params": {
      "op": "+",
      "const": "",
@@ -648,8 +680,8 @@
    {
     "id": "n2t71cr",
     "type": "norm",
-    "x": 1720,
-    "y": 220,
+    "x": 2002,
+    "y": 100,
     "params": {
      "kind": "LayerNorm",
      "dim": "d",
@@ -663,8 +695,8 @@
    {
     "id": "n2ujoz2",
     "type": "linear",
-    "x": 1720,
-    "y": 300,
+    "x": 2142,
+    "y": 100,
     "params": {
      "in": "d",
      "out": "vocab",
@@ -681,8 +713,8 @@
    {
     "id": "n2vwnmz",
     "type": "output",
-    "x": 1720,
-    "y": 390,
+    "x": 2335,
+    "y": 100,
     "params": {
      "name": "logits",
      "title": ""
@@ -691,8 +723,8 @@
    {
     "id": "n2zzit9",
     "type": "loss",
-    "x": 1950,
-    "y": 390,
+    "x": 2571,
+    "y": 180,
     "params": {
      "fn": "cross_entropy",
      "mode": "next",

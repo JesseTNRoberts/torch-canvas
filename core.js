@@ -27,7 +27,9 @@ const NN = (() => {
     // attention plumbing (no weights)
     heads: { heads: 'n_head', title: '', var: '' },   // (…, T, C) → (…, H, T, C/H)
     merge: { title: '', var: '' },                    // (…, H, T, D) → (…, T, H·D)
-    transpose: { title: '', var: '' },                // swap the last two dims (Kᵀ)
+    transpose: { title: '', var: '' },
+    // a rearrangement of the axes, einops-style: 'e t (h d) -> e h t d' with sizes 'h=n_head' (see reshapePlan)
+    reshape: { pattern: '... a b -> ... b a', sizes: '', note: '', title: '', var: '' },                // swap the last two dims (Kᵀ)
     scale: { title: '', var: '' },                    // × 1/√(last dim)
     mask: { mode: 'causal', title: '', var: '' },     // causal mask: future positions → −inf; 'given': an allowed mask comes in on input 2
     rope: { base: '10000', mode: 'seq', sections: '16, 24, 24', title: '', var: '' }, // rotary position embedding on (…, T, D); 'axial'/'mrope': positions on input 2
@@ -361,6 +363,16 @@ const NN = (() => {
           break;
         }
         case 'transpose': { const x = inS[0]; out = x.length < 2 ? x : x.slice(0, -2).concat(last(x), x[x.length - 2]); break; }
+        case 'reshape': {
+          const x = inS[0];
+          try {
+            const r = reshapeShape(p, x); out = r.out;
+            // a split must divide: 512 into h = 8 parts of 64
+            if (r.LL) r.LL.forEach((it, i) => { if (!it.g) return; const D = evalDim(x[i], sym), ks = it.g.filter(n => r.sizes[n] != null).map(n => evalDim(r.sizes[n], sym)); const k = ks.reduce((t, v) => (t == null || v == null ? null : t * v), 1);
+              if (D != null && k != null && (k <= 0 || D % k !== 0)) conflict(id, { kind: 'reshape', a: x[i], b: it.g.filter(n => r.sizes[n] != null).map(n => r.sizes[n]).join('·'), ports: [0], msg: `Axis ${i + 1} (${x[i]}) doesn't split into (${it.g.join(' ')}) with ${it.g.filter(n => r.sizes[n] != null).map(n => n + ' = ' + r.sizes[n]).join(', ')}` }); });
+          } catch (e2) { err(id, e2.message); out = x; }
+          break;
+        }
         case 'mask': {
           const x = inS[0];
           if (p.mode === 'given') {
@@ -428,6 +440,8 @@ const NN = (() => {
             const mm = /^(-?\d+)(?:\s*,\s*(-?\d+))?$/.exec(ex);
             if (mm) { const s0 = ax(+mm[1]), s1 = mm[2] != null ? ax(+mm[2]) : x0.length - 1, part = x0.slice(s0, s1 + 1); out = x0.slice(0, s0).concat(part.every(d => /^\d+$/.test(String(d))) ? String(part.reduce((t, d) => t * +d, 1)) : part.map(par).join('*'), x0.slice(s1 + 1)); break; }
           }
+          if (/(^|\.)transpose$/.test(fn) && inS.length === 1) { const mm = /^(-?\d+)\s*,\s*(-?\d+)$/.exec(ex); if (mm) { const a = ax(+mm[1]), b = ax(+mm[2]); out = x0.slice(); [out[a], out[b]] = [out[b], out[a]]; break; } }
+          if (/(^|\.)permute$/.test(fn) && inS.length === 1) { const pm = ex.split(',').map(v => +v.trim()); if (pm.length === x0.length && pm.every(v => Number.isInteger(v))) { out = pm.map(i => x0[ax(i)]); break; } }
           if (/(^|\.)(matmul|mm|bmm)$/.test(fn) && inS.length === 2) { out = matmul(id, inS[0], inS[1]); break; }
           if (/(^|\.)(cat|concat|concatenate)$/.test(fn) && inS.length > 1) {
             const ax = m ? +m[1] : 0, r0 = inS[0], k = ax < 0 ? r0.length + ax : ax;
@@ -519,6 +533,217 @@ const NN = (() => {
     return changed;
   }
 
+  // ── Reshape: one node for every rearrangement of a tensor's axes, written einops-style ──
+  // params.pattern 'e t (h d) -> e h t d', params.sizes 'h=n_head'. The names are local labels for the axes: '(h d)' is
+  // one axis made of two, '1' an axis of size 1, '...' any axes not named. Only the arrangement changes, never a value.
+  // In code it is ordinary PyTorch: unflatten, squeeze, transpose / permute, flatten, unsqueeze, in that order.
+  function parseSide(s) {
+    const out = []; let grp = null;
+    const toks = String(s).replace(/…/g, '...').replace(/\(/g, ' ( ').replace(/\)/g, ' ) ').trim().split(/\s+/).filter(Boolean);
+    for (const t of toks) {
+      if (t === '(') { if (grp) throw Error('Groups ( ) can\'t nest in a reshape pattern'); grp = []; continue; }
+      if (t === ')') { if (!grp) throw Error('An unmatched ) in the reshape pattern'); if (!grp.length) throw Error('An empty ( ) in the reshape pattern'); out.push({ g: grp }); grp = null; continue; }
+      if (!/^([A-Za-z_]\w*|1|\.\.\.)$/.test(t)) throw Error(`"${t}" is not an axis name (use letters, 1 or ...)`);
+      if (grp) { if (t === '...' || t === '1') throw Error(`"${t}" can't go inside ( )`); grp.push(t); }
+      else out.push(t === '...' ? { ell: true } : t === '1' ? { one: true } : { n: t });
+    }
+    if (grp) throw Error('An unmatched ( in the reshape pattern');
+    return out;
+  }
+  function parseSizes(s) {
+    const sizes = {};
+    String(s || '').split(/[,;]/).map(x => x.trim()).filter(Boolean).forEach(x => { const m = /^([A-Za-z_]\w*)\s*=\s*(.+)$/.exec(x); if (!m) throw Error(`"${x}": write sizes like h = n_head`); sizes[m[1]] = m[2].trim(); });
+    return sizes;
+  }
+  // the pattern for an input of rank rIn: both sides with '...' expanded
+  function reshapePlan(p, rIn) {
+    const parts = String(p.pattern || '').split(/->|→/);
+    if (parts.length !== 2) throw Error('A reshape pattern reads "before -> after", e.g. e t (h d) -> e h t d');
+    const L = parseSide(parts[0]), R = parseSide(parts[1]), sizes = parseSizes(p.sizes);
+    const ellL = L.filter(x => x.ell).length, ellR = R.filter(x => x.ell).length;
+    if (ellL > 1 || ellR > 1 || ellL !== ellR) throw Error('Use ... once on each side, or not at all');
+    const nL = L.length - ellL;
+    if (!ellL && nL !== rIn) throw Error(`The left side names ${nL} axes; the tensor has ${rIn}`);
+    if (ellL && nL > rIn) throw Error(`The left side names ${nL} axes; the tensor has only ${rIn}`);
+    const rest = Array.from({ length: rIn - nL }, (_, i) => '…' + i), ex = side => side.flatMap(x => (x.ell ? rest.map(n => ({ n })) : [x]));
+    const LL = ex(L), RR = ex(R);
+    const elems = side => side.flatMap(x => (x.g ? x.g : x.n ? [x.n] : []));
+    const eL = elems(LL), eR = elems(RR), dup = a => a.find((x, i) => a.indexOf(x) !== i);
+    if (dup(eL)) throw Error(`"${dup(eL)}" appears twice on the left`);
+    if (dup(eR)) throw Error(`"${dup(eR)}" appears twice on the right`);
+    const miss = eL.find(x => !eR.includes(x)) || eR.find(x => !eL.includes(x));
+    if (miss) throw Error(`"${miss}" must appear on both sides (a reshape keeps every value)`);
+    for (const k of Object.keys(sizes)) if (!eL.includes(k)) throw Error(`The size ${k} = ${sizes[k]} names no axis`);
+    return { LL, RR, sizes };
+  }
+  // PyTorch steps, each with the rank it applies to
+  function reshapeSteps(p, rIn) {
+    if (Array.isArray(p._steps)) return p._steps;
+    const { LL, RR, sizes } = reshapePlan(p, rIn), steps = [];
+    let cur = LL.map(x => (x.g ? { names: x.g, split: true } : x.one ? { one: true } : { names: [x.n] }));
+    for (let i = 0; i < cur.length; i++) if (cur[i].split) {
+      const nm = cur[i].names, unknown = nm.filter(n => sizes[n] == null);
+      if (unknown.length > 1) throw Error(`Give the size of ${unknown.slice(0, -1).join(', ')} (e.g. ${unknown[0]} = 8): only one part of (${nm.join(' ')}) can be worked out`);
+      steps.push({ op: 'unflatten', dim: i, sizes: nm.map(n => (sizes[n] != null ? sizes[n] : -1)), rank: cur.length });
+      cur.splice(i, 1, ...nm.map(n => ({ names: [n] }))); i += nm.length - 1;
+    }
+    for (let i = cur.length - 1; i >= 0; i--) if (cur[i].one) { steps.push({ op: 'squeeze', dim: i, rank: cur.length }); cur.splice(i, 1); }
+    const groups = RR.filter(x => x.g).map(x => x.g), at = n => cur.findIndex(c => c.names.length === 1 && c.names[0] === n);
+    const flat = () => {
+      const spans = groups.map(gr => [at(gr[0]), gr]).sort((a, b) => b[0] - a[0]);
+      for (const [a, gr] of spans) { steps.push({ op: 'flatten', a, b: a + gr.length - 1, rank: cur.length }); cur.splice(a, gr.length, { names: gr.slice() }); }
+    };
+    const permute = keys => {
+      const perm = keys.map(k => cur.findIndex(c => c.names.join(' ') === k));
+      if (perm.every((v, i) => v === i)) return;
+      const moved = perm.map((v, i) => (v !== i ? i : -1)).filter(i => i >= 0);
+      if (moved.length === 2) steps.push({ op: 'transpose', a: moved[0], b: moved[1], rank: cur.length });
+      else steps.push({ op: 'permute', perm, rank: cur.length });
+      cur = perm.map(i => cur[i]);
+    };
+    // groups whose parts are already side by side are merged first (flatten, then move), else moved then merged
+    const together = groups.every(gr => { const i0 = at(gr[0]); return i0 >= 0 && gr.every((n, k) => at(n) === i0 + k); });
+    const keep = RR.filter(x => !x.one);
+    if (together) { flat(); permute(keep.map(x => (x.g ? x.g.join(' ') : x.n))); }
+    else { permute(keep.flatMap(x => (x.g ? x.g : [x.n]))); flat(); }
+    RR.forEach((x, k) => { if (x.one) { steps.push({ op: 'unsqueeze', dim: k, rank: cur.length + 1 }); cur.splice(k, 0, { one: true }); } });
+    return steps;
+  }
+  // one step as PyTorch; the last two axes are counted from the end (-2, -1), the others from the front.
+  // step: inside a time loop, where axis 1 (time) is gone
+  function reshapeStepCode(s, size, step) {
+    const ix = (i, r) => (i >= r - 2 && r > 2 ? i - r : (step && i > 1 ? i - 1 : i));
+    const n = (i, r) => (i < 0 ? i : ix(i, r));
+    switch (s.op) {
+      case 'unflatten': return `.unflatten(${s.dim < 0 ? s.dim : s.dim === s.rank - 1 ? -1 : n(s.dim, s.rank)}, (${s.sizes.map(v => (String(v) === '-1' ? '-1' : size(String(v)))).join(', ')}))`;
+      case 'squeeze': return `.squeeze(${n(s.dim, s.rank)})`;
+      case 'unsqueeze': return `.unsqueeze(${n(s.dim, s.rank)})`;
+      case 'flatten': return s.b == null || s.b === s.rank - 1 || s.b === -1 ? `.flatten(${s.a < 0 ? s.a : step && s.a > 1 ? s.a - 1 : s.a})` : `.flatten(${n(s.a, s.rank)}, ${n(s.b, s.rank)})`;
+      case 'transpose': { const both = s.a < 0 || (s.a >= s.rank - 2 && s.b >= s.rank - 2 && s.rank > 2); return both ? `.transpose(${s.a < 0 ? s.a : s.a - s.rank}, ${s.b < 0 ? s.b : s.b - s.rank})` : `.transpose(${step && s.a > 1 ? s.a - 1 : s.a}, ${step && s.b > 1 ? s.b - 1 : s.b})`; }
+      case 'permute': return `.permute(${s.perm.join(', ')})`;
+    }
+    return '';
+  }
+  const dimPar = d => (/^[A-Za-z_]\w*$|^\d+$/.test(String(d)) ? String(d) : `(${d})`);
+  // a product of sizes; h × (d/h) cancels back to d (merging what a split made)
+  const dimMul = ds0 => {
+    let ds = ds0.map(String);
+    for (let i = 0; i < ds.length; i++) {
+      const m = /^\(?(.+?)\)?\/(\(?[^/]+?\)?)$/.exec(ds[i]); if (!m) continue;
+      const den = m[2].replace(/^\((.*)\)$/, '$1'), j = ds.findIndex((d, k) => k !== i && d.replace(/^\((.*)\)$/, '$1') === den);
+      if (j >= 0) { ds[i] = m[1]; ds.splice(j, 1); i = -1; }
+    }
+    return ds.every(d => /^\d+$/.test(d)) ? String(ds.reduce((t, d) => t * +d, 1)) : ds.length === 1 ? ds[0] : ds.map(dimPar).join('*');
+  };
+  const dimDiv = (D, ks) => (ks.length ? (/^\d+$/.test(String(D)) && ks.every(k => /^\d+$/.test(String(k))) && +D % ks.reduce((t, k) => t * +k, 1) === 0 ? String(+D / ks.reduce((t, k) => t * +k, 1)) : `${dimPar(D)}/${ks.length > 1 ? `(${dimMul(ks)})` : dimPar(ks[0])}`) : String(D));
+  // the output shape, and every axis's size by name (for the details)
+  function reshapeShape(p, x) {
+    if (Array.isArray(p._steps)) return { out: stepsShape(p._steps, x), val: {} };
+    const { LL, RR, sizes } = reshapePlan(p, x.length), val = {};
+    LL.forEach((it, i) => {
+      const D = x[i];
+      if (it.n) val[it.n] = D;
+      else if (it.one) { if (/^\d+$/.test(String(D)) && String(D) !== '1') throw Error(`Axis ${i + 1} has size ${D}, not 1`); }
+      else { const known = it.g.filter(n => sizes[n] != null), u = it.g.filter(n => sizes[n] == null); known.forEach(n => (val[n] = sizes[n])); if (u.length) val[u[0]] = dimDiv(D, known.map(n => sizes[n])); }
+    });
+    return { out: RR.map(it => (it.one ? '1' : it.n ? val[it.n] : dimMul(it.g.map(n => val[n])))), val, LL, sizes };
+  }
+  function stepsShape(steps, x) {
+    let s = x.slice(); const nz = (i, r) => (i < 0 ? r + i : i);
+    for (const st of steps) {
+      if (st.op === 'unflatten') { const k = nz(st.dim, s.length), D = s[k], known = st.sizes.filter(v => String(v) !== '-1'); s.splice(k, 1, ...st.sizes.map(v => (String(v) === '-1' ? dimDiv(D, known) : String(v)))); }
+      else if (st.op === 'flatten') { const a = nz(st.a, s.length), b = st.b == null ? s.length - 1 : nz(st.b, s.length); s.splice(a, b - a + 1, dimMul(s.slice(a, b + 1))); }
+      else if (st.op === 'transpose') { const a = nz(st.a, s.length), b = nz(st.b, s.length); [s[a], s[b]] = [s[b], s[a]]; }
+      else if (st.op === 'permute') s = st.perm.map(i => s[nz(i, s.length)]);
+      else if (st.op === 'unsqueeze') s.splice(nz(st.dim, s.length + 1), 0, '1');
+      else if (st.op === 'squeeze') { const k = nz(st.dim, s.length); if (String(s[k]) === '1') s.splice(k, 1); }
+    }
+    return s;
+  }
+  // for each output axis, the input axis it is (unchanged), or -1 (split, merged or new)
+  function reshapeAxisSource(p, rIn) {
+    if (Array.isArray(p._steps)) return null;
+    const { LL, RR } = reshapePlan(p, rIn), from = new Map();
+    LL.forEach((it, i) => { if (it.n) from.set(it.n, i); });
+    return RR.map(it => (it.n && from.has(it.n) ? from.get(it.n) : -1));
+  }
+  // PyTorch steps read from code → a pattern, naming the axes after their sizes (e for the batch)
+  function stepsToPattern(steps, x) {
+    const used = new Set(), pool = 'abcdfgijklmnopqrsuvwxyz';
+    const pick = (...cands) => { for (const c of cands) if (c && /^[a-z]$/.test(c) && !used.has(c)) { used.add(c); return c; } for (const c of pool) if (!used.has(c)) { used.add(c); return c; } return 'z' + used.size; };
+    const sym = d => { const s = String(d); return /^[A-Za-z_]\w*$/.test(s) ? s : null; };
+    const left = x.map(d => (String(d) === BATCH ? { n: pick('e') } : null));
+    x.forEach((d, i) => { if (!left[i]) { const s = sym(d); left[i] = { n: s ? pick(s[0].toLowerCase(), (s.split('_').pop()[0] || '').toLowerCase()) : pick() }; } });
+    let cur = left.map((it, i) => ({ el: [it.n], from: i })); const sizes = {};
+    const nz = (i, r) => (i < 0 ? r + i : i);
+    for (const st of steps) {
+      if (st.op === 'unflatten') {
+        const k = nz(st.dim, cur.length), c = cur[k];
+        if (c.el.length === 1 && c.from != null && !left[c.from].g) {
+          const orig = left[c.from].n; used.delete(orig);
+          const nm = st.sizes.map(v => (String(v) === '-1' ? null : pick((sym(v) || '').split('_').pop()[0], (sym(v) || '')[0])));
+          const fill = nm.map(n => n || pick(orig)); fill.forEach((n, j) => { if (String(st.sizes[j]) !== '-1') sizes[n] = String(st.sizes[j]); });
+          left[c.from] = { g: fill }; cur.splice(k, 1, ...fill.map(n => ({ el: [n] })));
+        } else if (c.el.length === st.sizes.length) cur.splice(k, 1, ...c.el.map(n => ({ el: [n] })));
+        else return null;
+      } else if (st.op === 'flatten') { const a = nz(st.a, cur.length), b = st.b == null ? cur.length - 1 : nz(st.b, cur.length); if (cur.slice(a, b + 1).some(c => c.one)) return null; cur.splice(a, b - a + 1, { el: cur.slice(a, b + 1).flatMap(c => c.el) }); }
+      else if (st.op === 'transpose') { const a = nz(st.a, cur.length), b = nz(st.b, cur.length); [cur[a], cur[b]] = [cur[b], cur[a]]; }
+      else if (st.op === 'permute') cur = st.perm.map(i => cur[nz(i, cur.length)]);
+      else if (st.op === 'unsqueeze') cur.splice(nz(st.dim, cur.length + 1), 0, { one: true });
+      else if (st.op === 'squeeze') {
+        const k = nz(st.dim, cur.length), c = cur[k];
+        if (c.one) cur.splice(k, 1);
+        else if (c.el.length === 1 && c.from != null && !left[c.from].g && String(x[c.from]) === '1') { used.delete(left[c.from].n); left[c.from] = { one: true }; cur.splice(k, 1); }
+        else if (String(x[c.from]) !== '1') { /* squeezing an axis that isn't 1 does nothing */ }
+        else return null;
+      }
+    }
+    const side = a => a.map(it => (it.one ? '1' : it.g ? `(${it.g.join(' ')})` : it.el ? (it.el.length > 1 ? `(${it.el.join(' ')})` : it.el[0]) : it.n)).join(' ');
+    return { pattern: `${side(left)} -> ${side(cur)}`, sizes: Object.entries(sizes).map(([k, v]) => `${k}=${v}`).join(', ') };
+  }
+  // A reshape as the primitive nodes the variance engine simulates: split / merge heads as a whole, a swap of the last
+  // two axes as Transpose, the rest as tensor methods. The last keeps the reshape's id; parent maps the others to it.
+  function lowerReshapes(g) {
+    if (!g.nodes.some(n => n.type === 'reshape')) return { graph: g, parent: new Map() };
+    const { shapes } = inferShapes(g), ix = index(g), parent = new Map(), nodes = [], edges = g.edges.map(e => Object.assign({}, e));
+    const nz = (i, R) => (i < 0 ? R + i : i);
+    for (const n of g.nodes) {
+      if (n.type !== 'reshape') { nodes.push(n); continue; }
+      const x = shapes.get((ix.ins.get(n.id) || [])[0]) || [], r = x.length; let st = [];
+      try { st = reshapeSteps(n.params, r); } catch { st = []; }
+      const prim = [], pair = (a, b, R) => new Set([nz(a, R), nz(b, R)]);
+      const is12 = (s2, R) => { const q = pair(s2.a, s2.b, R); return q.has(1) && q.has(2) && q.size === 2; };
+      if (st.length === 2 && r === 3 && st[0].op === 'unflatten' && nz(st[0].dim, 3) === 2 && st[0].sizes.length === 2 && String(st[0].sizes[1]) === '-1' && st[1].op === 'transpose' && is12(st[1], 4)) prim.push({ type: 'heads', params: { heads: String(st[0].sizes[0]) } });
+      else if (st.length === 2 && r === 4 && st[0].op === 'transpose' && is12(st[0], 4) && st[1].op === 'flatten' && nz(st[1].a, 4) === 2 && (st[1].b == null || nz(st[1].b, 4) === 3)) prim.push({ type: 'merge', params: {} });
+      else {
+        let R = r;
+        for (const s2 of st) {
+          if (s2.op === 'unflatten') { prim.push({ type: 'func', params: { fn: '.unflatten', extra: `${nz(s2.dim, R)}, (${s2.sizes.join(', ')})`, n: 1 } }); R += s2.sizes.length - 1; }
+          else if (s2.op === 'flatten') { const a = nz(s2.a, R), b = s2.b == null ? R - 1 : nz(s2.b, R); prim.push({ type: 'func', params: { fn: '.flatten', extra: b === R - 1 ? `${a}` : `${a}, ${b}`, n: 1 } }); R -= b - a; }
+          else if (s2.op === 'transpose') { const q = pair(s2.a, s2.b, R); prim.push(q.has(R - 1) && q.has(R - 2) ? { type: 'transpose', params: {} } : { type: 'func', params: { fn: '.transpose', extra: `${nz(s2.a, R)}, ${nz(s2.b, R)}`, n: 1 } }); }
+          else if (s2.op === 'permute') prim.push({ type: 'func', params: { fn: '.permute', extra: s2.perm.map(i => nz(i, R)).join(', '), n: 1 } });
+          else if (s2.op === 'unsqueeze') { prim.push({ type: 'func', params: { fn: '.unsqueeze', extra: String(nz(s2.dim, R + 1) - (R + 1)), n: 1 } }); R++; }
+          else if (s2.op === 'squeeze') { prim.push({ type: 'func', params: { fn: '.squeeze', extra: String(nz(s2.dim, R)), n: 1 } }); R--; }
+        }
+      }
+      if (!prim.length) prim.push({ type: 'func', params: { fn: 'identity', extra: '', n: 1 } });
+      const ids = prim.map((_, i) => (i === prim.length - 1 ? n.id : `${n.id}~${i}`));
+      prim.forEach((q, i) => { nodes.push({ id: ids[i], type: q.type, x: n.x, y: n.y, params: Object.assign({}, DEFAULTS[q.type] || {}, q.params, n.params.follows ? { follows: n.params.follows } : {}) }); if (i < prim.length - 1) parent.set(ids[i], n.id); });
+      if (ids.length > 1) { for (const e of edges) if (e.to === n.id) e.to = ids[0]; for (let i = 1; i < ids.length; i++) edges.push({ id: `e~${ids[i]}`, from: ids[i - 1], to: ids[i], port: 0 }); }
+    }
+    return { graph: Object.assign({}, g, { nodes, edges }), parent };
+  }
+  // what a reshape does, in words: splits, merges, moves, new and removed axes
+  function reshapeDescribe(p, x) {
+    const r = reshapeShape(p, x), { LL, sizes, val } = r, said = [], outPlan = reshapePlan(p, x.length).RR;
+    const show = n => (n.startsWith('…') ? '' : n), sz = n => val[n];
+    LL.forEach((it, i) => { if (it.g) said.push({ k: 'split', axis: i, names: it.g, D: x[i], parts: it.g.map(sz) }); if (it.one) said.push({ k: 'drop', axis: i }); });
+    outPlan.forEach((it, i) => { if (it.g) said.push({ k: 'merge', axis: i, names: it.g, parts: it.g.map(sz) }); if (it.one) said.push({ k: 'new', axis: i }); });
+    const order = l => l.flatMap(it => (it.g ? it.g : it.n ? [it.n] : [])).filter(n => !n.startsWith('…'));
+    const a = order(LL), b = order(outPlan);
+    return { said, moved: a.join(' ') !== b.join(' '), before: a, after: b, sizes, val, show };
+  }
+
   // Link sizes that must be equal (both inputs of an elementwise op) so they share one
   // named width: editing one then updates the other. Used after importing literal code.
   function linkSizes(g) {
@@ -539,6 +764,12 @@ const NN = (() => {
         if (n.type === 'input') { const r = parseShape(n.params.shape).length; return ax < r ? n.id + '|' + (r - 1 - ax) : null; }
         if (n.type === 'func' && n.params.init) return null;
         if (n.type === 'transpose') ax = ax === 0 ? 1 : ax === 1 ? 0 : ax;
+        else if (n.type === 'reshape') {
+          // an axis kept whole follows back to where it was; one that was split, merged or added has no single slot
+          const src = ix.ins.get(n.id)[0], rIn = ((src && shapes.get(src)) || []).length; let map = null;
+          try { map = reshapeAxisSource(n.params, rIn); } catch { map = null; }
+          const j = map ? map[rank - 1 - ax] : -1; if (j == null || j < 0) return null; ax = rIn - 1 - j;
+        }
         else if (n.type === 'func' && /(^|\.)flatten$/.test(n.params.fn)) {
           const src = ix.ins.get(n.id)[0], rIn = ((src && shapes.get(src)) || []).length, st = +(String(n.params.extra || '0').split(',')[0]) || 0, i = rank - 1 - ax;
           if (i >= (st < 0 ? rIn + st : st)) return null; ax = rIn - 1 - i;
@@ -620,10 +851,13 @@ const NN = (() => {
   // layers with weights of their own, which can be frozen (requires_grad_(False)); a block use can be frozen whole
   const FREEZABLE = new Set(['linear', 'conv', 'conv1d', 'embed', 'norm', 'token', 'param']);
   const DEF_ATTR = { linear: 'fc', norm: 'norm', dropout: 'drop', func: 'mod', embed: 'emb', conv: 'conv', token: 'cls_token', param: 'w', conv1d: 'conv1d' };
-  const DEF_VAR = n => n.params.var || ({ linear: 'h', norm: 'n', act: 'a', dropout: 'h', func: 'y', embed: 'x', heads: 'h', merge: 'y', transpose: 't', scale: 's', mask: 'att', rope: 'r', conv: 'h', pool: 'p', upsample: 'u', token: 'x', select: 'x', param: 'w', conv1d: 'h', noise: 'eps' }[n.type] || (n.params.op === '*' ? 'g' : 'x'));
+  const DEF_VAR = n => n.params.var || ({ linear: 'h', norm: 'n', act: 'a', dropout: 'h', func: 'y', embed: 'x', heads: 'h', merge: 'y', transpose: 't', reshape: 'x', scale: 's', mask: 'att', rope: 'r', conv: 'h', pool: 'p', upsample: 'u', token: 'x', select: 'x', param: 'w', conv1d: 'h', noise: 'eps' }[n.type] || (n.params.op === '*' ? 'g' : 'x'));
   const DIM_FIELDS = { linear: ['in', 'out'], norm: ['dim'], embed: ['num', 'dim'], heads: ['heads'], conv: ['in', 'out', 'k', 'stride', 'pad'], token: ['n', 'dim'], param: ['shape'], conv1d: ['ch', 'k'] };
   // [field, expression] for every size a node is built with; a block use's sizes are its args
-  const dimList = n => (DIM_FIELDS[n.type] || []).map(f => [f, n.params[f]]).concat(n.type === 'block' ? Object.entries(n.params.args || {}).sort().map(([k, v]) => ['args.' + k, v]) : []);
+  // a reshape's sizes (h = n_head) count as size fields by value; its axis names are local labels
+  const sizePairs = str => String(str || '').split(/[,;]/).map(x => x.trim()).filter(Boolean).map(x => { const i = x.indexOf('='); return i < 0 ? null : [x.slice(0, i).trim(), x.slice(i + 1).trim()]; }).filter(Boolean);
+  const mapSizes = (str, fn) => sizePairs(str).map(([k, v]) => `${k}=${fn(v)}`).join(', ');
+  const dimList = n => (DIM_FIELDS[n.type] || []).map(f => [f, n.params[f]]).concat(n.type === 'reshape' ? sizePairs(n.params.sizes).map(([k, v]) => ['sizes.' + k, v]) : []).concat(n.type === 'block' ? Object.entries(n.params.args || {}).sort().map(([k, v]) => ['args.' + k, v]) : []);
   const baseOf = k => splitKey(String(k))[0];
   // small helper functions written above the classes when the model uses them
   const HELPERS = {
@@ -838,7 +1072,7 @@ const NN = (() => {
             const n = ix.byId.get(id), p = n.params;
             const ins = ix.inKeys.get(id).map(refK);
             // a tie is compared by which member it points at, so copies of one block still share one class
-            const keep = Object.keys(p).filter(k => !['name', 'title', 'tone', 'var', 'args', 'split', 'tie_x', ...(DIM_FIELDS[n.type] || [])].includes(k)).sort().map(k => k + '=' + (k === 'tie' && p[k] ? (localIdx.has(p[k]) ? 'm' + localIdx.get(p[k]) : 'out') : p[k]));
+            const keep = Object.keys(p).filter(k => !['name', 'title', 'note', 'tone', 'var', 'args', 'split', 'tie_x', 'sizes', ...(DIM_FIELDS[n.type] || [])].includes(k)).sort().map(k => k + '=' + (k === 'tie' && p[k] ? (localIdx.has(p[k]) ? 'm' + localIdx.get(p[k]) : 'out') : p[k]));
             const dims = dimList(n).map(([, v]) => pat(v));
             return [n.type, keep.join(','), dims.join(','), ins.join(',')].join('|');
           }).join(';') + '#in' + extIn.length + '#out:' + info.outputs.map(refK).join(',');
@@ -853,14 +1087,14 @@ const NN = (() => {
   // A block is a reusable sub-network {id, name, graph, labels} kept in g.blocks. Its graph has input node(s) and
   // one output node. A 'block' node in the diagram uses it: inputs come from the stream, and each size used inside
   // that isn't set by an input (e.g. a hidden width) is a per-use argument stored in node.params.args.
-  const DIMF = { linear: ['in', 'out'], norm: ['dim'], func: ['init'], input: ['shape'], embed: ['num', 'dim'], heads: ['heads'], conv: ['in', 'out', 'k', 'stride', 'pad'], token: ['n', 'dim'], param: ['shape'], conv1d: ['ch', 'k'] };
+  const DIMF = { binop: ['const'], reshape: ['sizes'], linear: ['in', 'out'], norm: ['dim'], func: ['init'], input: ['shape'], embed: ['num', 'dim'], heads: ['heads'], conv: ['in', 'out', 'k', 'stride', 'pad'], token: ['n', 'dim'], param: ['shape'], conv1d: ['ch', 'k'] };
   function blockInputs(blk) { return blk.graph.nodes.filter(n => n.type === 'input'); }
   function blockOutputs(blk) { return blk.graph.nodes.filter(n => n.type === 'output'); }
   function blockParams(blk) {
     const fromInputs = new Set();
     for (const n of blockInputs(blk)) parseShape(n.params.shape).forEach(d => identsIn(d).forEach(t => fromInputs.add(t)));
     const ps = [];
-    const exprs = n => (n.type === 'linear' ? [n.params.out] : n.type === 'conv' ? [n.params.out, n.params.k, n.params.stride, n.params.pad] : n.type === 'func' && n.params.init ? [n.params.init] : n.type === 'heads' ? [n.params.heads] : n.type === 'embed' ? [n.params.num, n.params.dim] : n.type === 'block' ? Object.values(n.params.args || {}).map(String) : []);
+    const exprs = n => (n.type === 'linear' ? [n.params.out] : n.type === 'conv' ? [n.params.out, n.params.k, n.params.stride, n.params.pad] : n.type === 'func' && n.params.init ? [n.params.init] : n.type === 'reshape' ? String(n.params.sizes || '').split(/[,;]/).map(x => x.split('=')[1] || '').filter(Boolean) : n.type === 'heads' ? [n.params.heads] : n.type === 'embed' ? [n.params.num, n.params.dim] : n.type === 'block' ? Object.values(n.params.args || {}).map(String) : []);
     for (const n of blk.graph.nodes) for (const e of exprs(n))
       identsIn(e).forEach(t => { if (!fromInputs.has(t) && t !== BATCH && !ps.includes(t)) ps.push(t); });
     return ps;
@@ -879,7 +1113,7 @@ const NN = (() => {
     return map;
   }
   const substDims = (node, map) => {
-    for (const f of DIMF[node.type] || []) if ((f !== 'shape' || node.type === 'param') && typeof node.params[f] === 'string') node.params[f] = node.params[f].replace(IDENT, t => (map.has(t) ? map.get(t) : t));
+    for (const f of DIMF[node.type] || []) if ((f !== 'shape' || node.type === 'param') && typeof node.params[f] === 'string') node.params[f] = f === 'sizes' ? mapSizes(node.params[f], v => v.replace(IDENT, t => (map.has(t) ? map.get(t) : t))) : node.params[f].replace(IDENT, t => (map.has(t) ? map.get(t) : t));
     if (node.type === 'block' && node.params.args) for (const k of Object.keys(node.params.args)) node.params.args[k] = String(node.params.args[k]).replace(IDENT, t => (map.has(t) ? map.get(t) : t));
   };
   // A use's inside, with sizes bound to the outer graph (for shape checking)
@@ -1149,7 +1383,7 @@ const NN = (() => {
         const lit = e => String(e).replace(IDENT, t => (t in cs ? String(cs[t]) : t));
         for (const id of gr.nodes) {
           const n = g.nodes.find(z => z.id === id); if (!n) continue;
-          for (const f of DIMF[n.type] || []) if ((f !== 'shape' || n.type === 'param') && typeof n.params[f] === 'string') n.params[f] = lit(n.params[f]);
+          for (const f of DIMF[n.type] || []) if ((f !== 'shape' || n.type === 'param') && typeof n.params[f] === 'string') n.params[f] = f === 'sizes' ? mapSizes(n.params[f], lit) : lit(n.params[f]);
           if (n.type === 'block' && n.params.args) for (const k of Object.keys(n.params.args)) n.params.args[k] = lit(n.params.args[k]);
         }
       }
@@ -1175,12 +1409,12 @@ const NN = (() => {
     g.blocks = g.blocks || {};
     const { shapes } = inferShapes(g);
     const { byKey, names } = keep;
-    const getDim = (n, f) => (f.startsWith('args.') ? (n.params.args || {})[f.slice(5)] : n.params[f]);
+    const getDim = (n, f) => (f.startsWith('args.') ? (n.params.args || {})[f.slice(5)] : f.startsWith('sizes.') ? (sizePairs(n.params.sizes).find(([k]) => k === f.slice(6)) || [])[1] : n.params[f]);
     for (const gi of ginfo) {
       const key = gi.group.cls + '|' + gi.ssig;
       // an image input (e × C × H × W, read by image layers) is sized by its channels, any other by its last size
       const readers = s => gi.order.filter(id => ix.inKeys.get(id).includes(s)).map(id => ix.byId.get(id));
-      const seqOps = new Set(['linear', 'heads', 'merge', 'rope', 'mask', 'scale', 'transpose', 'embed']);
+      const seqOps = new Set(['linear', 'heads', 'merge', 'rope', 'mask', 'scale', 'transpose', 'embed', 'reshape']);
       const isImg = s => { const sh = shapes.get(s); return !!sh && sh.length === 4 && !readers(s).some(n => seqOps.has(n.type) || (n.type === 'norm' && !(NORMS[n.params.kind] || {}).image)); };
       const axisOf = s => { const sh = shapes.get(s); return sh ? (isImg(s) ? 1 : sh.length - 1) : -1; };
       const inDims = gi.extIn.map(s => { const sh = shapes.get(s); return sh ? sh[axisOf(s)] : null; });
@@ -1236,7 +1470,7 @@ const NN = (() => {
         for (const n of inner.nodes) parseShape(n.params.shape).forEach(d => identsIn(d).forEach(t => { if (inner.symbols[t] == null) inner.symbols[t] = g.symbols[t] ?? 16; }));
         for (const id of gi.order) {
           const c = JSON.parse(JSON.stringify(ix.byId.get(id))); c.id = uid('n');
-          for (const f of DIMF[c.type] || []) if (typeof c.params[f] === 'string' && (f !== 'shape' || c.type === 'param')) c.params[f] = c.params[f].replace(IDENT, t => nameOf.get(t) || t);
+          for (const f of DIMF[c.type] || []) if (typeof c.params[f] === 'string' && (f !== 'shape' || c.type === 'param')) c.params[f] = f === 'sizes' ? mapSizes(c.params[f], v => v.replace(IDENT, t => nameOf.get(t) || t)) : c.params[f].replace(IDENT, t => nameOf.get(t) || t);
           if (c.type === 'block' && c.params.args) for (const k of Object.keys(c.params.args)) c.params.args[k] = String(c.params.args[k]).replace(IDENT, t => nameOf.get(t) || t);
           inner.nodes.push(c); idm.set(id, c.id);
         }
@@ -1451,6 +1685,7 @@ const NN = (() => {
       const selfSyms = [];
       const fwdSize = expr => subst(expr, map).replace(IDENT, t => { if (!selfSyms.includes(t)) selfSyms.push(t); return 'self.' + t; });
       for (const it of items) if (it.kind === 'node' && it.node.type === 'heads') fwdSize(it.node.params.heads);
+      for (const it of items) if (it.kind === 'node' && it.node.type === 'reshape') { try { Object.values(parseSizes(it.node.params.sizes)).forEach(v => { if (!/^-?\d+$/.test(v)) fwdSize(v); }); } catch { /* reported by the shapes */ } }
       // a constant written with sizes (x * d ** 0.5) reads them from self in forward()
       const constCode = new Map(), isSym = t => (g.symbols && g.symbols[t] != null) || map.has(t);
       for (const it of items) if (it.kind === 'node' && it.node.type === 'binop' && hasConst(it.node)) { const c = String(it.node.params.const); const ids = c.match(IDENT) || []; if (ids.length && ids.every(isSym)) constCode.set(it.id, c.replace(IDENT, t => (map && map.has(t) ? map.get(t) : t)).replace(IDENT, t => { if (!selfSyms.includes(t)) selfSyms.push(t); return 'self.' + t; })); }
@@ -1595,7 +1830,8 @@ const NN = (() => {
         const named = it.kind === 'node' && it.node.params.var && c !== '__out'; // a value named in the diagram gets its own line
         // what a loop reads gets a line of its own before the loop (it is sliced at every step)
         const isParam = it.kind === 'node' && it.node.type === 'param' && !it.node.params.var;
-        const inline = isParam || !named && !isFollower.has(id) && !feedsLoop.has(id) && u === 1 && !(cit && cit.kind === 'list') && (c === '__out' || (code.length <= 60 && !nests && !(isModCall(it) && cit && isModCall(cit)) && !(isAdd && cit && isModCall(cit))));
+        const rr = it.kind === 'node' && it.node.type === 'reshape' && cit && cit.kind === 'node' && cit.node.type === 'reshape';
+        const inline = !rr && (isParam || !named && !isFollower.has(id) && !feedsLoop.has(id) && u === 1 && !(cit && cit.kind === 'list') && (c === '__out' || (code.length <= 60 && !nests && !(isModCall(it) && cit && isModCall(cit)) && !(isAdd && cit && isModCall(cit)))));
         if (inline) { expr.set(id, e); continue; }
         release(refs);
         const v = alloc(it.kind === 'node' ? DEF_VAR(it.node) : 'x');
@@ -1639,6 +1875,11 @@ const NN = (() => {
             case 'heads': code = `split_heads(${a[0].code}, ${fwdSize(p.heads)})`; break;
             case 'merge': code = `merge_heads(${a[0].code})`; break;
             case 'transpose': code = `${wrap(a[0], 100)}.transpose(-2, -1)`; break;
+            case 'reshape': {
+              const x = shapes.get(ix.ins.get(n.id)[0]) || [];
+              let st; try { st = reshapeSteps(p, x.length); } catch { st = []; }
+              code = `${wrap(a[0], 100)}${st.map(s2 => reshapeStepCode(s2, v => (/^-?\d+$/.test(v) ? v : fwdSize(v)), step)).join('')}`; break;
+            }
             case 'scale': prec = 20; code = `${wrap(a[0], 20)} * ${wrap(a[0], 100)}.size(-1) ** -0.5`; break;
             case 'mask': code = p.mode === 'given' ? `apply_mask(${a[0].code}, ${a[1].code})` : `causal_mask(${a[0].code})`; break;
             case 'rope': {
@@ -1851,6 +2092,7 @@ const NN = (() => {
       if (validOf.has(n.id) && n.type === 'block') { for (const [, v] of dimList(n)) note(v); continue; }
       for (const [, v] of dimList(n)) note(v);
       if (n.type === 'func' && n.params.init) note(n.params.init);
+      if (n.type === 'reshape') { try { Object.values(parseSizes(n.params.sizes)).forEach(note); } catch { /* reported by the shapes */ } }
     }
     // arguments in the order the model lists its sizes (stable across a round trip), unknown names last
     // a block's class lists the sizes that come with its inputs first: __init__(self, d=64, h=128)
@@ -1924,6 +2166,7 @@ const NN = (() => {
     if (n.type === 'block') return 'Block ' + (p.name || '');
     if (n.type === 'embed') return (p.positions ? 'Position embedding ' : 'Embedding ') + (p.name || '');
     if (n.type === 'loss') return LOSSES[p.fn] ? LOSSES[p.fn].label : 'Loss';
+    if (n.type === 'reshape') return 'Reshape';
     if (['heads', 'merge', 'transpose', 'scale', 'mask', 'rope'].includes(n.type)) return { heads: 'Split heads', merge: 'Merge heads', transpose: 'Transpose', scale: 'Scale', mask: 'Causal mask', rope: 'Rotary embedding' }[n.type];
     if (n.type === 'conv') return `${p.transposed ? 'ConvTranspose' : 'Conv'} ${p.k}×${p.k} ${p.in}→${p.out}`;
     if (n.type === 'pool') return p.kind === 'adaptive' ? 'Adaptive avg pool' : (p.kind === 'avg' ? 'Avg pool ' : 'Max pool ') + p.k;
@@ -2144,7 +2387,12 @@ const NN = (() => {
       case 'name': { if (env && env.has(e.v)) { const v = env.get(e.v); if (typeof v === 'number') return String(v); if (v && v.sym) return v.sym; if (v && v.list) return '(' + v.list.map(valStr).join(', ') + (v.list.length === 1 ? ',)' : ')'); } return e.v; }
       case 'attr': return u(e.v) + '.' + e.name;
       case 'call': return u(e.fn) + '(' + [...e.args.map(u), ...Object.entries(e.kw).map(([a, b]) => a + '=' + u(b))].join(', ') + ')';
-      case 'bin': return u(e.l) + ' ' + e.op + ' ' + u(e.r);
+      case 'bin': {
+        // brackets where precedence needs them: (d / n_head) ** -0.5, a - (b - c)
+        const P = { '**': 4, '*': 3, '/': 3, '//': 3, '%': 3, '@': 3, '+': 2, '-': 2 }, me = P[e.op] || 1;
+        const side = (x, right) => { const t = u(x), q = x && x.k === 'bin' ? P[x.op] || 1 : 9; return q < me || (q === me && (e.op === '**' ? !right : right)) ? '(' + t + ')' : t; };
+        return side(e.l, false) + ' ' + e.op + ' ' + side(e.r, true);
+      }
       case 'unary': return e.op + (e.op === 'not' ? ' ' : '') + u(e.v);
       case 'tuple': return '(' + e.items.map(u).join(', ') + (e.items.length === 1 ? ',)' : ')');
       case 'list': return '[' + e.items.map(u).join(', ') + ']';
@@ -2219,8 +2467,9 @@ const NN = (() => {
         switch (op) { case '+': return a + b; case '-': return a - b; case '*': return a * b; case '/': return a / b; case '//': return Math.floor(a / b); case '%': return a % b; case '**': return a ** b; }
       }
       if (a && a.list && op === '+' && b && b.list) return { list: a.list.concat(b.list) };
-      const s = v => { const t = valStr(v); return /[\s+\-]/.test(t) ? '(' + t + ')' : t; };
-      if ((a && a.sym) || (b && b.sym)) return { sym: `${s(a)}${op === '//' ? '//' : op}${s(b)}`.replace(/\*\*/, '**') };
+      // an operand in brackets when it is itself a sum, or any compound under * / **; a negative exponent stays bare
+      const s = (v, right) => { const t = valStr(v); if (op === '**' && right && typeof v === 'number') return t; return /[\s+\-]/.test(t) || ((op === '**' || ((op === '*' || op === '/' || op === '//') && right)) && /[*/]/.test(t)) ? '(' + t + ')' : t; };
+      if ((a && a.sym) || (b && b.sym)) return { sym: `${s(a, false)}${op === '//' ? '//' : op}${s(b, true)}`.replace(/\*\*/, '**') };
       return null;
     }
 
@@ -2279,7 +2528,8 @@ const NN = (() => {
             if (isT(a) && isT(b)) return addNode('binop', { op: op || '+' }, [a, b]);
             const cs = v => String(valStr(v)).replace(/\s*\*\*\s*/g, ' ** '); // d**0.5 written as d ** 0.5
             // a power written out (512 ** 0.5) stays written out rather than becoming 22.627…
-            if (isT(a)) return addNode('binop', { op: op || '+', const: typeof b === 'number' && e.r.k === 'bin' && e.r.op === '**' ? unparse(e.r, env) : cs(b) }, [a]);
+            // a constant written as arithmetic of sizes stays as written, with the sizes' self. dropped
+            if (isT(a)) return addNode('binop', { op: op || '+', const: e.r.k === 'bin' && (typeof b === 'number' || (b && b.sym)) ? unparse(e.r, env).replace(/\bself\./g, '') : cs(b) }, [a]);
             return addNode('binop', { op: op || '+', const: valStr(a), rev: true }, [b]);
           }
           return arith(e.op, a, b);
@@ -2325,6 +2575,13 @@ const NN = (() => {
     };
     const normPath = p => p.replace(/^torch\.nn\.functional\./, 'F.').replace(/^torch\.nn\./, 'nn.');
 
+    // a rearrangement call (unflatten, flatten, transpose, permute, squeeze, unsqueeze) becomes a Reshape node; one
+    // applied straight to another's result (x.unflatten(…).transpose(1, 2)) joins it, so a chain is one node
+    function reshapeCall(step, self, chained) {
+      const prev = chained && self && g.nodes.find(z => z.id === self.t);
+      if (prev && prev.type === 'reshape' && Array.isArray(prev.params._steps) && !g.edges.some(z => z.from === prev.id)) { prev.params._steps.push(step); return { t: prev.id }; }
+      return addNode('reshape', { pattern: '', sizes: '', _steps: [step] }, [self]);
+    }
     function call(e, env) {
       const fv = ev(e.fn, env);
       const A = e.args.map(a => (a.k === 'star' ? ev(a.v, env) : ev(a, env)));
@@ -2347,8 +2604,8 @@ const NN = (() => {
         if (p === 'enumerate') return { list: (A[0] && A[0].list || []).map((x, i) => ({ list: [i, x] })) };
         if (p === 'nn.Embedding') return { mod: 'embed', num: arg(0, 'num_embeddings'), dim: arg(1, 'embedding_dim') };
         if (p === 'torch.arange' && A[0] && A[0].sizeOf) return { arange: A[0].sizeOf };
-        if (p === 'split_heads' && isT(A[0])) return addNode('heads', { heads: dimStr(A[1]) }, [A[0]]);
-        if (p === 'merge_heads' && isT(A[0])) return addNode('merge', {}, [A[0]]);
+        if (p === 'split_heads' && isT(A[0])) return addNode('reshape', { pattern: '', sizes: '', _steps: [{ op: 'unflatten', dim: -1, sizes: [dimStr(A[1]), '-1'] }, { op: 'transpose', a: 1, b: 2 }] }, [A[0]]);
+        if (p === 'merge_heads' && isT(A[0])) return addNode('reshape', { pattern: '', sizes: '', _steps: [{ op: 'transpose', a: 1, b: 2 }, { op: 'flatten', a: 2, b: null }] }, [A[0]]);
         if (p === 'causal_mask' && isT(A[0])) return addNode('mask', {}, [A[0]]);
         if (p === 'dt_bias_' && A[0] && A[0].param === 'bias' && A[0].of.mod === 'linear') { A[0].of.bias_init = 'dt'; return null; }
         if (p === 'causal_conv' && A[0] && A[0].mod === 'conv1d' && isT(A[1])) { const m = A[0]; return addNode('conv1d', Object.assign({ ch: dimStr(m.ch), k: dimStr(m.k), bias: m.bias !== false, name: m.attrName || '' }, m.frozen ? { frozen: true } : {}), [A[1]]); }
@@ -2463,16 +2720,23 @@ const NN = (() => {
         if (['sigmoid', 'relu', 'tanh', 'softmax'].includes(m)) return applyAct(m, self, arg(0, 'dim', -1));
         if (m === 'size') return { sizeOf: self, dim: A[0] };
         if (m === 'new_zeros' || m === 'zeros_like') return { zeros: true };
-        if (m === 'flatten') return addNode('func', { fn: '.flatten', extra: e.args.map(a => unparse(a, env)).join(', '), n: 1 }, [self]);
+        const chained = e.fn && e.fn.k === 'attr' && e.fn.v && e.fn.v.k === 'call', I = v => { const x = num2(v); return typeof x === 'number' ? x : null; };
+        const ints = A.every(v => I(v) != null) && !Object.keys(KW).length;
+        if (m === 'flatten' && ints && A.length <= 2) return reshapeCall({ op: 'flatten', a: A.length ? I(A[0]) : 0, b: A.length > 1 ? I(A[1]) : null }, self, chained);
+        if (m === 'unflatten' && A.length === 2 && I(A[0]) != null && A[1] && A[1].list) return reshapeCall({ op: 'unflatten', dim: I(A[0]), sizes: A[1].list.map(v => (I(v) === -1 ? '-1' : dimStr(v))) }, self, chained);
+        if ((m === 'unsqueeze' || m === 'squeeze') && A.length === 1 && ints) return reshapeCall({ op: m, dim: I(A[0]) }, self, chained);
+        if (m === 'permute' && ints && A.length > 1) return reshapeCall({ op: 'permute', perm: A.map(I) }, self, chained);
+        if (m === 'permute' && A.length === 1 && A[0] && A[0].list) return reshapeCall({ op: 'permute', perm: A[0].list.map(I) }, self, chained);
         if (m === 'dim') return null;
-        if (m === 'transpose' && ['-2,-1', '-1,-2'].includes(A.map(x => valStr(x)).join(','))) return addNode('transpose', {}, [self]);
+        if (m === 'transpose' && ['-2,-1', '-1,-2'].includes(A.map(x => valStr(x)).join(','))) return reshapeCall({ op: 'transpose', a: -2, b: -1 }, self, chained);
         // norm(x.transpose(1, 2)).transpose(1, 2): the channel-first idiom collapses back into one norm layer
         const TR = new Set(['1, 2', '2, 1', '1, -1', '-1, 1']);
         if (m === 'transpose' && TR.has(e.args.map(a => unparse(a, env)).join(', '))) {
           const nn_ = g.nodes.find(z => z.id === self.t);
           const inE = nn_ && nn_.type === 'norm' && NORMS[nn_.params.kind] && NORMS[nn_.params.kind].channelFirst && g.edges.find(z => z.to === nn_.id);
           const tr = inE && g.nodes.find(z => z.id === inE.from);
-          if (tr && tr.type === 'func' && tr.params.fn === '.transpose' && TR.has(tr.params.extra) && g.edges.filter(z => z.from === tr.id).length === 1) {
+          const trS = tr && tr.type === 'reshape' && tr.params._steps && tr.params._steps.length === 1 && tr.params._steps[0].op === 'transpose' ? tr.params._steps[0] : null;
+          if (tr && trS && TR.has(`${trS.a}, ${trS.b}`) && g.edges.filter(z => z.from === tr.id).length === 1) {
             const src = g.edges.find(z => z.to === tr.id);
             inE.from = src.from;
             g.edges = g.edges.filter(z => z !== src);
@@ -2483,6 +2747,7 @@ const NN = (() => {
             return self;
           }
         }
+        if (m === 'transpose' && ints && A.length === 2) return reshapeCall({ op: 'transpose', a: I(A[0]), b: I(A[1]) }, self, chained);
         const extra = e.args.map(a => unparse(a, env)).concat(Object.entries(e.kw).map(([a, b]) => a + '=' + unparse(b, env)));
         const tens = A.filter(isT);
         warnings.push(`Tensor method .${m}() is kept as a custom op.`);
@@ -2728,7 +2993,8 @@ const NN = (() => {
     for (const [base, c] of Object.entries(symCount)) if (c > 1 && g.symbols[base] != null && !g.symbols[base + '1']) ren.set(base, base + '1');
     if (ren.size) {
       for (const [a, b] of ren) { g.symbols[b] = g.symbols[a]; delete g.symbols[a]; }
-      for (const n of g.nodes) for (const f of ['in', 'out', 'dim', 'init', 'num', 'heads', 'k', 'stride', 'pad', 'ch', 'shape', 'n']) if (typeof n.params[f] === 'string') n.params[f] = n.params[f].replace(IDENT, t => ren.get(t) || t);
+      for (const n of g.nodes) for (const f of ['in', 'out', 'dim', 'init', 'num', 'heads', 'k', 'stride', 'pad', 'ch', 'shape', 'n', 'sizes']) if (typeof n.params[f] === 'string') n.params[f] = f === 'sizes' ? mapSizes(n.params[f], v => v.replace(IDENT, t => ren.get(t) || t)) : n.params[f].replace(IDENT, t => ren.get(t) || t);
+      for (const n of g.nodes) if (n.params._steps) n.params._steps.forEach(st => { if (st.sizes) st.sizes = st.sizes.map(v => String(v).replace(IDENT, t => ren.get(t) || t)); });
       // block uses' sizes and the module calls' name hints follow the renamed sizes
       for (const n of g.nodes) if (n.type === 'block' && n.params.args) for (const k of Object.keys(n.params.args)) n.params.args[k] = String(n.params.args[k]).replace(IDENT, t => ren.get(t) || t);
       for (const gr of g.groups || []) if (gr.argHints) gr.argHints = Object.fromEntries(Object.entries(gr.argHints).map(([k, v]) => [ren.get(k) || k, v]));
@@ -2818,6 +3084,14 @@ const NN = (() => {
     if (emaM) for (const mm of emaM.body.join('\n').matchAll(/m = ([\d.eE+-]+)(?: \+ \(([\d.eE+-]+) - [\d.eE+-]+\) \* progress)?\s*# (\w+) follows (\w+)/g)) moms.set(mm[3], [mm[1], mm[2] || mm[1]]);
     const setMom = n => { const v = moms.get(n.params.name); if (v) { n.params.momentum = v[0]; n.params.momentum_end = v[1]; } else { n.params.momentum = '0.996'; n.params.momentum_end = '1.0'; } };
     for (const n of g.nodes) if (n.params.follows) setMom(n);
+    // reshape chains read from code become patterns, named after the sizes they act on
+    if (g.nodes.some(n => n.type === 'reshape' && n.params._steps)) {
+      const { shapes } = inferShapes(g), ix2 = index(g);
+      for (const n of g.nodes) if (n.type === 'reshape' && n.params._steps) {
+        const x = shapes.get((ix2.ins.get(n.id) || [])[0]); const r = x ? stepsToPattern(n.params._steps, x) : null;
+        if (r) { n.params.pattern = r.pattern; n.params.sizes = r.sizes; delete n.params._steps; }
+      }
+    }
     linkSizes(g);
     groupsToBlocks(g);
     for (const gr of madeGroups) if (gr.followsMod && gr.followsMod._groupId != null) {
@@ -3052,6 +3326,6 @@ const NN = (() => {
     return text.replace(/\n{4,}/g, '\n\n\n');
   }
 
-  return { HELPER_OPS, indexInputRange, FREEZABLE, helperDoc, srcKey, splitKey, blockOutputs, blockClassCode, LOSSES, lossParts, lossPlan, weightShape, tieOwner, blockParams, blockInputs, expandBlocks, instantiateBlock, presetResidualMLPBlocks, NORMS, linkSizes, syncWidths, mergeIntoSource, uid, BATCH, DEFAULTS, ACTS, INITS, initCode, makeNode, inCount, isCircle, index, topo, evalDim, parseShape, inferShapes, paramCount, propagateWidth, generate, importPython, importFx, autoLayout, nodeSize, nodeLabel, presetResidualMLP, parse, identsIn };
+  return { lowerReshapes, reshapeSteps, reshapeStepCode, reshapeShape, reshapeAxisSource, stepsToPattern, reshapeDescribe, reshapePlan, stepsShape, parseSizes, HELPER_OPS, indexInputRange, FREEZABLE, helperDoc, srcKey, splitKey, blockOutputs, blockClassCode, LOSSES, lossParts, lossPlan, weightShape, tieOwner, blockParams, blockInputs, expandBlocks, instantiateBlock, presetResidualMLPBlocks, NORMS, linkSizes, syncWidths, mergeIntoSource, uid, BATCH, DEFAULTS, ACTS, INITS, initCode, makeNode, inCount, isCircle, index, topo, evalDim, parseShape, inferShapes, paramCount, propagateWidth, generate, importPython, importFx, autoLayout, nodeSize, nodeLabel, presetResidualMLP, parse, identsIn };
 })();
 if (typeof module !== 'undefined') module.exports = NN;

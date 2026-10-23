@@ -142,7 +142,7 @@ const NNVar = (() => {
   // their variance stops changing.
   function predict(g, opts = {}) {
     if (opts._state !== undefined || !g.nodes.some(n => n.type === 'delay')) return predictStep(g, opts);
-    { const fl = C.expandBlocks(g.nodes.some(n => n.type === 'loss') ? C.lossParts(g).model : g).flat; if (loopsOf(fl, C.index(fl)).every(L => L.scan)) return predictStep(g, opts); }
+    { const fl = C.lowerReshapes(C.expandBlocks(g.nodes.some(n => n.type === 'loss') ? C.lossParts(g).model : g).flat).graph; if (loopsOf(fl, C.index(fl)).every(L => L.scan)) return predictStep(g, opts); }
     let state = null, r = null, prev = null, k = 0;
     const persist = new Map(); // each layer's fixed part, the same at every step (weights don't change over time)
     for (; k < 60; k++) {
@@ -160,7 +160,9 @@ const NNVar = (() => {
   function predictStep(g, opts = {}) {
     // losses and their targets aren't part of the network being plotted
     if (g.nodes.some(n => n.type === 'loss')) g = C.lossParts(g).model;
-    const { flat, origin } = C.expandBlocks(g);
+    const ex0 = C.expandBlocks(g), origin = ex0.origin, low = C.lowerReshapes(ex0.flat), flat = low.graph;
+    // a reshape simulated as several steps: each step stands for the reshape on the canvas
+    for (const [k, v] of low.parent) if (origin.has(v)) origin.set(k, origin.get(v));
     // followers (EMA ties) run without gradients: nothing flows back into them or through them
     const followUses = new Set(g.nodes.filter(n => n.type === 'block' && n.params.follows).map(n => n.id));
     const noGrad = new Set(flat.nodes.filter(n => n.params.follows || (origin.get(n.id) && followUses.has(origin.get(n.id).use))).map(n => n.id));
@@ -680,7 +682,7 @@ const NNVar = (() => {
             break;
           }
           if (base === 'softmax') { const m = String(p.extra || '').match(/dim\s*=\s*(-?\d+)/); out = softmaxFwd(id, A, shape, m ? m[1] : -1); if (out.error) return out; break; }
-          const act = { relu: 'relu', gelu: 'gelu', tanh: 'tanh', sigmoid: 'sigmoid', silu: 'silu', exp: 'exp', softplus: 'softplus', identity: 'identity', dropout: 'identity', contiguous: 'identity', reshape: 'identity', view: 'identity', flatten: 'identity', squeeze: 'identity', unsqueeze: 'identity' }[base];
+          const act = { relu: 'relu', gelu: 'gelu', tanh: 'tanh', sigmoid: 'sigmoid', silu: 'silu', exp: 'exp', softplus: 'softplus', identity: 'identity', dropout: 'identity', contiguous: 'identity', reshape: 'identity', view: 'identity', flatten: 'identity', squeeze: 'identity', unsqueeze: 'identity', unflatten: 'identity', transpose: 'identity', permute: 'identity' }[base];
           if (!act || ins.length !== 1) return unsupported(n, fn);
           out = mapX(A, ACT[act][0]); tape.set(id, { d: ACT[act][1] });
           break;

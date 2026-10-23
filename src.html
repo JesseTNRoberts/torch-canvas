@@ -1,3 +1,4 @@
+<meta name="author" content="Jesse Roberts">
 <title>Torch Canvas</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjggMTI4IiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IlRvcmNoIENhbnZhcyI+CiAgPHJlY3QgeD0iNCIgeT0iNCIgd2lkdGg9IjEyMCIgaGVpZ2h0PSIxMjAiIHJ4PSIyOCIgZmlsbD0iIzI0MjMyZSIvPgogIDwhLS0gdGhlIHBhaW50IHN0cm9rZTogYSB0YXBlcmVkIHN3ZWVwIGZyb20gbGVmdCB0byB0aGUgYnJ1c2ggdGlwIC0tPgogIDxwYXRoIGQ9Ik0xNCA4OCBDIDI2IDcwLCA0NCA3MCwgNTggODIgQyA3MCA5MiwgNzggNzQsIDgyIDU4IEwgODcgNjEgQyA4NCA4MiwgNzAgMTAyLCA1NCA5MiBDIDQyIDg0LCAyOCA4NCwgMTYgOTQgWiIgZmlsbD0iIzc0NjdkNCIgb3BhY2l0eT0iLjQ1Ii8+CiAgPCEtLSBhIHNtYWxsIG5ldHdvcmsgcGFpbnRlZCBpbiB0aGUgc3Ryb2tlIC0tPgogIDxnIHN0cm9rZT0iI2ExOTdmMCIgc3Ryb2tlLXdpZHRoPSIzLjQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCI+CiAgICA8bGluZSB4MT0iMjQiIHkxPSI4NiIgeDI9IjQyIiB5Mj0iNzQiLz48bGluZSB4MT0iMjQiIHkxPSI4NiIgeDI9IjQ0IiB5Mj0iOTYiLz4KICAgIDxsaW5lIHgxPSI0MiIgeTE9Ijc0IiB4Mj0iNjIiIHkyPSI4NiIvPjxsaW5lIHgxPSI0NCIgeTE9Ijk2IiB4Mj0iNjIiIHkyPSI4NiIvPgogIDwvZz4KICA8ZyBmaWxsPSIjZWZlZGZiIj48Y2lyY2xlIGN4PSIyNCIgY3k9Ijg2IiByPSI2LjUiLz48Y2lyY2xlIGN4PSI0MiIgY3k9Ijc0IiByPSI2Ii8+PGNpcmNsZSBjeD0iNDQiIGN5PSI5NiIgcj0iNiIvPjxjaXJjbGUgY3g9IjYyIiBjeT0iODYiIHI9IjYuNSIvPjwvZz4KICA8IS0tIHdoZXJlIHRoZSBicnVzaCBpcyBzdGlsbCBwYWludGluZywgdGhlIHN0cm9rZSBoYXMgYmVjb21lIGNvZGUgLS0+CiAgPGcgc3Ryb2tlPSIjZjBhMzVlIiBzdHJva2Utd2lkdGg9IjQuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIj4KICAgIDxsaW5lIHgxPSI3NCIgeTE9Ijg4IiB4Mj0iOTAiIHkyPSI4OCIvPjxsaW5lIHgxPSI4MCIgeTE9Ijk5IiB4Mj0iMTA2IiB5Mj0iOTkiLz48bGluZSB4MT0iODAiIHkxPSIxMTAiIHgyPSI5NiIgeTI9IjExMCIvPgogIDwvZz4KICA8IS0tIHRoZSBicnVzaCAtLT4KICA8ZyB0cmFuc2Zvcm09InJvdGF0ZSgzNSAxMDEgNDApIj4KICAgIDxyZWN0IHg9Ijk1IiB5PSIyIiB3aWR0aD0iMTIiIGhlaWdodD0iMzYiIHJ4PSI2IiBmaWxsPSIjYzg2NDFhIi8+CiAgICA8cmVjdCB4PSI5NCIgeT0iMzYiIHdpZHRoPSIxNCIgaGVpZ2h0PSI5IiByeD0iMiIgZmlsbD0iI2RmZGVlOCIvPgogICAgPHBhdGggZD0iTTk0IDQ1IGgxNCBjMCA5IC00IDE1IC03IDIwIGMtMyAtNSAtNyAtMTEgLTcgLTIweiIgZmlsbD0iI2ExOTdmMCIvPgogIDwvZz4KPC9zdmc+">
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -200,6 +201,8 @@ kbd { font-family: var(--mono); font-size: 10.5px; border: 1px solid var(--line)
 .t-lin .n-box { fill: var(--lin-bg); stroke: var(--lin-bd); } .t-lin text { fill: var(--lin-ink); }
 .t-conv .n-box { fill: var(--conv-bg); stroke: var(--conv-bd); } .t-conv text { fill: var(--conv-ink); }
 .delay-link path { fill: none; stroke: var(--stream); stroke-width: 1.2; stroke-dasharray: 3 4; opacity: .38; } .delay-link.on path { opacity: .85; }
+.t-reshape .n-box { fill: var(--panel2); stroke: var(--faint); stroke-dasharray: 5 2.5; } .t-reshape text { fill: var(--ink); }
+.opmath .note { color: var(--ink); border-left: 2px solid var(--faint); padding-left: 8px; }
 .t-delay .n-box { fill: var(--stream-bg); stroke: var(--stream); stroke-dasharray: 4 2; } .t-delay text { fill: var(--stream); } .t-delay .clk { fill: none; stroke: var(--stream); stroke-width: 1.3; }
 .t-norm .n-box { fill: var(--norm-bg); stroke: var(--norm-bd); } .t-norm text { fill: var(--norm-ink); }
 .t-act .n-box { fill: var(--act-bg); stroke: var(--act-bd); } .t-act text { fill: var(--act-ink); }
@@ -240,6 +243,7 @@ kbd { font-family: var(--mono); font-size: 10.5px; border: 1px solid var(--line)
 .wpop .nm { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
 .wpop .nm input { width: 90px; text-align: left; }
 .wpop .acts { display: flex; gap: 6px; justify-content: flex-end; }
+.nick { fill: var(--blk-ink); font-size: 10.5px; font-family: var(--sans); font-weight: 600; letter-spacing: .01em; pointer-events: none; }
 .caption { fill: var(--muted); font-size: 11.5px; font-family: var(--sans); pointer-events: none; }
 .port { fill: var(--panel); stroke: var(--sel); stroke-width: 1.5; opacity: 0; cursor: crosshair; transition: opacity .12s; }
 .node:hover .port, .node.sel .port { opacity: 1; }
@@ -648,7 +652,15 @@ function clearSel() { S.sel.nodes.clear(); S.sel.edges.clear(); S.sel.group = nu
 
 // ── geometry ──
 const byId = id => S.g.nodes.find(n => n.id === id);
+// A nickname is a small top line inside the box (like a block's name); circles keep theirs beside them
+const NICK_H = 13;
+const nickInside = n => !!(n.params.title && !NN.isCircle(n) && n.type !== 'block');
 function sizeOf(n) {
+  const s = sizeOf0(n);
+  if (!nickInside(n)) return s;
+  return { w: Math.max(s.w, n.params.title.length * 6.3 + 22), h: s.h + NICK_H };
+}
+function sizeOf0(n) {
   const p = n.params;
   switch (n.type) {
     case 'linear': {
@@ -668,6 +680,7 @@ function sizeOf(n) {
     case 'embed': { const t = p.positions ? 'Position embedding' : 'Embedding', sub = dimText(p.num) + ' × ' + dimText(p.dim), il = subLabel(p, n); return { w: Math.max(t.length * 7.4, sub.length * 7, il.length * 6) + 30, h: il ? 52 : 40 }; }
     case 'loss': { const t = (NN.LOSSES[p.fn] || NN.LOSSES.cross_entropy).label, sub = lossSub(p); return { w: Math.max(150, t.length * 7.6 + 30, sub.length * 6.2 + 26), h: 42 }; }
     case 'heads': case 'merge': case 'transpose': case 'scale': case 'mask': case 'rope': return { w: Math.max(70, OP_LABEL[n.type](p).length * 7 + 24), h: 30 };
+    case 'reshape': { const a = reshapeFace(p), b = shapeChange(n); return { w: Math.max(90, a.length * 7.2, b.length * 6.6) + 26, h: b ? 40 : 30 }; }
     case 'func': {
       const f = funcFace(n);
       if (f && f.glyph) return { w: 48, h: 30 };
@@ -718,6 +731,29 @@ function flowDir(n) {
 const convTitle = p => (p.transposed ? `ConvT ${p.k}×${p.k}${/^\d+$/.test(String(p.stride)) ? ' ×' + p.stride : ' · ' + p.stride}` : `Conv ${p.k}×${p.k}${String(p.stride) === '1' ? '' : /^\d+$/.test(String(p.stride)) ? ' /' + p.stride : ' · ' + p.stride}`);
 // a custom op's label: its module, its function, or the tensor method without the dot (flatten)
 const funcLabel = p => (p.init ? p.init.replace(/\(.*$/, '') : String(p.fn || '').replace(/^\./, ''));
+function reshapeCodeOf(n) {
+  const x = S.info && S.info.shapes.get((S.info.ix.inKeys.get(n.id) || [])[0]);
+  try { return 'x' + NN.reshapeSteps(n.params, (x || []).length).map(s2 => NN.reshapeStepCode(s2, v => v)).join(''); } catch { return ''; }
+}
+// a constant beside its circle, compact: × (d/n_head)^-½
+function constLabel(p) {
+  const c = String(p.const).replace(/\s+/g, '').replace(/\*\*-0\.5$/, '^-½').replace(/\*\*0\.5$/, '^½').replace(/\*\*/g, '^');
+  const op = { '*': '×', '-': '−', '/': '÷' }[p.op] || p.op;
+  return p.rev ? `${c} ${op}` : `${op} ${c}`;
+}
+// A node's shape change as text: sizes without the batch (two equal trailing sizes of an image as n²); when that gets
+// long, sizes both sides share at the front become …
+function shapeChange(n) {
+  const info = typeof S !== 'undefined' && S.info, ix = info && info.ix; if (!ix || !info.shapes) return '';
+  const a = info.shapes.get((ix.inKeys.get(n.id) || [])[0]), b = info.shapes.get(n.id);
+  const dims = s => { if (!s) return null; let d = s.slice(); if (d.length && String(d[0]) === NN.BATCH) d = d.slice(1); return d.map(x => dimText(x)); };
+  const txt = d => { let t = d.slice(); if (t.length >= 3 && t[t.length - 1] === t[t.length - 2]) t = [...t.slice(0, -2), t[t.length - 1] + '²']; return t.join(' × ') || '1'; };
+  const A = dims(a), B = dims(b); if (!A || !B) return '';
+  const full = txt(A) + ' → ' + txt(B); if (full.length <= 22) return full;
+  let L = 0; while (L < Math.min(A.length, B.length) - 1 && A[L] === B[L]) L++;
+  return L ? '… × ' + txt(A.slice(L)) + ' → … × ' + txt(B.slice(L)) : full;
+}
+const reshapeFace = p => String(p.pattern || '').replace(/\s*->\s*|\s*→\s*/, ' → ').replace(/\.\.\./g, '…');
 // What a function node shows: the math glyph, or the op's name above the shape change (sizes without the batch, two
 // equal trailing sizes of an image as n²), or a plain name for the helpers. null: the function's own name.
 const REDUCE_RE = /(?:^|\.)(sum|mean)$/, RESHAPE_RE = /(?:^|\.)(flatten|unflatten|squeeze|unsqueeze)$/;
@@ -1341,7 +1377,7 @@ function render() {
         cls += ' t-op';
         const sym = { '+': '+', '*': '⊙', '-': '−', '/': '÷', '@': '@' }[p.op] || p.op;
         inner = `<circle class="n-box" cx="${n.x}" cy="${n.y}" r="${b.r}"/><text x="${n.x}" y="${n.y + (add ? 5 : 4.5)}" text-anchor="middle" font-size="${add ? 15 : 14}">${sym}</text>`;
-        if (p.const !== '' && p.const != null) inner += `<text class="caption mono" x="${n.x + 18}" y="${n.y + 4}">${esc(p.rev ? p.const + ' ' + p.op : p.op + ' ' + p.const)}</text>`;
+        if (p.const !== '' && p.const != null) inner += `<text class="caption mono" x="${n.x + 18}" y="${n.y + 4}">${esc(constLabel(p))}</text>`;
         break;
       }
       case 'embed': {
@@ -1357,6 +1393,13 @@ function render() {
         inner = `<rect class="n-box" x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="6"/>`
           + `<text x="${n.x}" y="${n.y - 3}" text-anchor="middle" font-size="12" font-weight="500">${esc((NN.LOSSES[p.fn] || NN.LOSSES.cross_entropy).label)}</text>`
           + `<text class="n-init" x="${n.x}" y="${n.y + 12}" text-anchor="middle">${esc(lossSub(p))}</text>`;
+        break;
+      }
+      case 'reshape': {
+        // a rearrangement: the pattern, and the sizes it turns into which
+        cls += ' t-reshape'; const a = reshapeFace(p), c = shapeChange(n);
+        inner = `<rect class="n-box" x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="6"/><text class="mono" x="${n.x}" y="${n.y + (c ? -2 : 4)}" text-anchor="middle" font-size="11.5">${esc(a)}</text>`
+          + (c ? `<text class="mono dimtxt" x="${n.x}" y="${n.y + 13}" text-anchor="middle" font-size="10">${esc(c)}</text>` : '');
         break;
       }
       case 'heads': case 'merge': case 'transpose': case 'scale': case 'mask': case 'rope':
@@ -1409,7 +1452,12 @@ function render() {
         break;
       }
     }
-    if (p.title) inner += cap(p.title);
+    if (p.title && nickInside(n)) {
+      // the contents move down below the nickname line; the box (first element) already has the full height
+      const m = /^(<rect class="n-box"[^>]*\/>)([\s\S]*)$/.exec(inner);
+      const nick = `<text class="nick" x="${n.x}" y="${b.y + 12}" text-anchor="middle">${esc(p.title)}</text>`;
+      inner = m ? m[1] + nick + `<g transform="translate(0 ${NICK_H / 2})">${m[2]}</g>` : inner + nick;
+    } else if (p.title) inner += cap(p.title);
     // frozen: a snowflake on the top-left corner (its weights get no updates)
     if (p.frozen && canFreeze(n)) inner += `<text class="frz" x="${b.x - 3}" y="${b.y + 7}" text-anchor="middle">❄<title>Frozen: its weights get no updates in training</title></text>`;
     if (sel) cls += ' sel'; if (bad) cls += ' bad'; if (cf) cls += ' conflict';
@@ -1529,6 +1577,11 @@ const sel = (k, v, opts) => `<select id="f-${k}" data-f="${k}">${opts.map(o => `
 // ── what an operation computes: a formula for math, a description for ops that only move values around ──
 // shown at the top of its details; sizes are the layer's own where that helps
 function opExplain(n) {
+  const h0 = opExplain0(n), note = n.params.note ? `<p class="note">${esc(n.params.note)}</p>` : '';
+  if (!note) return h0;
+  return h0 ? h0.replace(/<\/div>$/, note + '</div>') : `<div class="opmath">${note}</div>`;
+}
+function opExplain0(n) {
   const p = n.params, D = x => esc(dimText(x));
   const ix = S.info && S.info.ix, inSh = k => { const s = ix && (ix.inKeys.get(n.id) || [])[k]; return s ? S.info.shapes.get(s) : null; };
   const x0 = inSh(0), last = x0 && x0.length ? D(x0[x0.length - 1]) : 'd';
@@ -1574,6 +1627,19 @@ function opExplain(n) {
     }
     case 'heads': return box('(…, T, C) → (…, H, T, C/H)', `Reshape only: splits the ${last} features of each position into ${D(p.heads)} heads of ${last}/${D(p.heads)}, and moves the head axis before the positions so each head attends on its own. No values change.`);
     case 'merge': return box('(…, H, T, D) → (…, T, H·D)', 'Reshape only: puts the heads back side by side in the features of each position (the inverse of split heads). No values change.');
+    case 'reshape': {
+      let d = null; try { d = x0 && NN.reshapeDescribe(p, x0); } catch (e2) { return box(esc(reshapeFace(p)), `<span style="color:var(--bad)">${esc(e2.message)}</span>`); }
+      const nm = k => (k.startsWith('…') ? '' : k), sizeOf2 = v => esc(dimText(v));
+      const parts = [];
+      if (d) for (const it of d.said) {
+        if (it.k === 'split') parts.push(`splits ${nm(String(it.axis)) !== '' ? 'axis ' + (it.axis + 1) : ''} (${sizeOf2(it.D)}) into ${it.names.map((n2, j) => `${esc(n2)} = ${sizeOf2(it.parts[j])}`).join(' × ')}`);
+        if (it.k === 'merge') parts.push(`merges ${it.names.map(esc).join(' and ')} into one axis of ${it.parts.map(sizeOf2).join(' × ')}`);
+        if (it.k === 'new') parts.push(`adds an axis of size 1 (so it broadcasts against a tensor with a size there)`);
+        if (it.k === 'drop') parts.push(`removes an axis of size 1`);
+      }
+      if (d && d.moved) parts.push(`reorders the axes to ${d.after.map(esc).join(' ')}`);
+      return box(esc(reshapeFace(p)), `Rearranges the tensor: ${parts.length ? parts.join('; ') : 'leaves it as it is'}. No values change, only how they are arranged. In code: <span class="mono">${esc(reshapeCodeOf(n))}</span>.`);
+    }
     case 'transpose': return box('(…, a, b) → (…, b, a)', 'Swaps the last two sizes (kᵀ in attention, or patches × channels after a flatten). No values change, only their order.');
     case 'scale': return box('y = x / √d', `d is the last size (the head width). Keeps q · k from growing with d, so the softmax that follows doesn't saturate.`);
     case 'mask': return p.mode === 'given'
@@ -1696,7 +1762,7 @@ function renderInspector() {
   const p = n.params; let h = '';
   const errMsg = S.info.errors.get(n.id);
   const sh = S.info.shapes.get(n.id);
-  const titles = { embed: p.positions ? 'Position embedding' : 'Embedding', heads: 'Split heads', merge: 'Merge heads', transpose: 'Transpose', scale: 'Scale by 1/√d', conv: 'Convolution (2-D)', pool: 'Pooling', upsample: 'Upsample', delay: 'Delay', token: 'Learned token', select: 'Select a position', param: 'Parameter', conv1d: 'Causal convolution', noise: 'Noise', mask: 'Causal mask', rope: 'Rotary position embedding', loss: 'Loss', input: 'Input', output: 'Output', linear: 'Linear', norm: 'Normalization', act: 'Activation', binop: 'Elementwise op', dropout: 'Dropout', func: 'Custom op' };
+  const titles = { embed: p.positions ? 'Position embedding' : 'Embedding', reshape: 'Reshape', heads: 'Split heads', merge: 'Merge heads', transpose: 'Transpose', scale: 'Scale by 1/√d', conv: 'Convolution (2-D)', pool: 'Pooling', upsample: 'Upsample', delay: 'Delay', token: 'Learned token', select: 'Select a position', param: 'Parameter', conv1d: 'Causal convolution', noise: 'Noise', mask: 'Causal mask', rope: 'Rotary position embedding', loss: 'Loss', input: 'Input', output: 'Output', linear: 'Linear', norm: 'Normalization', act: 'Activation', binop: 'Elementwise op', dropout: 'Dropout', func: 'Custom op' };
   h += `<h4>${titles[n.type]}</h4>`;
   h += opExplain(n);
   switch (n.type) {
@@ -1793,6 +1859,12 @@ function renderInspector() {
     case 'heads':
       h += `<div class="sub">Reshapes ${esc('e × t × d')} into ${esc('e × heads × t × d/heads')} so each head attends separately. <span class="mono">split_heads(x, ${esc(dimText(p.heads))})</span></div>` + field('Heads', `<input type="number" min="1" id="f-esz-heads" data-esz="heads" value="${esc(NN.evalDim(p.heads, S.g.symbols) ?? '')}">`); break;
     case 'merge': h += `<div class="sub">Joins the heads back: e × heads × t × d/heads → e × t × d. <span class="mono">merge_heads(y)</span></div>`; break;
+    case 'reshape':
+      h += field('Pattern', txt('pattern', p.pattern, true, 'placeholder="e t (h d) -> e h t d"'))
+        + `<p class="hint">Name the axes before and after the arrow. <span class="mono">(h d)</span> is one axis made of two, <span class="mono">1</span> an axis of size 1, <span class="mono">...</span> any axes you don't name. Splitting, merging, reordering and adding or removing size-1 axes are all written this way.</p>`
+        + field('Sizes', txt('sizes', p.sizes, true, 'placeholder="h = n_head"'))
+        + `<p class="hint">For a split, the sizes of all but one part, e.g. <span class="mono">h = n_head</span>; the last is worked out.</p>`;
+      break;
     case 'transpose': h += `<div class="sub">Swaps the last two dimensions, e.g. turns K into Kᵀ for Q @ Kᵀ. <span class="mono">k.transpose(-2, -1)</span></div>`; break;
     case 'scale': h += `<div class="sub">Multiplies by 1/√(last size), the attention temperature. <span class="mono">q * q.size(-1) ** -0.5</span></div>`; break;
     case 'mask': h += (p.mode === 'given'
@@ -1833,7 +1905,8 @@ function renderInspector() {
   }
   h += followField(n);
   if (canFreeze(n) && !p.follows) h += field('Freeze ❄', `<input type="checkbox" id="f-frozen" data-f="frozen"${p.frozen ? ' checked' : ''}>`) + `<p class="hint" style="margin-top:-6px">${n.type === 'block' ? 'Every weight in this block use' : 'Its weights'} get no updates in training: <span class="mono">requires_grad_(False)</span>, left out of the optimizer. Gradients still pass through to the layers before it.</p>`;
-  h += field('Nickname', txt('title', p.title, false, 'placeholder="optional, shown beside it"'));
+  h += field('Nickname', txt('title', p.title, false, 'placeholder="optional, shown in the box"'));
+  h += field('Note', `<textarea data-f="note" rows="2" placeholder="optional: what this step is for, shown above">${esc(p.note || '')}</textarea>`);
   if (!['input', 'output', 'loss'].includes(n.type)) h += field('Variable', txt('var', p.var, true, 'placeholder="auto"'));
   const cf = S.info.conflicts.get(n.id), fixes = [];
   if (cf && (cf.kind === 'groups' || cf.kind === 'rank')) {
@@ -2626,7 +2699,7 @@ const COMP = [
     { k: 'pool:avg', label: 'Avg pool', sw: 'sw-op2', icon: '⊡', desc: 'Mean of each window', torch: 'F.avg_pool2d' },
     { k: 'pool:adaptive', label: 'Global avg pool', sw: 'sw-op2', icon: '⊙', desc: 'Averages each channel to one value (or a fixed size)', torch: 'F.adaptive_avg_pool2d' },
     { k: 'upsample', label: 'Upsample', sw: 'sw-op2', icon: '⤢', desc: 'Makes the image larger, e.g. 2× per side', torch: 'F.interpolate' },
-    { k: 'func:flatten', label: 'Flatten', sw: 'sw-op2', icon: '≡', desc: 'e × C × H × W → e × (C·H·W), before a Linear', torch: 'x.flatten(1)' } ] },
+    { k: 'reshape:flatten', label: 'Reshape: flatten', sw: 'sw-op2', icon: '⇄', desc: 'A Reshape e c h w → e (c h w): the image as one vector, before a Linear', torch: 'x.flatten(1)' } ] },
   { id: 'norms', label: 'Norms', items: [
     { k: 'norm:LayerNorm', label: 'LayerNorm', sw: 'sw-norm', icon: 'N', desc: 'Normalizes each example over its features', torch: 'nn.LayerNorm' },
     { k: 'norm:RMSNorm', label: 'RMSNorm', sw: 'sw-norm', icon: 'N', desc: 'LayerNorm without mean-centering or bias', torch: 'nn.RMSNorm' },
@@ -2659,15 +2732,16 @@ const COMP = [
       { k: 'binop:*', label: 'Multiply ⊙', sw: 'sw-op', icon: '⊙', desc: 'Elementwise product, e.g. a gate', torch: 'a * b' },
       { k: 'binop:-', label: 'Subtract', sw: 'sw-op', icon: '−', desc: 'a − b', torch: 'a - b' },
       { k: 'binop:/', label: 'Divide', sw: 'sw-op', icon: '÷', desc: 'a ÷ b', torch: 'a / b' },
+      { k: 'reshape', label: 'Reshape', sw: 'sw-op', icon: '⇄', desc: 'Rearranges a tensor\'s axes: split, merge, reorder, add or remove size-1 axes, written as a pattern (e t (h d) → e h t d). No values change', torch: 'unflatten / transpose / flatten / …' },
       { k: 'binop:@', label: 'Matmul @', sw: 'sw-op', icon: '@', desc: 'Multiplies two activations, e.g. attention scores. For a learned weight, use Linear', torch: 'a @ b' },
       { k: 'func:sum', label: 'Sum over axis', sw: 'sw-op', icon: 'Σ', desc: 'Adds up the values along one axis, which goes away (choose the axis in its details)', torch: 'x.sum(-1)' },
       { k: 'func:mean', label: 'Mean over axis', sw: 'sw-op', icon: 'x̄', desc: 'Averages the values along one axis, which goes away (choose the axis in its details)', torch: 'x.mean(-1)' },
       { k: 'func:exp', label: 'Exponential eˣ', sw: 'sw-op', icon: 'eˣ', desc: 'eˣ for each value; turns a value learned as a log back into a positive one', torch: 'torch.exp(x)' } ] },
     { label: 'Attention', items: [
-      { k: 'heads', label: 'Split heads', sw: 'sw-op2', icon: '⫼', desc: 'e × t × d → e × heads × t × d/heads', torch: 'unflatten + transpose' },
-      { k: 'merge', label: 'Merge heads', sw: 'sw-op2', icon: '⫴', desc: 'e × heads × t × d/heads → e × t × d', torch: 'transpose + flatten' },
-      { k: 'transpose', label: 'Transpose', sw: 'sw-op2', icon: 'ᵀ', desc: 'Swaps the last two dimensions (Kᵀ)', torch: 'x.transpose(-2, -1)' },
-      { k: 'scale', label: 'Scale 1/√d', sw: 'sw-op2', icon: '√', desc: 'Multiplies by 1/√(last size)', torch: 'x * x.size(-1) ** -0.5' },
+      { k: 'reshape:heads', label: 'Reshape: split heads', sw: 'sw-op2', icon: '⇄', desc: 'A Reshape e t (h d) → e h t d: each position\'s features cut into h heads, the head axis moved in front', torch: 'x.unflatten(-1, (h, -1)).transpose(1, 2)' },
+      { k: 'reshape:merge', label: 'Reshape: merge heads', sw: 'sw-op2', icon: '⇄', desc: 'A Reshape e h t d → e t (h d): the inverse of split heads', torch: 'x.transpose(1, 2).flatten(2)' },
+      { k: 'reshape:swap', label: 'Reshape: swap last two', sw: 'sw-op2', icon: '⇄', desc: 'A Reshape … a b → … b a, e.g. Kᵀ', torch: 'x.transpose(-2, -1)' },
+      { k: 'binop:scale', label: 'Multiply: 1/√(head width)', sw: 'sw-op2', icon: '√', desc: 'A Multiply by the constant (d / n_head) ** -0.5, with a note on why: it keeps q · k from growing with the head width', torch: 'q * (d / n_head) ** -0.5' },
       { k: 'mask', label: 'Causal mask', sw: 'sw-op2', icon: '◣', desc: 'Hides future positions from attention', torch: 'masked_fill(…, -inf)' },
       { k: 'rope', label: 'Rotary (RoPE)', sw: 'sw-op2', icon: '↻', desc: 'Rotary position embedding for q and k, as in Llama', torch: 'apply_rope(q)' },
       { k: 'mask:given', label: 'Attention mask', sw: 'sw-op2', icon: '▦', desc: 'Scores become −inf where the mask on input 2 is False', torch: 'masked_fill(~allowed, -inf)' },
@@ -2743,6 +2817,10 @@ function addFromPalette(k, x, y) {
   const params = {};
   if (type === 'act') params.fn = sub;
   if (type === 'binop') params.op = sub;
+  if (type === 'binop' && sub === 'scale') {
+    Object.assign(params, { op: '*', const: '(d / n_head) ** -0.5', note: 'Keeps the attention scores from growing with the head width. Each score q · k adds up one product per feature of the head; with q and k of variance about 1, that sum has variance equal to the head width. Multiplying by 1/√(head width) brings it back to about 1, so the softmax stays smooth instead of putting nearly all the weight on one key.' });
+    if (S.g.symbols.d == null) S.g.symbols.d = 256; if (S.g.symbols.n_head == null) S.g.symbols.n_head = 8;
+  }
   if (type === 'func' && sub === 'cat') Object.assign(params, { fn: 'torch.cat', extra: 'dim=-1', n: 2 });
   if (type === 'func' && NN.HELPER_OPS[sub]) Object.assign(params, { fn: sub }, NN.HELPER_OPS[sub].defaults);
   if ((type === 'rope' || type === 'mask') && sub) params.mode = sub;
@@ -2760,6 +2838,11 @@ function addFromPalette(k, x, y) {
   if (type === 'pool' && sub) params.kind = sub;
   if (type === 'delay') { const used = new Set(S.g.nodes.filter(z => z.type === 'delay').map(z => z.params.name)); let nm = used.has('h') ? (used.has('c') ? 'h2' : 'c') : 'h', k = 2; while (used.has(nm)) nm = 'h' + ++k; params.name = nm; }
   if (type === 'func' && sub === 'flatten') Object.assign(params, { fn: '.flatten', extra: '1', n: 1 });
+  if (type === 'reshape') {
+    const pre = { heads: ['e t (h d) -> e h t d', 'h=n_head', 'split heads'], merge: ['e h t d -> e t (h d)', '', 'merge heads'], swap: ['... a b -> ... b a', '', ''], flatten: ['e c h w -> e (c h w)', '', ''] }[sub] || ['... a b -> ... b a', '', ''];
+    Object.assign(params, { pattern: pre[0], sizes: pre[1], title: pre[2] });
+    if (sub === 'heads' && S.g.symbols.n_head == null) S.g.symbols.n_head = 8;
+  }
   if (type === 'func' && (sub === 'sum' || sub === 'mean')) Object.assign(params, { fn: '.' + sub, extra: '-1', n: 1 });
   if (type === 'func' && sub === 'exp') Object.assign(params, { fn: 'torch.exp', extra: '', n: 1 });
   if (type === 'input') { params.name = S.g.nodes.some(n => n.type === 'input') ? 'x' + (S.g.nodes.filter(n => n.type === 'input').length + 1) : 'x'; if (S.g.symbols.d_in == null) S.g.symbols.d_in = 784; }
@@ -3935,6 +4018,7 @@ function varDataSizes(root) {
   for (const n of flat.nodes) {
     if (n.type === 'input') NN.parseShape(n.params.shape).forEach(d => NN.identsIn(d).forEach(x => inSyms.add(x)));
     else for (const k of ['in', 'out', 'dim', 'num', 'heads', 'groups']) if (n.params[k] != null) NN.identsIn(n.params[k]).forEach(x => used.add(x));
+    if (n.type === 'reshape') { try { Object.values(NN.parseSizes(n.params.sizes)).forEach(v => NN.identsIn(v).forEach(x => used.add(x))); } catch { /* bad sizes */ } }
   }
   return [...inSyms].filter(x => x !== NN.BATCH && !used.has(x) && flat.symbols[x] != null);
 }
