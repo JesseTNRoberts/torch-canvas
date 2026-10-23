@@ -199,6 +199,7 @@ kbd { font-family: var(--mono); font-size: 10.5px; border: 1px solid var(--line)
 .n-box { stroke-width: 1.2; }
 .t-lin .n-box { fill: var(--lin-bg); stroke: var(--lin-bd); } .t-lin text { fill: var(--lin-ink); }
 .t-conv .n-box { fill: var(--conv-bg); stroke: var(--conv-bd); } .t-conv text { fill: var(--conv-ink); }
+.delay-link path { fill: none; stroke: var(--stream); stroke-width: 1.2; stroke-dasharray: 3 4; opacity: .38; } .delay-link.on path { opacity: .85; }
 .t-delay .n-box { fill: var(--stream-bg); stroke: var(--stream); stroke-dasharray: 4 2; } .t-delay text { fill: var(--stream); } .t-delay .clk { fill: none; stroke: var(--stream); stroke-width: 1.3; }
 .t-norm .n-box { fill: var(--norm-bg); stroke: var(--norm-bd); } .t-norm text { fill: var(--norm-ink); }
 .t-act .n-box { fill: var(--act-bg); stroke: var(--act-bd); } .t-act text { fill: var(--act-ink); }
@@ -667,7 +668,13 @@ function sizeOf(n) {
     case 'embed': { const t = p.positions ? 'Position embedding' : 'Embedding', sub = dimText(p.num) + ' × ' + dimText(p.dim), il = subLabel(p, n); return { w: Math.max(t.length * 7.4, sub.length * 7, il.length * 6) + 30, h: il ? 52 : 40 }; }
     case 'loss': { const t = (NN.LOSSES[p.fn] || NN.LOSSES.cross_entropy).label, sub = lossSub(p); return { w: Math.max(150, t.length * 7.6 + 30, sub.length * 6.2 + 26), h: 42 }; }
     case 'heads': case 'merge': case 'transpose': case 'scale': case 'mask': case 'rope': return { w: Math.max(70, OP_LABEL[n.type](p).length * 7 + 24), h: 30 };
-    case 'func': { const t = funcLabel(p); return { w: Math.max(80, t.length * 7.2 + 24), h: 32 }; }
+    case 'func': {
+      const f = funcFace(n);
+      if (f && f.glyph) return { w: 48, h: 30 };
+      if (f && f.title) return { w: Math.max(80, f.title.length * 7.4, f.sub.length * 6.6) + 26, h: 40 };
+      if (f && f.line) return { w: Math.max(80, f.line.length * 6.9 + 24), h: 30 };
+      const t = funcLabel(p); return { w: Math.max(80, t.length * 7.2 + 24), h: 32 };
+    }
     case 'block': {
       const t = blockTexts(n), w = Math.max(124, t.title.length * 7.8, t.io.length * 7, t.args.length * 6.2) + 30, h = t.args ? 54 : 42;
       // repeated copies are tiled along the flow, so the box grows in that direction
@@ -711,6 +718,43 @@ function flowDir(n) {
 const convTitle = p => (p.transposed ? `ConvT ${p.k}×${p.k}${/^\d+$/.test(String(p.stride)) ? ' ×' + p.stride : ' · ' + p.stride}` : `Conv ${p.k}×${p.k}${String(p.stride) === '1' ? '' : /^\d+$/.test(String(p.stride)) ? ' /' + p.stride : ' · ' + p.stride}`);
 // a custom op's label: its module, its function, or the tensor method without the dot (flatten)
 const funcLabel = p => (p.init ? p.init.replace(/\(.*$/, '') : String(p.fn || '').replace(/^\./, ''));
+// What a function node shows: the math glyph, or the op's name above the shape change (sizes without the batch, two
+// equal trailing sizes of an image as n²), or a plain name for the helpers. null: the function's own name.
+const REDUCE_RE = /(?:^|\.)(sum|mean)$/, RESHAPE_RE = /(?:^|\.)(flatten|unflatten|squeeze|unsqueeze)$/;
+const PLAIN_HELPERS = { vision_positions: 'patch (row, col)', vision_window_index: 'window order', window_order: 'sort into windows', window_restore: 'undo window sort',
+  vision_window_mask: 'attend within window', vision_frame_mask: 'attend within frame', mrope_positions: 'M-RoPE positions (t, h, w)', place_tokens: 'image tokens → text' };
+function funcFace(n) {
+  const p = n.params, fn = String(p.fn || ''), ex = String(p.extra || '').trim();
+  if (p.init) return null;
+  const info = typeof S !== 'undefined' && S.info, ix = info && info.ix;
+  const inS = k => { const key = ix && (ix.inKeys.get(n.id) || [])[k]; return key && info.shapes ? info.shapes.get(key) : null; };
+  const outS = info && info.shapes ? info.shapes.get(n.id) : null;
+  const sh = (s, tight) => {
+    if (!s) return '?';
+    let d = s.slice(); if (d.length && String(d[0]) === NN.BATCH) d = d.slice(1);
+    let t = d.map(x => dimText(x)); if (t.length >= 3 && t[t.length - 1] === t[t.length - 2]) t = [...t.slice(0, -2), t[t.length - 1] + '²'];
+    return t.join(tight ? '×' : ' × ') || '1';
+  };
+  // before → after; when that gets long, sizes both share at the front (like the sequence length) become …
+  const dims = s => { if (!s) return null; let d = s.slice(); if (d.length && String(d[0]) === NN.BATCH) d = d.slice(1); return d.map(x => dimText(x)); };
+  const change = (a, b) => {
+    const A = dims(a), B = dims(b); if (!A || !B) return sh(a) + ' → ' + sh(b);
+    const txt = d => { let t = d.slice(); if (t.length >= 3 && t[t.length - 1] === t[t.length - 2]) t = [...t.slice(0, -2), t[t.length - 1] + '²']; return t.join(' × ') || '1'; };
+    let full = txt(A) + ' → ' + txt(B); if (full.length <= 22) return full;
+    let L = 0; while (L < Math.min(A.length, B.length) - 1 && A[L] === B[L]) L++;
+    return L ? '… × ' + txt(A.slice(L)) + ' → … × ' + txt(B.slice(L)) : full;
+  };
+  if (/(?:^|\.)exp$/.test(fn)) return { glyph: 'exp' };
+  let m = fn.match(RESHAPE_RE); if (m) return { title: m[1], sub: change(inS(0), outS) };
+  m = fn.match(REDUCE_RE);
+  if (m) { const ax = (ex.match(/-?\d+/) || ['?'])[0].replace('-', '−'); return { title: (m[1] === 'sum' ? 'Σ' : 'mean') + ' over axis ' + ax, sub: change(inS(0), outS) }; }
+  if (/(?:^|\.)(cat|concat|concatenate)$/.test(fn)) return { line: [...Array(Math.max(1, +p.n || 1)).keys()].map(i => sh(inS(i), true)).join(' ‖ ') + ' → ' + sh(outS, true) };
+  if (fn === 'take_positions' || fn === 'last_positions') return { title: fn.replace('_', ' '), sub: change(inS(0), outS) };
+  if (fn === 'sinusoidal_pe') return { title: 'sin/cos positions', sub: sh(outS) };
+  if (fn === 'sinusoidal_positions') return { line: '+ sin/cos positions' };
+  if (PLAIN_HELPERS[fn]) return { line: PLAIN_HELPERS[fn] };
+  return null;
+}
 const OP_LABEL = {
   delay: p => `delay · ${p.name || 'h'}`,
   token: p => `+ ${p.name || 'token'}${String(p.n) === '1' ? '' : ' × ' + dimText(p.n)}`,
@@ -843,6 +887,13 @@ function ioText(n) {
   return `${nm}  ${sh ? shapeText(sh) : ''}`;
 }
 const box = n => { const s = sizeOf(n); return { x: n.x - s.w / 2, y: n.y - s.h / 2, w: s.w, h: s.h, r: s.w / 2 }; };
+// A Delay can be drawn split, like one step of a textbook RNN cell: the node itself is the state coming in from the
+// last step (h_{t-1}), and a second tab elsewhere (params.split = {x, y, lane}) is where the new state leaves
+// (h_t). A faint wire joins them. Only the drawing changes; the graph and the code are the same.
+const splitOf = n => (n && n.type === 'delay' && n.params.split && typeof n.params.split === 'object' ? n.params.split : null);
+const splitTab = n => { const sp = splitOf(n); return sp ? Object.assign({}, n, { x: sp.x, y: sp.y }) : n; };
+const SUB_T = { prev: 'ₜ₋₁', cur: 'ₜ' };
+const p_name = n => n.params.name || 'h';
 // A block can have several outputs; output k leaves from its own dot along the top edge.
 const nOutOf = n => (n && n.type === 'block' ? Math.max(1, +n.params.nOut || 1) : 1);
 function outX(n, k) { const m = nOutOf(n); if (m < 2) return n.x; const sp = Math.min(44, (box(n).w - 28) / (m - 1)); return n.x + ((k || 0) - (m - 1) / 2) * sp; }
@@ -888,13 +939,13 @@ function drawFrom(e) {
   return (o && byId(o.to)) || s;
 }
 function baseRoute(e) {
-  let s = drawFrom(e); const t = byId(e.to); if (!s || !t) return null;
+  let s = drawFrom(e); const t = splitTab(byId(e.to)); if (!s || !t) return null;
   if (nOutOf(s) > 1) s = Object.assign({}, s, { x: outX(s, e.out) }); // leave from this output's dot
   const A = box(s), B = box(t);
   const pts = [];
   // Lane route: the target sits well below the source and its own outputs flow upward (like the entry Norm of a
   // residual branch). A direct line would cut through that branch, so go around its left side and come in from below.
-  const upward = t.type !== 'binop' && t.y > s.y + 40 && (S.info.ix.outs.get(t.id) || []).some(o => { const c = byId(o.to); return c && c.y < t.y - 10; });
+  const upward = t.type !== 'binop' && !splitOf(t) && t.y > s.y + 40 && (S.info.ix.outs.get(t.id) || []).some(o => { const c = byId(o.to); return c && c.y < t.y - 10; });
   if (upward) {
     let left = B.x;
     for (const m of S.g.nodes) {
@@ -986,6 +1037,7 @@ function autoRoute(e) {
 }
 function routeAll() {
   const boxes = S.g.nodes.map(n => ({ id: n.id, b: box(n) }));
+  for (const n of S.g.nodes) if (splitOf(n)) boxes.push({ id: n.id, b: box(splitTab(n)) });
   const hits = (P, e) => { const d = drawFrom(e).id; let c = 0; for (let i = 1; i < P.length; i++) for (const { id, b } of boxes) if (id !== e.from && id !== d && id !== e.to && segHitsBox(P[i - 1], P[i], b)) c++; return c; };
   const map = new Map();
   for (const e of S.g.edges) {
@@ -1211,14 +1263,22 @@ function render() {
     const o = tieOf(n) || fo; if (!o) continue;
     // a lane left of everything between the two layers (nickname captions included), entering each box near its top
     const A = box(o), B = box(n), y0 = Math.min(A.y, B.y), y1 = Math.max(A.y + A.h, B.y + B.h);
+    // dragged lanes are kept in params.tie_x; a lane right of both layers attaches to their right sides
     let lane = Infinity;
-    for (const m of S.g.nodes) { const q = box(m); if (q.y + q.h < y0 || q.y > y1) continue; const cw = m.params.title ? 8 + m.params.title.length * 6.6 : 0; lane = Math.min(lane, q.x - cw); }
-    lane -= 16;
-    const ya = A.y + 7, yb = B.y + 7;
-    const d = finish([[A.x, ya], [lane, ya], [lane, yb], [B.x, yb]]).d;
+    if (Number.isFinite(+n.params.tie_x) && n.params.tie_x !== '' && n.params.tie_x != null) lane = +n.params.tie_x;
+    else { for (const m of S.g.nodes) { const q = box(m); if (q.y + q.h < y0 || q.y > y1) continue; const cw = m.params.title ? 8 + m.params.title.length * 6.6 : 0; lane = Math.min(lane, q.x - cw); } lane -= 16; }
+    const ya = A.y + 7, yb = B.y + 7, right = lane > (o.x + n.x) / 2;
+    const d = finish([[right ? A.x + A.w : A.x, ya], [lane, ya], [lane, yb], [right ? B.x + B.w : B.x, yb]]).d;
     const on = S.sel.nodes.has(n.id) || S.sel.nodes.has(o.id);
-    const tip = fo ? `${tieName(n)} follows ${tieName(o)}: an EMA copy that gets no gradients, moved toward it after each training step (momentum ${n.params.momentum ?? '0.996'} → ${n.params.momentum_end ?? '1.0'}). Click to change.` : `${tieName(n)} shares its weights with ${tieName(o)}. Click to change.`;
-    eh += `<g class="tie-link${fo ? ' follow' : ''}${on ? ' on' : ''}" data-tielink="${n.id}"><path class="hit" d="${d}"/><path d="${d}"/><title>${esc(tip)}</title><text x="${lane - 4}" y="${(ya + yb) / 2}" text-anchor="end">${fo ? 'follows · EMA' : 'tied'}</text></g>`;
+    const tip = fo ? `${tieName(n)} follows ${tieName(o)}: an EMA copy that gets no gradients, moved toward it after each training step (momentum ${n.params.momentum ?? '0.996'} → ${n.params.momentum_end ?? '1.0'}). Click to change; drag to move the line.` : `${tieName(n)} shares its weights with ${tieName(o)}. Click to change; drag to move the line, double-click to put it back.`;
+    eh += `<g class="tie-link${fo ? ' follow' : ''}${on ? ' on' : ''}" data-tielink="${n.id}" data-lane="${lane}"><path class="hit" d="${d}"/><path d="${d}"/><title>${esc(tip)}</title><text x="${right ? lane + 4 : lane - 4}" y="${(ya + yb) / 2}" text-anchor="${right ? 'start' : 'end'}">${fo ? 'follows · EMA' : 'tied'}</text></g>`;
+  }
+  for (const n of S.g.nodes) {
+    const sp = splitOf(n); if (!sp) continue;
+    const A = box(splitTab(n)), B = box(n), below = sp.lane !== 'above', ax = A.x + A.w, bx = B.x;
+    const ly = below ? Math.max(A.y + A.h, B.y + B.h) + 22 : Math.min(A.y, B.y) - 22, x1 = ax + 14, x0 = bx - 14;
+    const pts = [[ax, sp.y], [x1, sp.y], [x1, ly], [x0, ly], [x0, n.y], [bx, n.y]];
+    eh += `<g class="delay-link${S.sel.nodes.has(n.id) ? ' on' : ''}"><path d="${finish(pts).d}" marker-end="url(#ar)"/><title>${esc(p_name(n))}${SUB_T.cur} becomes ${esc(p_name(n))}${SUB_T.prev} at the next step</title></g>`;
   }
   $('#gEdges').innerHTML = eh;
   // nodes
@@ -1246,7 +1306,11 @@ function render() {
       case 'delay':
         // a clock face: the value from one step earlier
         cls += ' t-delay';
-        inner = `<rect class="n-box" x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="6"/><circle class="clk" cx="${b.x + 13}" cy="${n.y}" r="6"/><path class="clk" d="M${b.x + 13},${n.y - 3.5} V${n.y} L${b.x + 15.5},${n.y + 1.5}"/><text class="mono" x="${n.x + 8}" y="${n.y + 4}" text-anchor="middle" font-size="11.5">${esc(OP_LABEL.delay(p))}</text>`;
+        { const clock = (bb, y) => `<circle class="clk" cx="${bb.x + 13}" cy="${y}" r="6"/><path class="clk" d="M${bb.x + 13},${y - 3.5} V${y} L${bb.x + 15.5},${y + 1.5}"/>`;
+          const sp = splitOf(n), subTxt = sub => `${esc(p_name(n))}<tspan dy="3.5" font-size="9.5">${sub}</tspan>`;
+          inner = `<rect class="n-box" x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="6"/>${clock(b, n.y)}<text class="mono" x="${n.x + 8}" y="${n.y + 4}" text-anchor="middle" font-size="${sp ? 13 : 11.5}">${sp ? subTxt('t−1') : esc(OP_LABEL.delay(p))}</text>`;
+          if (sp) { const T = splitTab(n), tb = box(T);
+            nh += `<g class="node t-delay split-in${sel ? ' sel' : ''}" data-node="${n.id}" data-splitin="${n.id}"><rect class="n-box" x="${tb.x}" y="${tb.y}" width="${tb.w}" height="${tb.h}" rx="6"/>${clock(tb, T.y)}<text class="mono" x="${T.x + 8}" y="${T.y + 4}" text-anchor="middle" font-size="13">${subTxt('t')}</text><title>The new ${esc(p_name(n))}, passed on to the next step (drag to move this tab)</title></g>`; } }
         break;
       case 'conv1d':
         cls += ' t-conv';
@@ -1301,8 +1365,10 @@ function render() {
         break;
       case 'func': {
         cls += ' t-func';
-        const t = funcLabel(p);
-        inner = `<rect class="n-box" x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="6"/><text class="mono" x="${n.x}" y="${n.y + 4}" text-anchor="middle" font-size="11.5">${esc(t)}</text>`;
+        const f = funcFace(n), rect = `<rect class="n-box" x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="6"/>`;
+        if (f && f.glyph) inner = rect + `<text x="${n.x - 2}" y="${n.y + 5}" text-anchor="middle" font-size="15" font-style="italic">e<tspan dy="-7" font-size="10.5">x</tspan></text>`;
+        else if (f && f.title) inner = rect + `<text x="${n.x}" y="${n.y - 3}" text-anchor="middle" font-size="12">${esc(f.title)}</text><text class="mono dimtxt" x="${n.x}" y="${n.y + 12}" text-anchor="middle" font-size="10.5">${esc(f.sub)}</text>`;
+        else inner = rect + `<text class="mono" x="${n.x}" y="${n.y + 4}" text-anchor="middle" font-size="11.5">${esc(f && f.line ? f.line : funcLabel(p))}</text>`;
         break;
       }
       case 'block': {
@@ -1543,11 +1609,12 @@ function opExplain(n) {
       if (/(^|\.)unsqueeze$/.test(fn)) return box(`adds a size-1 axis at dim ${esc(ex)}`, 'Reshape only: lets this tensor broadcast against one with a size there (e.g. one value per unit, repeated along the state).');
       if (/(^|\.)squeeze$/.test(fn)) return box(`removes the size-1 axis at dim ${esc(ex)}`, 'Reshape only. No values change.');
       if (/(^|\.)(sum|mean)$/.test(fn)) return box(`y = ${/sum$/.test(fn) ? 'Σ' : 'mean'} over dim ${esc(ex)}`, `${/sum$/.test(fn) ? 'Adds up' : 'Averages'} the values along that axis, which goes away.`);
-      if (/(^|\.)exp$/.test(fn)) return box('y = e<sup>x</sup>', ew);
+      if (/(^|\.)exp$/.test(fn)) return box('y = e<sup>x</sup>', 'For each value on its own. Usually undoes a log: a value learned as a log (any real number, easy to learn) comes back positive, e.g. a standard deviation from a log-variance.');
       if (/(^|\.)(cat|concat|concatenate)$/.test(fn)) return box(`y = [a ; b] along ${esc(ex || 'dim=0')}`, 'Joins the inputs end to end along that axis; every other size must match. No values change.');
       if (/(^|\.)stack$/.test(fn)) return box(`y = stack along ${esc(ex || 'dim=0')}`, 'Puts same-shaped inputs together along a new axis.');
       if (/(^|\.)(matmul|mm|bmm)$/.test(fn)) return box('Y = A @ B', 'Matrix product over the last two sizes.');
       if (/(^|\.)repeat_interleave$/.test(fn)) return box('', `Repeats each entry along an axis (${esc(ex)}), e.g. one key/value head shared by several query heads.`);
+      if (fn === 'sinusoidal_pe') return box('PE(t, 2i) = sin(t / 10000<sup>2i/d</sup>),  PE(t, 2i+1) = cos(t / 10000<sup>2i/d</sup>)', 'The fixed position table of the original Transformer: each pair of features is a sine and cosine of the position at its own frequency, so nearby positions get similar codes. Only the input\'s sizes are used; no weights, no gradient. A + after it adds it to the embeddings.');
       if (fn === 'sinusoidal_positions') return box('y = x + PE,  PE(t, 2i) = sin(t / 10000<sup>2i/d</sup>),  PE(t, 2i+1) = cos(…)', 'Adds the fixed position encoding of the original Transformer: each feature pair is a sine and cosine of the position at its own frequency. No weights.');
       if (fn === 'take_positions') return box('y[b, k] = x[b, idx[b, k]]', 'Gathers, for each example, the positions listed in the index input (input 2), in that order: K of the N positions. A (1, N, d) table is shared by every example. I-JEPA picks its context and target patches this way.');
       if (fn === 'last_positions') return box('y = x[:, N − K :]', 'Keeps the last K positions of the sequence, K being the length of input 2: what came of tokens that were appended at the end.');
@@ -1677,7 +1744,10 @@ function renderInspector() {
       break;
     case 'delay':
       h += `<div class="sub">Passes on what it received one time step earlier: out[:, t] = in[:, t − 1], zeros at the first step. A loop through a Delay is a recurrence (an RNN): the code runs it as a for loop over time, with this as the state carried from step to step.</div>`
-        + field('State name', txt('name', p.name, true, 'placeholder="h"')) + `<p class="hint">The variable that holds it in the code, e.g. h or c.</p>`;
+        + field('State name', txt('name', p.name, true, 'placeholder="h"')) + `<p class="hint">The variable that holds it in the code, e.g. h or c.</p>`
+        + field('Split in / out', `<input type="checkbox" data-f="split"${splitOf(n) ? ' checked' : ''}>`)
+        + (splitOf(n) ? field('Return wire', sel('split_lane', p.split.lane === 'above' ? 'above' : 'below', [['below', 'Below'], ['above', 'Above']])) : '')
+        + `<p class="hint">Draws it like one step of a textbook cell: ${esc(p_name(n) + SUB_T.prev)} comes in where this node is, ${esc(p_name(n) + SUB_T.cur)} leaves at a second tab you can drag anywhere, and a faint wire joins the two. Only the drawing changes.</p>`;
       break;
     case 'token':
       h += `<div class="sub">Puts learned vectors in front of the sequence, the same for every example (ViT's and BERT's class token): <span class="mono">torch.cat([token.expand(e, −1, −1), x], dim=1)</span>. Starts at zeros.</div>`
@@ -1748,7 +1818,14 @@ function renderInspector() {
       + field('Base', txt('base', p.base, true, 'placeholder="10000"'))
       + (p.mode === 'mrope' ? field('Sections', txt('sections', p.sections, true, 'placeholder="16, 24, 24"')) + `<p class="hint">Feature pairs per section; together half the head width.</p>` : ''); break;
     case 'dropout': h += field('p', `<input type="number" id="f-p" data-f="p" step="0.05" min="0" max="1" value="${esc(p.p)}">`) + field('Attribute', txt('name', p.name)); break;
-    case 'func': h += (NN.HELPER_OPS[p.fn] ? `<div class="sub">${esc(NN.helperDoc(p.fn))} Written as a helper function above the classes.</div>` : '') + field('Function', txt('fn', p.fn)) + field('Extra args', txt('extra', p.extra)) + field('Inputs', `<input type="number" id="f-n" data-f="n" min="1" max="8" value="${esc(p.n)}">`) + field('Module init', txt('init', p.init, true, 'placeholder="nn.Conv1d(…)"')) + field('Attribute', txt('name', p.name)); break;
+    case 'func': if (REDUCE_RE.test(String(p.fn || '')) && !p.init) {
+        const m = /^\s*(?:dim\s*=\s*)?(-?\d+)\s*(?:,\s*keepdim\s*=\s*(True|False))?\s*$/.exec(String(p.extra || '')), sh = (S.info.shapes.get((S.info.ix.inKeys.get(n.id) || [])[0]) || []);
+        const axes = sh.map((d, i) => [String(i - sh.length), `${i - sh.length}  (${i === 0 && String(d) === NN.BATCH ? 'batch' : dimText(d)})`]).reverse();
+        h += field('Axis', m && axes.length ? sel('axis', m[1], axes.some(a => a[0] === m[1]) ? axes : axes.concat([[m[1], m[1]]])) : txt('extra', p.extra))
+          + field('Keep the axis', `<input type="checkbox" data-f="keepdim"${m && m[2] === 'True' ? ' checked' : ''}>`) + `<p class="hint">Kept as size 1, so the result still broadcasts against the input.</p>`
+          + field('Attribute', txt('name', p.name)); break;
+      }
+      h += (NN.HELPER_OPS[p.fn] ? `<div class="sub">${esc(NN.helperDoc(p.fn))} Written as a helper function above the classes.</div>` : '') + field('Function', txt('fn', p.fn)) + field('Extra args', txt('extra', p.extra)) + field('Inputs', `<input type="number" id="f-n" data-f="n" min="1" max="8" value="${esc(p.n)}">`) + field('Module init', txt('init', p.init, true, 'placeholder="nn.Conv1d(…)"')) + field('Attribute', txt('name', p.name)); break;
   }
   h += followField(n);
   if (canFreeze(n) && !p.follows) h += field('Freeze ❄', `<input type="checkbox" id="f-frozen" data-f="frozen"${p.frozen ? ' checked' : ''}>`) + `<p class="hint" style="margin-top:-6px">${n.type === 'block' ? 'Every weight in this block use' : 'Its weights'} get no updates in training: <span class="mono">requires_grad_(False)</span>, left out of the optimizer. Gradients still pass through to the layers before it.</p>`;
@@ -1806,6 +1883,13 @@ function renderInspector() {
         return;
       }
       if (f === 'tie') { setTie(n, v); return; }
+      if (f === 'axis' || f === 'keepdim') {
+        const m = /^\s*(?:dim\s*=\s*)?(-?\d+)\s*(?:,\s*keepdim\s*=\s*(True|False))?\s*$/.exec(String(p.extra || '')) || [null, '-1', null];
+        const ax = f === 'axis' ? v : m[1], keep = f === 'keepdim' ? v : m[2] === 'True';
+        p.extra = ax + (keep ? ', keepdim=True' : ''); return;
+      }
+      if (f === 'split') { if (v) p.split = { x: n.x + 240, y: n.y, lane: 'below' }; else delete p.split; return; }
+      if (f === 'split_lane') { if (p.split) p.split.lane = v; return; }
       if (f === 'follows') { if (v) { p.follows = v; if (p.momentum == null) p.momentum = '0.996'; if (p.momentum_end == null) p.momentum_end = '1.0'; delete p.frozen; } else { delete p.follows; delete p.momentum; delete p.momentum_end; } return; }
       if (n.type === 'loss' && (f === 'fn' || f === 'mode')) { p[f] = v; fitLossTarget(n); return; }
       if (f === 'init' || f === 'init_arg' || f === 'zero_bias') {
@@ -2037,8 +2121,9 @@ function toWorld(cx, cy) { const r = svg.getBoundingClientRect(); return [(cx - 
 function fit() {
   if (!S.g.nodes.length) { S.view = { x: 40, y: 40, k: 1 }; render(); return; }
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-  for (const n of S.g.nodes) { const b = box(n); x0 = Math.min(x0, b.x - 70); y0 = Math.min(y0, b.y - 20); x1 = Math.max(x1, b.x + b.w + 20); y1 = Math.max(y1, b.y + b.h + 30); }
+  for (const n of [...S.g.nodes, ...S.g.nodes.filter(splitOf).map(splitTab)]) { const b = box(n); x0 = Math.min(x0, b.x - 70); y0 = Math.min(y0, b.y - 20); x1 = Math.max(x1, b.x + b.w + 20); y1 = Math.max(y1, b.y + b.h + 30); }
   for (const g of S.g.groups) { const b = groupBox(g); if (b) { x0 = Math.min(x0, b.x - 20); y1 = Math.max(y1, b.y + b.h + 10); } }
+  for (const e of S.g.edges) if (e.route && Array.isArray(e.route.pts)) for (const [x, y] of e.route.pts) { x0 = Math.min(x0, x - 20); x1 = Math.max(x1, x + 20); y0 = Math.min(y0, y - 20); y1 = Math.max(y1, y + 20); }
   const r = svg.getBoundingClientRect(); const pad = 30;
   const k = Math.min(1.6, (r.width - pad * 2) / (x1 - x0), (r.height - pad * 2 - 30) / (y1 - y0));
   S.view.k = Math.max(0.2, k);
@@ -2075,7 +2160,11 @@ svg.addEventListener('pointerdown', e => {
   const pt = toWorld(e.clientX, e.clientY);
   const dimT = t.closest('[data-dimedge]'), out = t.closest('[data-out]'), nodeT = t.closest('[data-node]'), edgeT = t.closest('[data-edge]'), gT = t.closest('[data-glabel]');
   const linT = t.closest('[data-lindim]'), tieT = t.closest('[data-tielink]');
-  if (tieT) { clearSel(); S.sel.nodes.add(tieT.dataset.tielink); selectionChanged(); e.stopPropagation(); return; }
+  if (tieT) {
+    const n = byId(tieT.dataset.tielink); e.stopPropagation(); svg.setPointerCapture(e.pointerId);
+    S.drag = { kind: 'tie', n, start: pt, lane0: +tieT.dataset.lane, before: snap(), moved: false };
+    clearSel(); S.sel.nodes.add(n.id); selectionChanged(); return;
+  }
   if (linT) { const id = linT.dataset.lindim; clearSel(); S.sel.nodes.add(id); selectionChanged(); openWidthPop(id, e); e.stopPropagation(); return; }
   if (dimT) {
     const ed = S.g.edges.find(x => x.id === dimT.dataset.dimedge); if (!ed) return;
@@ -2085,6 +2174,13 @@ svg.addEventListener('pointerdown', e => {
   }
   svg.setPointerCapture(e.pointerId);
   if (out) { S.drag = { kind: 'connect', from: out.dataset.out, out: +(out.dataset.outport || 0), pt }; return; }
+  const splitT = t.closest('[data-splitin]');
+  if (splitT) {
+    const n = byId(splitT.dataset.splitin), sp = splitOf(n);
+    if (!S.sel.nodes.has(n.id)) { clearSel(); S.sel.nodes.add(n.id); }
+    S.drag = { kind: 'splitmove', n, start: pt, orig: [sp.x, sp.y], before: snap(), moved: false };
+    selectionChanged(); return;
+  }
   if (nodeT) {
     const id = nodeT.dataset.node;
     if (e.shiftKey || e.metaKey) { S.sel.nodes.has(id) ? S.sel.nodes.delete(id) : S.sel.nodes.add(id); }
@@ -2111,6 +2207,17 @@ svg.addEventListener('pointermove', e => {
     const dx = pt[0] - d.start[0], dy = pt[1] - d.start[1];
     if (Math.abs(dx) + Math.abs(dy) > 2) d.moved = true;
     for (const [id, [x, y]] of d.orig) { const n = byId(id); if (n) { n.x = Math.round((x + dx) / 2) * 2; n.y = Math.round((y + dy) / 2) * 2; } }
+    // moving several nodes together carries a split Delay's second tab along; moving the Delay alone doesn't
+    if (d.orig.size > 1) { if (!d.tabs) d.tabs = new Map([...d.orig.keys()].map(byId).filter(splitOf).map(n => [n, [n.params.split.x, n.params.split.y]]));
+      for (const [n, [x, y]] of d.tabs) { n.params.split.x = Math.round((x + dx) / 2) * 2; n.params.split.y = Math.round((y + dy) / 2) * 2; } }
+    render();
+  } else if (d.kind === 'tie') {
+    const dx = pt[0] - d.start[0]; if (Math.abs(dx) > 3) d.moved = true;
+    if (d.moved) { d.n.params.tie_x = Math.round((d.lane0 + dx) / 2) * 2; render(); }
+  } else if (d.kind === 'splitmove') {
+    const dx = pt[0] - d.start[0], dy = pt[1] - d.start[1];
+    if (Math.abs(dx) + Math.abs(dy) > 2) d.moved = true;
+    const sp = splitOf(d.n); if (sp) { sp.x = Math.round((d.orig[0] + dx) / 2) * 2; sp.y = Math.round((d.orig[1] + dy) / 2) * 2; }
     render();
   } else if (d.kind === 'edge') {
     const dx = pt[0] - d.start[0], dy = pt[1] - d.start[1];
@@ -2136,7 +2243,11 @@ svg.addEventListener('pointerup', e => {
   const d = S.drag; S.drag = null; $('#gOver').innerHTML = '';
   if (!d) return;
   if (d.kind === 'pan' && !d.moved) { if (S.sel.nodes.size || S.sel.edges.size || S.sel.group) { clearSel(); selectionChanged(); } if (S.focusDim) { S.focusDim = null; render(); renderDims(); } }
-  if (d.kind === 'move' && d.moved) { S.undo.push(d.before); S.redo = []; changed(); }
+  if ((d.kind === 'move' || d.kind === 'splitmove' || d.kind === 'tie') && d.moved) { S.undo.push(d.before); S.redo = []; changed(); }
+  if (d.kind === 'tie' && !d.moved) {
+    const now = Date.now(), last = S.lastTieClick; S.lastTieClick = { id: d.n.id, t: now };
+    if (last && last.id === d.n.id && now - last.t < 450 && d.n.params.tie_x != null) { S.lastTieClick = null; commit(() => { delete d.n.params.tie_x; }); }
+  }
   if (d.kind === 'edge') {
     if (d.moved) { tidyRoute(d.edge); S.undo.push(d.before); S.redo = []; changed(); }
     else {
@@ -2534,7 +2645,7 @@ const COMP = [
       { k: 'token', label: 'Learned token', sw: 'sw-op2', icon: '⊕', desc: 'A learned vector put in front of the sequence, e.g. the class token of ViT', torch: 'torch.cat([tok.expand(…), x], 1)' },
       { k: 'conv1d', label: 'Causal conv', sw: 'sw-op2', icon: '⫶', desc: 'A convolution along time, one filter per channel, seeing only earlier steps (Mamba)', torch: 'nn.Conv1d(c, c, k, groups=c)' },
       { k: 'param', label: 'Parameter', sw: 'sw-op2', icon: 'θ', desc: 'A learned tensor used as it is, e.g. Mamba\'s A_log and D', torch: 'nn.Parameter(…)' },
-      { k: 'func:sinusoidal_positions', label: 'Sinusoidal positions', sw: 'sw-op2', icon: '∿', desc: 'Adds the fixed sine/cosine position encoding of the original Transformer', torch: 'sinusoidal_positions(x)' },
+      { k: 'func:sinusoidal_pe', label: 'Sin/cos positions', sw: 'sw-op2', icon: '∿', desc: 'The fixed sine/cosine position table of the original Transformer, shaped by its input; add it to the embeddings with a +', torch: 'x + sinusoidal_pe(x)' },
       { k: 'noise', label: 'Noise', sw: 'sw-op2', icon: 'ε', desc: 'Standard Gaussian noise shaped like its input, e.g. a VAE\'s ε', torch: 'torch.randn_like(x)' },
       { k: 'func:take_positions', label: 'Take positions', sw: 'sw-op2', icon: '⌖', desc: 'The positions listed in an index input (B × K) of a sequence or a (1, N, d) table, e.g. I-JEPA\'s context and target patches', torch: 'take_positions(x, idx)' },
       { k: 'func:last_positions', label: 'Last positions', sw: 'sw-op2', icon: '⌖', desc: 'The last K positions of a sequence, K from its second input (what came of tokens appended at the end)', torch: 'last_positions(x, like)' },
@@ -2544,7 +2655,10 @@ const COMP = [
       { k: 'binop:*', label: 'Multiply ⊙', sw: 'sw-op', icon: '⊙', desc: 'Elementwise product, e.g. a gate', torch: 'a * b' },
       { k: 'binop:-', label: 'Subtract', sw: 'sw-op', icon: '−', desc: 'a − b', torch: 'a - b' },
       { k: 'binop:/', label: 'Divide', sw: 'sw-op', icon: '÷', desc: 'a ÷ b', torch: 'a / b' },
-      { k: 'binop:@', label: 'Matmul @', sw: 'sw-op', icon: '@', desc: 'Multiplies two activations, e.g. attention scores. For a learned weight, use Linear', torch: 'a @ b' } ] },
+      { k: 'binop:@', label: 'Matmul @', sw: 'sw-op', icon: '@', desc: 'Multiplies two activations, e.g. attention scores. For a learned weight, use Linear', torch: 'a @ b' },
+      { k: 'func:sum', label: 'Sum over axis', sw: 'sw-op', icon: 'Σ', desc: 'Adds up the values along one axis, which goes away (choose the axis in its details)', torch: 'x.sum(-1)' },
+      { k: 'func:mean', label: 'Mean over axis', sw: 'sw-op', icon: 'x̄', desc: 'Averages the values along one axis, which goes away (choose the axis in its details)', torch: 'x.mean(-1)' },
+      { k: 'func:exp', label: 'Exponential eˣ', sw: 'sw-op', icon: 'eˣ', desc: 'eˣ for each value; turns a value learned as a log back into a positive one', torch: 'torch.exp(x)' } ] },
     { label: 'Attention', items: [
       { k: 'heads', label: 'Split heads', sw: 'sw-op2', icon: '⫼', desc: 'e × t × d → e × heads × t × d/heads', torch: 'unflatten + transpose' },
       { k: 'merge', label: 'Merge heads', sw: 'sw-op2', icon: '⫴', desc: 'e × heads × t × d/heads → e × t × d', torch: 'transpose + flatten' },
@@ -2642,6 +2756,8 @@ function addFromPalette(k, x, y) {
   if (type === 'pool' && sub) params.kind = sub;
   if (type === 'delay') { const used = new Set(S.g.nodes.filter(z => z.type === 'delay').map(z => z.params.name)); let nm = used.has('h') ? (used.has('c') ? 'h2' : 'c') : 'h', k = 2; while (used.has(nm)) nm = 'h' + ++k; params.name = nm; }
   if (type === 'func' && sub === 'flatten') Object.assign(params, { fn: '.flatten', extra: '1', n: 1 });
+  if (type === 'func' && (sub === 'sum' || sub === 'mean')) Object.assign(params, { fn: '.' + sub, extra: '-1', n: 1 });
+  if (type === 'func' && sub === 'exp') Object.assign(params, { fn: 'torch.exp', extra: '', n: 1 });
   if (type === 'input') { params.name = S.g.nodes.some(n => n.type === 'input') ? 'x' + (S.g.nodes.filter(n => n.type === 'input').length + 1) : 'x'; if (S.g.symbols.d_in == null) S.g.symbols.d_in = 784; }
   addNode(type, params, x, y);
 }
@@ -4210,6 +4326,6 @@ idb.get('last').then(r => { if (r && (r.dir || r.file)) { S.remembered = r; if (
 requestAnimationFrame(fit);
 window.addEventListener('resize', () => render());
 // for the routing checks in tools/ (read-only access to the open graph and the router)
-window.__tc = { S, route, drawFrom, box, keyOf, byId, switchTo, openLibrary, openLibraryBlock, findLibEntry, render, renderInspector, selectionChanged };
+window.__tc = { S, route, drawFrom, box, keyOf, byId, switchTo, openLibrary, openLibraryBlock, findLibEntry, render, renderInspector, selectionChanged, fit };
 })();
 </script>

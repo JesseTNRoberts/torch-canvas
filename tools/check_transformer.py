@@ -12,7 +12,7 @@ class Ref(nn.Module):
         self.emb = nn.Embedding(V, D)
         self.tr = nn.Transformer(D, 8, 6, 6, 2048, 0.1, batch_first=True)
     def forward(self, src, tgt):
-        s = m.sinusoidal_positions(self.emb(src) * math.sqrt(D)); t = m.sinusoidal_positions(self.emb(tgt) * math.sqrt(D))
+        s = self.emb(src) * math.sqrt(D); s = s + m.sinusoidal_pe(s); t = self.emb(tgt) * math.sqrt(D); t = t + m.sinusoidal_pe(t)
         mask = nn.Transformer.generate_square_subsequent_mask(tgt.size(1))
         return self.tr(s, t, tgt_mask=mask, tgt_is_causal=True) @ self.emb.weight.T
 

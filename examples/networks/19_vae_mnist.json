@@ -1,6 +1,6 @@
 {
  "title": "VAE (MNIST)",
- "description": "A variational autoencoder, as in PyTorch's examples/vae: the encoder (784 → 400, ReLU) gives the mean μ and log-variance of a 20-dimensional Gaussian; z = μ + ε·exp(½·logvar) with ε from a Noise node (the reparameterization trick, so gradients reach μ and σ); the decoder (20 → 400 → 784) gives pixel logits. The loss is the negative evidence lower bound: binary cross-entropy summed over the pixels (784 × the mean) plus the KL divergence of the latent Gaussian from N(0, 1). predict() applies the sigmoid. 652,824 parameters.",
+ "description": "A variational autoencoder, as in PyTorch's examples/vae: the encoder (784 \u2192 400, ReLU) gives the mean \u03bc and log-variance of a 20-dimensional Gaussian; z = \u03bc + \u03b5\u00b7exp(\u00bd\u00b7logvar) with \u03b5 from a Noise node (the reparameterization trick, so gradients reach \u03bc and \u03c3); the decoder (20 \u2192 400 \u2192 784) gives pixel logits. The loss is the negative evidence lower bound: binary cross-entropy summed over the pixels (784 \u00d7 the mean) plus the KL divergence of the latent Gaussian from N(0, 1). predict() applies the sigmoid. 652,824 parameters.",
  "graph": {
   "name": "VAE",
   "symbols": {
@@ -55,7 +55,7 @@
    {
     "id": "n41k2t",
     "type": "linear",
-    "x": 190,
+    "x": 160,
     "y": 800,
     "params": {
      "in": "hidden",
@@ -74,7 +74,7 @@
    {
     "id": "n59ajw",
     "type": "linear",
-    "x": 410,
+    "x": 460,
     "y": 800,
     "params": {
      "in": "hidden",
@@ -93,8 +93,8 @@
    {
     "id": "n6u9ew",
     "type": "binop",
-    "x": 410,
-    "y": 735,
+    "x": 720,
+    "y": 715,
     "params": {
      "op": "*",
      "const": "0.5",
@@ -106,8 +106,8 @@
    {
     "id": "n7pdnk",
     "type": "func",
-    "x": 410,
-    "y": 680,
+    "x": 720,
+    "y": 650,
     "params": {
      "fn": "torch.exp",
      "extra": "",
@@ -121,8 +121,8 @@
    {
     "id": "n857q8",
     "type": "noise",
-    "x": 540,
-    "y": 625,
+    "x": 900,
+    "y": 650,
     "params": {
      "title": "",
      "var": ""
@@ -131,8 +131,8 @@
    {
     "id": "n9p2yo",
     "type": "binop",
-    "x": 410,
-    "y": 570,
+    "x": 720,
+    "y": 560,
     "params": {
      "op": "*",
      "const": "",
@@ -145,7 +145,7 @@
     "id": "na5fky",
     "type": "binop",
     "x": 300,
-    "y": 510,
+    "y": 560,
     "params": {
      "op": "+",
      "const": "",
@@ -158,7 +158,7 @@
     "id": "nbx15u",
     "type": "linear",
     "x": 300,
-    "y": 440,
+    "y": 480,
     "params": {
      "in": "latent",
      "out": "hidden",
@@ -177,7 +177,7 @@
     "id": "nc4dgz",
     "type": "act",
     "x": 300,
-    "y": 375,
+    "y": 415,
     "params": {
      "fn": "relu",
      "dim": "-1",
@@ -189,7 +189,7 @@
     "id": "nd6rt9",
     "type": "linear",
     "x": 300,
-    "y": 310,
+    "y": 350,
     "params": {
      "in": "hidden",
      "out": "d_in",
@@ -208,7 +208,7 @@
     "id": "nefaaj",
     "type": "output",
     "x": 300,
-    "y": 230,
+    "y": 270,
     "params": {
      "name": "recon",
      "title": ""
@@ -218,7 +218,7 @@
     "id": "nfe1yx",
     "type": "output",
     "x": 40,
-    "y": 640,
+    "y": 715,
     "params": {
      "name": "mu",
      "title": ""
@@ -227,8 +227,8 @@
    {
     "id": "ng6p76",
     "type": "output",
-    "x": 640,
-    "y": 760,
+    "x": 580,
+    "y": 715,
     "params": {
      "name": "logvar",
      "title": ""
@@ -237,8 +237,8 @@
    {
     "id": "ny5fjm",
     "type": "loss",
-    "x": 560,
-    "y": 230,
+    "x": 600,
+    "y": 270,
     "params": {
      "fn": "bce",
      "mode": "given",
@@ -254,8 +254,8 @@
    {
     "id": "n110tur",
     "type": "loss",
-    "x": 40,
-    "y": 520,
+    "x": 310,
+    "y": 715,
     "params": {
      "fn": "kl",
      "mode": "given",
@@ -382,7 +382,25 @@
     "id": "e10gkie",
     "from": "n1albh",
     "to": "ny5fjm",
-    "port": 1
+    "port": 1,
+    "route": {
+     "pts": [
+      [
+       1080,
+       0
+      ],
+      [
+       1080,
+       330
+      ],
+      [
+       0,
+       330
+      ]
+     ],
+     "o0": "h",
+     "o1": "v"
+    }
    },
    {
     "id": "e12884p",

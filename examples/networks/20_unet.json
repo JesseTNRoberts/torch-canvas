@@ -1,6 +1,6 @@
 {
  "title": "U-Net (segmentation)",
- "description": "U-Net as in milesial/Pytorch-UNet (bilinear=False): an encoder of DoubleConv and four Down steps (64 → 1024 channels, 256 → 16 pixels), a decoder of four Up steps that double the size with a transposed convolution and join the encoder's map at the same size (the skip connections), and a 1×1 convolution to a score per class per pixel. Trained with per-pixel cross-entropy against a mask of class indices. 31,037,698 parameters, the same as the reference.",
+ "description": "U-Net as in milesial/Pytorch-UNet (bilinear=False): an encoder of DoubleConv and four Down steps (64 \u2192 1024 channels, 256 \u2192 16 pixels), a decoder of four Up steps that double the size with a transposed convolution and join the encoder's map at the same size (the skip connections), and a 1\u00d71 convolution to a score per class per pixel. Trained with per-pixel cross-entropy against a mask of class indices. 31,037,698 parameters, the same as the reference.",
  "graph": {
   "name": "UNet",
   "symbols": {
@@ -193,7 +193,7 @@
    {
     "id": "n1bw524",
     "type": "conv",
-    "x": 1300,
+    "x": 1380,
     "y": 816,
     "params": {
      "in": "64",
@@ -211,7 +211,7 @@
    {
     "id": "n1c3otm",
     "type": "output",
-    "x": 1300,
+    "x": 1380,
     "y": 732,
     "params": {
      "name": "logits",
@@ -221,7 +221,7 @@
    {
     "id": "n1szlz5",
     "type": "loss",
-    "x": 1300,
+    "x": 1380,
     "y": 648,
     "params": {
      "fn": "cross_entropy",
@@ -238,7 +238,7 @@
    {
     "id": "n1tr8j3",
     "type": "input",
-    "x": 1520,
+    "x": 1620,
     "y": 732,
     "params": {
      "name": "mask",

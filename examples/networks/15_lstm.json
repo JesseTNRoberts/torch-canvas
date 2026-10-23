@@ -1,6 +1,6 @@
 {
  "title": "LSTM",
- "description": "A long short-term memory network drawn flat: four gates (input i, forget f, cell g, output o), each from x and from h_prev; then c = f ⊙ c_prev + i ⊙ g and h = o ⊙ tanh(c). Delays carry h and c to the next step. Same parameters and outputs as nn.LSTM(16, 64) (its weight_ih is the four gates' ih weights stacked); a Linear reads 8 values out of every step, trained by mean squared error against a target sequence.",
+ "description": "A long short-term memory network drawn flat: four gates (input i, forget f, cell g, output o), each from x and from h_prev; then c = f \u2299 c_prev + i \u2299 g and h = o \u2299 tanh(c). Delays carry h and c to the next step. Same parameters and outputs as nn.LSTM(16, 64) (its weight_ih is the four gates' ih weights stacked); a Linear reads 8 values out of every step, trained by mean squared error against a target sequence.",
  "graph": {
   "name": "LSTM",
   "symbols": {
@@ -15,7 +15,7 @@
     "id": "nlpno1",
     "type": "input",
     "x": 560,
-    "y": 900,
+    "y": 760,
     "params": {
      "name": "x",
      "shape": "e, t, d_in",
@@ -25,30 +25,40 @@
    {
     "id": "nmhksb",
     "type": "delay",
-    "x": 1080,
-    "y": 990,
+    "x": 60,
+    "y": 660,
     "params": {
      "name": "h",
      "title": "",
-     "var": ""
+     "var": "",
+     "split": {
+      "x": 1260,
+      "y": 660,
+      "lane": "below"
+     }
     }
    },
    {
     "id": "nn1grs",
     "type": "delay",
-    "x": 1080,
-    "y": 560,
+    "x": 60,
+    "y": 200,
     "params": {
      "name": "c",
      "title": "",
-     "var": ""
+     "var": "",
+     "split": {
+      "x": 1260,
+      "y": 200,
+      "lane": "above"
+     }
     }
    },
    {
     "id": "no83td",
     "type": "linear",
-    "x": 92,
-    "y": 800,
+    "x": 442,
+    "y": 560,
     "params": {
      "in": "d_in",
      "out": "hidden",
@@ -65,8 +75,8 @@
    {
     "id": "npqvzc",
     "type": "linear",
-    "x": 208,
-    "y": 800,
+    "x": 558,
+    "y": 560,
     "params": {
      "in": "hidden",
      "out": "hidden",
@@ -83,8 +93,8 @@
    {
     "id": "nqtv98",
     "type": "binop",
-    "x": 150,
-    "y": 720,
+    "x": 500,
+    "y": 470,
     "params": {
      "op": "+",
      "const": "",
@@ -96,8 +106,8 @@
    {
     "id": "nrzkc8",
     "type": "act",
-    "x": 150,
-    "y": 650,
+    "x": 500,
+    "y": 380,
     "params": {
      "fn": "sigmoid",
      "dim": "-1",
@@ -108,8 +118,8 @@
    {
     "id": "nxgu82",
     "type": "linear",
-    "x": 342,
-    "y": 800,
+    "x": 192,
+    "y": 560,
     "params": {
      "in": "d_in",
      "out": "hidden",
@@ -126,8 +136,8 @@
    {
     "id": "ny6l8w",
     "type": "linear",
-    "x": 458,
-    "y": 800,
+    "x": 308,
+    "y": 560,
     "params": {
      "in": "hidden",
      "out": "hidden",
@@ -144,8 +154,8 @@
    {
     "id": "nzj0vq",
     "type": "binop",
-    "x": 400,
-    "y": 720,
+    "x": 250,
+    "y": 470,
     "params": {
      "op": "+",
      "const": "",
@@ -157,8 +167,8 @@
    {
     "id": "n101exw",
     "type": "act",
-    "x": 400,
-    "y": 650,
+    "x": 250,
+    "y": 380,
     "params": {
      "fn": "sigmoid",
      "dim": "-1",
@@ -169,8 +179,8 @@
    {
     "id": "n16byqu",
     "type": "linear",
-    "x": 592,
-    "y": 800,
+    "x": 692,
+    "y": 560,
     "params": {
      "in": "d_in",
      "out": "hidden",
@@ -187,8 +197,8 @@
    {
     "id": "n1750sr",
     "type": "linear",
-    "x": 708,
-    "y": 800,
+    "x": 808,
+    "y": 560,
     "params": {
      "in": "hidden",
      "out": "hidden",
@@ -205,8 +215,8 @@
    {
     "id": "n18l4jb",
     "type": "binop",
-    "x": 650,
-    "y": 720,
+    "x": 750,
+    "y": 470,
     "params": {
      "op": "+",
      "const": "",
@@ -218,8 +228,8 @@
    {
     "id": "n1942vh",
     "type": "act",
-    "x": 650,
-    "y": 650,
+    "x": 750,
+    "y": 380,
     "params": {
      "fn": "tanh",
      "dim": "-1",
@@ -230,8 +240,8 @@
    {
     "id": "n1f5s59",
     "type": "linear",
-    "x": 842,
-    "y": 800,
+    "x": 942,
+    "y": 560,
     "params": {
      "in": "d_in",
      "out": "hidden",
@@ -248,8 +258,8 @@
    {
     "id": "n1gn5tk",
     "type": "linear",
-    "x": 958,
-    "y": 800,
+    "x": 1058,
+    "y": 560,
     "params": {
      "in": "hidden",
      "out": "hidden",
@@ -266,8 +276,8 @@
    {
     "id": "n1h349k",
     "type": "binop",
-    "x": 900,
-    "y": 720,
+    "x": 1000,
+    "y": 470,
     "params": {
      "op": "+",
      "const": "",
@@ -279,8 +289,8 @@
    {
     "id": "n1iatzd",
     "type": "act",
-    "x": 900,
-    "y": 650,
+    "x": 1000,
+    "y": 380,
     "params": {
      "fn": "sigmoid",
      "dim": "-1",
@@ -291,8 +301,8 @@
    {
     "id": "n1oq4hu",
     "type": "binop",
-    "x": 400,
-    "y": 560,
+    "x": 250,
+    "y": 200,
     "params": {
      "op": "*",
      "const": "",
@@ -304,8 +314,8 @@
    {
     "id": "n1pxj36",
     "type": "binop",
-    "x": 275,
-    "y": 560,
+    "x": 625,
+    "y": 290,
     "params": {
      "op": "*",
      "const": "",
@@ -317,8 +327,8 @@
    {
     "id": "n1q4762",
     "type": "binop",
-    "x": 400,
-    "y": 470,
+    "x": 625,
+    "y": 200,
     "params": {
      "op": "+",
      "const": "",
@@ -330,8 +340,8 @@
    {
     "id": "n1rfg0c",
     "type": "act",
-    "x": 525,
-    "y": 400,
+    "x": 1125,
+    "y": 290,
     "params": {
      "fn": "tanh",
      "dim": "-1",
@@ -342,8 +352,8 @@
    {
     "id": "n1srz06",
     "type": "binop",
-    "x": 900,
-    "y": 400,
+    "x": 1125,
+    "y": 380,
     "params": {
      "op": "*",
      "const": "",
@@ -355,8 +365,8 @@
    {
     "id": "n1tvda5",
     "type": "linear",
-    "x": 900,
-    "y": 300,
+    "x": 1400,
+    "y": 380,
     "params": {
      "in": "hidden",
      "out": "d_out",
@@ -373,8 +383,8 @@
    {
     "id": "n1ugjbw",
     "type": "output",
-    "x": 900,
-    "y": 220,
+    "x": 1400,
+    "y": 300,
     "params": {
      "name": "y",
      "title": ""
@@ -383,8 +393,8 @@
    {
     "id": "n28ue8j",
     "type": "loss",
-    "x": 1140,
-    "y": 220,
+    "x": 1600,
+    "y": 300,
     "params": {
      "fn": "mse",
      "mode": "given",
@@ -400,8 +410,8 @@
    {
     "id": "n29syuf",
     "type": "input",
-    "x": 1230,
-    "y": 390,
+    "x": 1660,
+    "y": 380,
     "params": {
      "name": "target",
      "shape": "e, t, d_out",

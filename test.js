@@ -152,7 +152,7 @@ for (const [f, want, delays] of [['14_rnn.json', 5768, 1], ['15_lstm.json', 2151
   const f = '21_transformer_base.json', g = JSON.parse(require('fs').readFileSync(__dirname + '/examples/networks/' + f, 'utf8')).graph;
   for (const literalDims of [true, false]) {
     const a = NN.generate(g, { literalDims }).code, b = NN.generate(NN.importPython(a).graph, { literalDims }).code;
-    if (a !== b || !/def forward\(self, x, memory\)/.test(a) || !/sinusoidal_positions\(/.test(a) || !(literalDims ? /\* 512 \*\* 0\.5/ : /\* self\.d \*\* 0\.5/).test(a) || !/# \(e=8, s=64\)/.test(a)) { console.error(f + ' round trip failed, literalDims=' + literalDims); process.exit(1); }
+    if (a !== b || !/def forward\(self, x, memory\)/.test(a) || !/ = \w+ \+ sinusoidal_pe\(\w+\)/.test(a) || !(literalDims ? /\* 512 \*\* 0\.5/ : /\* self\.d \*\* 0\.5/).test(a) || !/# \(e=8, s=64\)/.test(a)) { console.error(f + ' round trip failed, literalDims=' + literalDims); process.exit(1); }
   }
   if (NN.generate(NN.importPython(NN.generate(g, { literalDims: false }).code).graph).code !== NN.generate(g).code) { console.error(f + ': the named code reads back as a different model'); process.exit(1); }
   const flat = NN.expandBlocks(g).flat; let n = 0; for (const z of flat.nodes) n += NN.paramCount(z, flat.symbols) || 0;

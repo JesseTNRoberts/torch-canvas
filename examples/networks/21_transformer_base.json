@@ -1,6 +1,6 @@
 {
  "title": "Transformer (encoder-decoder)",
- "description": "The original Transformer, \"Attention Is All You Need\" (base: d = 512, 8 heads, feed-forward 2048, 6 + 6 layers, dropout 0.1), computed as nn.Transformer does (post-norm, with a final LayerNorm on the encoder and the decoder). Source and target tokens share one embedding (37,000 BPE tokens), scaled by √d, plus fixed sinusoidal positions; the encoder's output (memory) goes to the cross-attention of every decoder layer; the output projection shares the embedding's weights. Trained on the next target token with label smoothing 0.1. 63,084,544 parameters.",
+ "description": "The original Transformer, \"Attention Is All You Need\" (base: d = 512, 8 heads, feed-forward 2048, 6 + 6 layers, dropout 0.1), computed as nn.Transformer does (post-norm, with a final LayerNorm on the encoder and the decoder). Source and target tokens share one embedding (37,000 BPE tokens), scaled by \u221ad, plus fixed sinusoidal positions; the encoder's output (memory) goes to the cross-attention of every decoder layer; the output projection shares the embedding's weights. Trained on the next target token with label smoothing 0.1. 63,084,544 parameters.",
  "graph": {
   "name": "Transformer",
   "symbols": {
@@ -68,10 +68,10 @@
    {
     "id": "n4da83e",
     "type": "func",
-    "x": 160,
-    "y": 715,
+    "x": 310,
+    "y": 735,
     "params": {
-     "fn": "sinusoidal_positions",
+     "fn": "sinusoidal_pe",
      "extra": "",
      "n": 1,
      "init": "",
@@ -125,10 +125,10 @@
    {
     "id": "n4ldwct",
     "type": "func",
-    "x": 520,
-    "y": 715,
+    "x": 670,
+    "y": 735,
     "params": {
-     "fn": "sinusoidal_positions",
+     "fn": "sinusoidal_pe",
      "extra": "",
      "n": 1,
      "init": "",
@@ -264,6 +264,28 @@
      "mask_id": "",
      "title": ""
     }
+   },
+   {
+    "id": "nhp69ys",
+    "type": "binop",
+    "x": 160,
+    "y": 715,
+    "params": {
+     "op": "+",
+     "const": "",
+     "rev": false
+    }
+   },
+   {
+    "id": "ncv2j81",
+    "type": "binop",
+    "x": 520,
+    "y": 715,
+    "params": {
+     "op": "+",
+     "const": "",
+     "rev": false
+    }
    }
   ],
   "edges": [
@@ -287,7 +309,7 @@
    },
    {
     "id": "e4ipilw",
-    "from": "n4da83e",
+    "from": "nhp69ys",
     "to": "n4eyqcj",
     "port": 0
    },
@@ -311,7 +333,7 @@
    },
    {
     "id": "e4qbu5p",
-    "from": "n4ldwct",
+    "from": "ncv2j81",
     "to": "n4m22dg",
     "port": 0
    },
@@ -367,6 +389,30 @@
     "id": "e56kv5f",
     "from": "n4a1g58",
     "to": "n54rezf",
+    "port": 1
+   },
+   {
+    "id": "ewh7fqi",
+    "from": "n4cc5mz",
+    "to": "nhp69ys",
+    "port": 0
+   },
+   {
+    "id": "es4yy54",
+    "from": "n4da83e",
+    "to": "nhp69ys",
+    "port": 1
+   },
+   {
+    "id": "eiwrdrm",
+    "from": "n4k7p8e",
+    "to": "ncv2j81",
+    "port": 0
+   },
+   {
+    "id": "e54wxwe",
+    "from": "n4ldwct",
+    "to": "ncv2j81",
     "port": 1
    }
   ],

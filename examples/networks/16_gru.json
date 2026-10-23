@@ -1,6 +1,6 @@
 {
  "title": "GRU",
- "description": "A gated recurrent unit drawn flat: reset r and update z gates from x and h_prev, the candidate n = tanh(W_in·x + r ⊙ (W_hn·h_prev)), then h = (1 − z) ⊙ n + z ⊙ h_prev, with a Delay carrying h to the next step. Same parameters and outputs as nn.GRU(16, 64); a Linear reads 8 values out of every step, trained by mean squared error against a target sequence.",
+ "description": "A gated recurrent unit drawn flat: reset r and update z gates from x and h_prev, the candidate n = tanh(W_in\u00b7x + r \u2299 (W_hn\u00b7h_prev)), then h = (1 \u2212 z) \u2299 n + z \u2299 h_prev, with a Delay carrying h to the next step. Same parameters and outputs as nn.GRU(16, 64); a Linear reads 8 values out of every step, trained by mean squared error against a target sequence.",
  "graph": {
   "name": "GRU",
   "symbols": {
@@ -14,8 +14,8 @@
    {
     "id": "n2c8iqa",
     "type": "input",
-    "x": 400,
-    "y": 900,
+    "x": 440,
+    "y": 780,
     "params": {
      "name": "x",
      "shape": "e, t, d_in",
@@ -25,19 +25,24 @@
    {
     "id": "n2dwzzg",
     "type": "delay",
-    "x": 900,
-    "y": 990,
+    "x": 40,
+    "y": 680,
     "params": {
      "name": "h",
      "title": "",
-     "var": ""
+     "var": "",
+     "split": {
+      "x": 940,
+      "y": 140,
+      "lane": "below"
+     }
     }
    },
    {
     "id": "n2exbs5",
     "type": "linear",
-    "x": 92,
-    "y": 800,
+    "x": 362,
+    "y": 600,
     "params": {
      "in": "d_in",
      "out": "hidden",
@@ -54,8 +59,8 @@
    {
     "id": "n2fx567",
     "type": "linear",
-    "x": 208,
-    "y": 800,
+    "x": 478,
+    "y": 600,
     "params": {
      "in": "hidden",
      "out": "hidden",
@@ -72,8 +77,8 @@
    {
     "id": "n2iz6k6",
     "type": "linear",
-    "x": 342,
-    "y": 800,
+    "x": 662,
+    "y": 600,
     "params": {
      "in": "d_in",
      "out": "hidden",
@@ -90,8 +95,8 @@
    {
     "id": "n2js3cn",
     "type": "linear",
-    "x": 458,
-    "y": 800,
+    "x": 778,
+    "y": 600,
     "params": {
      "in": "hidden",
      "out": "hidden",
@@ -108,8 +113,8 @@
    {
     "id": "n2m95i5",
     "type": "linear",
-    "x": 592,
-    "y": 800,
+    "x": 92,
+    "y": 600,
     "params": {
      "in": "d_in",
      "out": "hidden",
@@ -126,8 +131,8 @@
    {
     "id": "n2ncqma",
     "type": "linear",
-    "x": 708,
-    "y": 800,
+    "x": 208,
+    "y": 600,
     "params": {
      "in": "hidden",
      "out": "hidden",
@@ -144,8 +149,8 @@
    {
     "id": "n2qf6yq",
     "type": "binop",
-    "x": 150,
-    "y": 720,
+    "x": 420,
+    "y": 520,
     "params": {
      "op": "+",
      "const": "",
@@ -157,8 +162,8 @@
    {
     "id": "n2rkdo7",
     "type": "act",
-    "x": 150,
-    "y": 650,
+    "x": 420,
+    "y": 440,
     "params": {
      "fn": "sigmoid",
      "dim": "-1",
@@ -169,8 +174,8 @@
    {
     "id": "n2veczt",
     "type": "binop",
-    "x": 650,
-    "y": 720,
+    "x": 150,
+    "y": 520,
     "params": {
      "op": "+",
      "const": "",
@@ -182,8 +187,8 @@
    {
     "id": "n2w8jgi",
     "type": "act",
-    "x": 650,
-    "y": 650,
+    "x": 150,
+    "y": 440,
     "params": {
      "fn": "sigmoid",
      "dim": "-1",
@@ -194,8 +199,8 @@
    {
     "id": "n30d4t8",
     "type": "binop",
-    "x": 458,
-    "y": 650,
+    "x": 778,
+    "y": 440,
     "params": {
      "op": "*",
      "const": "",
@@ -207,8 +212,8 @@
    {
     "id": "n314e6t",
     "type": "binop",
-    "x": 400,
-    "y": 580,
+    "x": 720,
+    "y": 360,
     "params": {
      "op": "+",
      "const": "",
@@ -220,8 +225,8 @@
    {
     "id": "n324ing",
     "type": "act",
-    "x": 400,
-    "y": 510,
+    "x": 720,
+    "y": 280,
     "params": {
      "fn": "tanh",
      "dim": "-1",
@@ -232,8 +237,8 @@
    {
     "id": "n38unzb",
     "type": "binop",
-    "x": 650,
-    "y": 570,
+    "x": 440,
+    "y": 210,
     "params": {
      "op": "-",
      "const": "1",
@@ -245,8 +250,8 @@
    {
     "id": "n39chtk",
     "type": "binop",
-    "x": 525,
-    "y": 440,
+    "x": 720,
+    "y": 210,
     "params": {
      "op": "*",
      "const": "",
@@ -258,8 +263,8 @@
    {
     "id": "n3asxk0",
     "type": "binop",
-    "x": 780,
-    "y": 440,
+    "x": 150,
+    "y": 140,
     "params": {
      "op": "*",
      "const": "",
@@ -271,8 +276,8 @@
    {
     "id": "n3b6zm8",
     "type": "binop",
-    "x": 650,
-    "y": 370,
+    "x": 720,
+    "y": 140,
     "params": {
      "op": "+",
      "const": "",
@@ -284,8 +289,8 @@
    {
     "id": "n3coj4l",
     "type": "linear",
-    "x": 650,
-    "y": 290,
+    "x": 720,
+    "y": 60,
     "params": {
      "in": "hidden",
      "out": "d_out",
@@ -302,8 +307,8 @@
    {
     "id": "n3dnckm",
     "type": "output",
-    "x": 650,
-    "y": 210,
+    "x": 720,
+    "y": -20,
     "params": {
      "name": "y",
      "title": ""
@@ -313,7 +318,7 @@
     "id": "n3o6q64",
     "type": "loss",
     "x": 900,
-    "y": 210,
+    "y": -20,
     "params": {
      "fn": "mse",
      "mode": "given",
@@ -329,8 +334,8 @@
    {
     "id": "n3p1ksh",
     "type": "input",
-    "x": 990,
-    "y": 380,
+    "x": 1000,
+    "y": 60,
     "params": {
      "name": "target",
      "shape": "e, t, d_out",

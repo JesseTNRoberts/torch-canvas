@@ -603,6 +603,12 @@ const NNVar = (() => {
             out = feat(K, A.X.slice((A.T - K) * NS)); tape.set(id, { pick: at, T0: A.T }); break;
           }
           // the fixed sine/cosine positions of "Attention Is All You Need": a column is one feature (2i or 2i + 1)
+          // the table alone (added by a + after it): the same values for every example, no gradient to x
+          if (fn === 'sinusoidal_pe' && ins.length === 1 && A.k === 'f') {
+            const D = (A.shape || [])[A.shape.length - 1] || NS, X = new Float32Array(A.T * NS);
+            for (let t2 = 0; t2 < A.T; t2++) for (let s2 = 0; s2 < NS; s2++) { const j = (s2 * 7919) % D, f = Math.pow(10000, -(j - (j % 2)) / D); X[t2 * NS + s2] = j % 2 ? Math.cos(t2 * f) : Math.sin(t2 * f); }
+            out = feat(A.T, X); out.param = true; tape.set(id, { none: true }); break;
+          }
           if (fn === 'sinusoidal_positions' && ins.length === 1 && A.k === 'f') {
             const D = (A.shape || [])[A.shape.length - 1] || NS, X = new Float32Array(A.X.length);
             for (let t2 = 0; t2 < A.T; t2++) for (let s2 = 0; s2 < NS; s2++) { const j = (s2 * 7919) % D, f = Math.pow(10000, -(j - (j % 2)) / D); X[t2 * NS + s2] = A.X[t2 * NS + s2] + (j % 2 ? Math.cos(t2 * f) : Math.sin(t2 * f)); }
@@ -1005,6 +1011,7 @@ const NNVar = (() => {
         }
         case 'act': case 'func': {
           if (t && t.pass) { addGrad(src[0], G); break; }
+          if (t && t.none) break;
           if (t && t.catPos) { let o = 0; t.catPos.forEach((T2, j) => { addGrad(src[j], G.slice(o * NS, (o + T2) * NS)); o += T2; }); break; }
           if (t && t.pick) { const dX = new Float32Array(t.T0 * NS); t.pick.forEach((u, k) => { for (let s2 = 0; s2 < NS; s2++) dX[u * NS + s2] += G[k * NS + s2]; }); addGrad(src[0], dX); break; }
           if (t && t.ksum) { const K = t.ksum, dX = new Float32Array(G.length * K); for (let i = 0; i < G.length; i++) for (let k = 0; k < K; k++) dX[i * K + k] = G[i]; addGrad(src[0], dX); break; }

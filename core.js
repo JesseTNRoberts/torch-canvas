@@ -690,6 +690,14 @@ const NN = (() => {
     ang = pos * inv
     pe = torch.stack([torch.sin(ang), torch.cos(ang)], dim=-1).flatten(-2)
     return x + pe.to(x.dtype)` },
+    sinusoidal_pe: { defaults: { n: 1, extra: '' }, deps: [], shape: inS => inS[0].slice(-2), code: String.raw`def sinusoidal_pe(x, base=10000.0):
+    """The fixed sine/cosine position encoding of "Attention Is All You Need" for x (B, T, D), as a (T, D) table to add
+    to x: feature 2i of position t is sin(t / base^(2i/D)), feature 2i + 1 the cosine. Only x's sizes are used."""
+    t, d = x.size(1), x.size(2)
+    pos = torch.arange(t, device=x.device, dtype=torch.float32)[:, None]
+    inv = base ** (-torch.arange(0, d, 2, device=x.device, dtype=torch.float32) / d)
+    ang = pos * inv
+    return torch.stack([torch.sin(ang), torch.cos(ang)], dim=-1).flatten(-2).to(x.dtype)` },
     vision_window_index: { defaults: { n: 2, extra: 'merge=2, window=112, patch=14' }, deps: [], shape: inS => [`${par0(inS[0][0])}/4`], code: String.raw`def vision_window_index(x, grid, merge=2, window=112, patch=14):
     """Qwen2.5-VL's window order: the merge x merge patch groups of every image, listed window by window (a window
     covers window x window pixels). x is the patches (only its device is used), grid the (t, h, w) of each image."""
@@ -830,7 +838,7 @@ const NN = (() => {
             const n = ix.byId.get(id), p = n.params;
             const ins = ix.inKeys.get(id).map(refK);
             // a tie is compared by which member it points at, so copies of one block still share one class
-            const keep = Object.keys(p).filter(k => !['name', 'title', 'tone', 'var', 'args', ...(DIM_FIELDS[n.type] || [])].includes(k)).sort().map(k => k + '=' + (k === 'tie' && p[k] ? (localIdx.has(p[k]) ? 'm' + localIdx.get(p[k]) : 'out') : p[k]));
+            const keep = Object.keys(p).filter(k => !['name', 'title', 'tone', 'var', 'args', 'split', 'tie_x', ...(DIM_FIELDS[n.type] || [])].includes(k)).sort().map(k => k + '=' + (k === 'tie' && p[k] ? (localIdx.has(p[k]) ? 'm' + localIdx.get(p[k]) : 'out') : p[k]));
             const dims = dimList(n).map(([, v]) => pat(v));
             return [n.type, keep.join(','), dims.join(','), ins.join(',')].join('|');
           }).join(';') + '#in' + extIn.length + '#out:' + info.outputs.map(refK).join(',');

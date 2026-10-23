@@ -1,7 +1,7 @@
 {
  "title": "MambaBlock",
- "description": "Mamba residual block (transformers' MambaBlock with MambaMixer): RMSNorm; in_proj split into in_x and in_z; causal depthwise Conv1d and SiLU on x (u); x_proj split into Δ (low rank, then dt_proj and softplus), B and C; the selective scan h_t = exp(Δ_t·A) ⊙ h_{t−1} + Δ_t·B_t·u_t with A = −exp(A_log), drawn flat with a Delay; y = Σ_n h·C + D·u; gated by SiLU(z); out_proj; residual.",
- "labels": "d_inner=inner width, d_state=state size, dt_rank=Δ rank",
+ "description": "Mamba residual block (transformers' MambaBlock with MambaMixer): RMSNorm; in_proj split into in_x and in_z; causal depthwise Conv1d and SiLU on x (u); x_proj split into \u0394 (low rank, then dt_proj and softplus), B and C; the selective scan h_t = exp(\u0394_t\u00b7A) \u2299 h_{t\u22121} + \u0394_t\u00b7B_t\u00b7u_t with A = \u2212exp(A_log), drawn flat with a Delay; y = \u03a3_n h\u00b7C + D\u00b7u; gated by SiLU(z); out_proj; residual.",
+ "labels": "d_inner=inner width, d_state=state size, dt_rank=\u0394 rank",
  "graph": {
   "name": "MambaBlock",
   "symbols": {
@@ -16,8 +16,8 @@
    {
     "id": "n1wlfb",
     "type": "input",
-    "x": 120,
-    "y": 1180,
+    "x": -300,
+    "y": 1300,
     "params": {
      "name": "x",
      "shape": "e, t, d",
@@ -27,8 +27,8 @@
    {
     "id": "n2z1et",
     "type": "norm",
-    "x": 380,
-    "y": 1180,
+    "x": 300,
+    "y": 1300,
     "params": {
      "kind": "RMSNorm",
      "dim": "d",
@@ -43,7 +43,7 @@
     "id": "n36vzo",
     "type": "linear",
     "x": 300,
-    "y": 1100,
+    "y": 1220,
     "params": {
      "in": "d",
      "out": "d_inner",
@@ -62,7 +62,7 @@
     "id": "n4rqcf",
     "type": "conv1d",
     "x": 300,
-    "y": 1030,
+    "y": 1150,
     "params": {
      "ch": "d_inner",
      "k": "4",
@@ -76,7 +76,7 @@
     "id": "n5l2td",
     "type": "act",
     "x": 300,
-    "y": 965,
+    "y": 1080,
     "params": {
      "fn": "silu",
      "dim": "-1",
@@ -87,8 +87,8 @@
    {
     "id": "n6e4wq",
     "type": "linear",
-    "x": 120,
-    "y": 890,
+    "x": 100,
+    "y": 980,
     "params": {
      "in": "d_inner",
      "out": "dt_rank",
@@ -106,8 +106,8 @@
    {
     "id": "n7mju0",
     "type": "linear",
-    "x": 120,
-    "y": 820,
+    "x": 100,
+    "y": 910,
     "params": {
      "in": "dt_rank",
      "out": "d_inner",
@@ -125,8 +125,8 @@
    {
     "id": "n8pcfr",
     "type": "act",
-    "x": 120,
-    "y": 755,
+    "x": 100,
+    "y": 840,
     "params": {
      "fn": "softplus",
      "dim": "-1",
@@ -137,8 +137,8 @@
    {
     "id": "n9b4cp",
     "type": "param",
-    "x": -120,
-    "y": 820,
+    "x": -140,
+    "y": 910,
     "params": {
      "shape": "d_inner, d_state",
      "init": "s4d",
@@ -150,8 +150,8 @@
    {
     "id": "na2bax",
     "type": "func",
-    "x": -120,
-    "y": 755,
+    "x": -140,
+    "y": 840,
     "params": {
      "fn": "torch.exp",
      "extra": "",
@@ -165,8 +165,8 @@
    {
     "id": "nbdzvz",
     "type": "binop",
-    "x": -120,
-    "y": 700,
+    "x": -140,
+    "y": 770,
     "params": {
      "op": "*",
      "const": "-1",
@@ -178,8 +178,8 @@
    {
     "id": "ncq3wt",
     "type": "func",
-    "x": 40,
-    "y": 700,
+    "x": 60,
+    "y": 770,
     "params": {
      "fn": ".unsqueeze",
      "extra": "-1",
@@ -194,7 +194,7 @@
     "id": "ndnyjw",
     "type": "binop",
     "x": -40,
-    "y": 640,
+    "y": 700,
     "params": {
      "op": "*",
      "const": "",
@@ -207,7 +207,7 @@
     "id": "nedx8o",
     "type": "func",
     "x": -40,
-    "y": 580,
+    "y": 630,
     "params": {
      "fn": "torch.exp",
      "extra": "",
@@ -221,8 +221,8 @@
    {
     "id": "nf12ut",
     "type": "linear",
-    "x": 300,
-    "y": 890,
+    "x": 500,
+    "y": 980,
     "params": {
      "in": "d_inner",
      "out": "d_state",
@@ -240,8 +240,8 @@
    {
     "id": "ngrukd",
     "type": "binop",
-    "x": 200,
-    "y": 700,
+    "x": 300,
+    "y": 770,
     "params": {
      "op": "*",
      "const": "",
@@ -253,8 +253,8 @@
    {
     "id": "nhm92i",
     "type": "func",
-    "x": 200,
-    "y": 640,
+    "x": 300,
+    "y": 700,
     "params": {
      "fn": ".unsqueeze",
      "extra": "-1",
@@ -268,8 +268,8 @@
    {
     "id": "nin9gj",
     "type": "func",
-    "x": 360,
-    "y": 640,
+    "x": 500,
+    "y": 700,
     "params": {
      "fn": ".unsqueeze",
      "extra": "-2",
@@ -283,8 +283,8 @@
    {
     "id": "njk4r4",
     "type": "binop",
-    "x": 270,
-    "y": 580,
+    "x": 400,
+    "y": 630,
     "params": {
      "op": "*",
      "const": "",
@@ -296,8 +296,8 @@
    {
     "id": "nk6v1z",
     "type": "delay",
-    "x": -200,
-    "y": 520,
+    "x": -220,
+    "y": 560,
     "params": {
      "name": "h",
      "title": "",
@@ -308,7 +308,7 @@
     "id": "nlknwk",
     "type": "binop",
     "x": -40,
-    "y": 470,
+    "y": 560,
     "params": {
      "op": "*",
      "const": "",
@@ -320,8 +320,8 @@
    {
     "id": "nm8m47",
     "type": "binop",
-    "x": 120,
-    "y": 420,
+    "x": 160,
+    "y": 490,
     "params": {
      "op": "+",
      "const": "",
@@ -333,8 +333,8 @@
    {
     "id": "nnd32o",
     "type": "linear",
-    "x": 640,
-    "y": 890,
+    "x": 760,
+    "y": 980,
     "params": {
      "in": "d_inner",
      "out": "d_state",
@@ -352,8 +352,8 @@
    {
     "id": "no4vne",
     "type": "func",
-    "x": 640,
-    "y": 470,
+    "x": 760,
+    "y": 560,
     "params": {
      "fn": ".unsqueeze",
      "extra": "-2",
@@ -367,8 +367,8 @@
    {
     "id": "npdq96",
     "type": "binop",
-    "x": 380,
-    "y": 370,
+    "x": 450,
+    "y": 490,
     "params": {
      "op": "*",
      "const": "",
@@ -380,8 +380,8 @@
    {
     "id": "nqmvbs",
     "type": "func",
-    "x": 380,
-    "y": 310,
+    "x": 450,
+    "y": 420,
     "params": {
      "fn": ".sum",
      "extra": "-1",
@@ -395,8 +395,8 @@
    {
     "id": "nr7er9",
     "type": "param",
-    "x": 560,
-    "y": 380,
+    "x": 760,
+    "y": 420,
     "params": {
      "shape": "d_inner",
      "init": "ones",
@@ -408,8 +408,8 @@
    {
     "id": "ns8u3x",
     "type": "binop",
-    "x": 560,
-    "y": 310,
+    "x": 640,
+    "y": 350,
     "params": {
      "op": "*",
      "const": "",
@@ -421,8 +421,8 @@
    {
     "id": "ntvn39",
     "type": "binop",
-    "x": 460,
-    "y": 250,
+    "x": 540,
+    "y": 280,
     "params": {
      "op": "+",
      "const": "",
@@ -434,8 +434,8 @@
    {
     "id": "nuk78f",
     "type": "linear",
-    "x": 860,
-    "y": 1100,
+    "x": 1000,
+    "y": 1220,
     "params": {
      "in": "d",
      "out": "d_inner",
@@ -453,8 +453,8 @@
    {
     "id": "nvfxhu",
     "type": "act",
-    "x": 860,
-    "y": 250,
+    "x": 1000,
+    "y": 210,
     "params": {
      "fn": "silu",
      "dim": "-1",
@@ -465,8 +465,8 @@
    {
     "id": "nw12i3",
     "type": "binop",
-    "x": 640,
-    "y": 190,
+    "x": 760,
+    "y": 210,
     "params": {
      "op": "*",
      "const": "",
@@ -478,8 +478,8 @@
    {
     "id": "nxc10a",
     "type": "linear",
-    "x": 640,
-    "y": 130,
+    "x": 760,
+    "y": 140,
     "params": {
      "in": "d_inner",
      "out": "d",
@@ -497,7 +497,7 @@
    {
     "id": "ny8wm9",
     "type": "binop",
-    "x": 640,
+    "x": 760,
     "y": 60,
     "params": {
      "op": "+",
@@ -510,7 +510,7 @@
    {
     "id": "nzh9sf",
     "type": "output",
-    "x": 820,
+    "x": 940,
     "y": 60,
     "params": {
      "name": "out",
@@ -709,7 +709,21 @@
     "id": "e1vt99j",
     "from": "n5l2td",
     "to": "ns8u3x",
-    "port": 0
+    "port": 0,
+    "route": {
+     "pts": [
+      [
+       300,
+       1040
+      ],
+      [
+       640,
+       1040
+      ]
+     ],
+     "o0": "v",
+     "o1": "v"
+    }
    },
    {
     "id": "e1wr4hj",
