@@ -218,6 +218,11 @@ kbd { font-family: var(--mono); font-size: 10.5px; border: 1px solid var(--line)
 .node.conflict.sel .n-box { stroke-width: 3; }
 .node .badge circle { fill: var(--err); stroke: var(--bg); stroke-width: 1.5; }
 .node .badge text { fill: var(--on-err) !important; font-family: var(--sans); font-weight: 700; font-size: 11px; }
+.opmath { background: var(--panel2, rgba(116,103,212,.06)); border: 1px solid var(--line, rgba(0,0,0,.08)); border-radius: 8px; padding: 9px 11px; margin: 4px 0 12px; }
+.opmath .eq { font-family: "Cambria Math", "STIX Two Math", "Latin Modern Math", Georgia, serif; font-size: 15px; line-height: 1.5; color: var(--ink, inherit); overflow-x: auto; white-space: nowrap; }
+.opmath .eq sub, .opmath .eq sup { font-size: 70%; }
+.opmath p { margin: 6px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--muted); }
+.opmath .eq + p { margin-top: 6px; } .opmath p:first-child { margin-top: 0; }
 .node .frz { font-size: 16px; fill: #2f7fd8; pointer-events: none; paint-order: stroke; stroke: var(--bg); stroke-width: 3px; }
 .conflict-cap { font-family: var(--mono); font-size: 10.5px; fill: var(--err); paint-order: stroke; stroke: var(--bg); stroke-width: 4px; stroke-linejoin: round; pointer-events: none; }
 .fixes { display: flex; flex-direction: column; gap: 6px; }
@@ -5668,10 +5673,18 @@ function entrySide(s, t) {
   if (NN.isCircle(t) ? Math.abs(dx) > Math.abs(dy) * 0.6 && Math.abs(dx) > 6 : near) return dx > 0 ? 'L' : 'R';
   return dy < 0 ? 'B' : 'T';
 }
-function finish(pts, e) {
+const HOP = 4.5; // radius of the jump where one connection crosses another without joining it
+function finish(pts, e, hops) {
   // drop zero-length segments
   const P = pts.filter((p, i) => i === 0 || Math.hypot(p[0] - pts[i - 1][0], p[1] - pts[i - 1][1]) > 0.5);
   let d = `M${P[0][0]},${P[0][1]}`;
+  // jumps on a horizontal segment, from (px, y) towards x: a half circle over each crossing, as in wiring diagrams
+  const jumps = (px, x, y) => {
+    if (!hops || !hops.length || Math.abs(x - px) < 1) return;
+    const dir = Math.sign(x - px), on = hops.filter(h => Math.abs(h[1] - y) < 0.5 && (h[0] - px) * dir > 0 && (x - h[0]) * dir > 0).sort((a, b) => (a[0] - b[0]) * dir);
+    for (const [hx] of on) d += ` L${hx - dir * HOP},${y} A${HOP},${HOP} 0 0 ${dir > 0 ? 1 : 0} ${hx + dir * HOP},${y}`;
+  };
+  let cur = P[0];
   for (let i = 1; i < P.length; i++) {
     const [x, y] = P[i];
     if (i < P.length - 1) {
@@ -5679,8 +5692,9 @@ function finish(pts, e) {
       const r = Math.min(7, Math.hypot(x - px, y - py) / 2, Math.hypot(nx - x, ny - y) / 2);
       const ax = x - Math.sign(x - px) * r, ay = y - Math.sign(y - py) * r;
       const bx = x + Math.sign(nx - x) * r, by = y + Math.sign(ny - y) * r;
-      d += ` L${ax},${ay} Q${x},${y} ${bx},${by}`;
-    } else d += ` L${x},${y}`;
+      if (Math.abs(y - py) < 0.5) jumps(cur[0], ax, y);
+      d += ` L${ax},${ay} Q${x},${y} ${bx},${by}`; cur = [bx, by];
+    } else { if (Math.abs(y - P[i - 1][1]) < 0.5) jumps(cur[0], x, y); d += ` L${x},${y}`; }
   }
   // label at the longest vertical segment (or longest overall)
   let best = null, bl = 0;
@@ -5724,6 +5738,31 @@ function edgeClass(e) {
   return '';
 }
 
+// Where a horizontal stretch of one connection crosses a vertical stretch of another, the horizontal one jumps
+// over it (the convention of wiring diagrams for "crossing, not joined"). Connections carrying the same tensor
+// are one wire branching, so they never jump each other; nor do crossings within a corner's curve.
+function crossings(routes) {
+  const H = [], V = [], m = 7 + HOP + 1;
+  for (const e of S.g.edges) {
+    const r = routes.get(e.id); if (!r) continue; const P = r.pts, k = keyOf(e);
+    for (let i = 1; i < P.length; i++) {
+      const a = P[i - 1], b = P[i], end0 = i === 1, end1 = i === P.length - 1;
+      if (Math.abs(a[1] - b[1]) < 0.5 && Math.abs(a[0] - b[0]) > 0.5) H.push({ id: e.id, k, y: a[1], lo: Math.min(a[0], b[0]), hi: Math.max(a[0], b[0]) });
+      else if (Math.abs(a[0] - b[0]) < 0.5 && Math.abs(a[1] - b[1]) > 0.5) {
+        // a stretch that ends on a dot can be crossed close to that end; one that ends in a corner can't
+        const top = a[1] < b[1] ? end0 : end1, bot = a[1] < b[1] ? end1 : end0;
+        V.push({ k, x: a[0], lo: Math.min(a[1], b[1]) + (top ? 2 : m - HOP), hi: Math.max(a[1], b[1]) - (bot ? 2 : m - HOP) });
+      }
+    }
+  }
+  const out = new Map();
+  for (const h of H) for (const v of V) {
+    if (v.k === h.k || v.x <= h.lo + m || v.x >= h.hi - m || h.y <= v.lo || h.y >= v.hi) continue;
+    const L = out.get(h.id) || []; if (!L.some(p => Math.abs(p[1] - h.y) < 0.5 && Math.abs(p[0] - v.x) < 2 * HOP + 1)) L.push([v.x, h.y]); out.set(h.id, L);
+  }
+  return out;
+}
+
 // ── render ──
 function render() {
   analyze(); routeCache = null;
@@ -5742,8 +5781,11 @@ function render() {
   $('#gGroups').innerHTML = ''; // reusable blocks are not shown for now
   // edges
   let eh = '';
+  const routes = new Map(); for (const e of S.g.edges) { const r = route(e); if (r) routes.set(e.id, r); }
+  const hops = crossings(routes);
   for (const e of S.g.edges) {
-    const r = route(e); if (!r) continue;
+    let r = routes.get(e.id); if (!r) continue;
+    if (hops.has(e.id)) r = finish(r.pts, e, hops.get(e.id));
     const cls = S.sel.edges.has(e.id) ? 'sel' : edgeClass(e);
     let mk = cls ? `url(#ar-${cls})` : 'url(#ar)', look = '';
     if (e.style) {
@@ -6019,6 +6061,107 @@ const EDGE_COLORS = [['', 'Default'], ['#1f1d2b', 'Black'], ['#6b6a7d', 'Grey'],
 const txt = (k, v, mono = true, extra = '') => `<input type="text" id="f-${k}" data-f="${k}" value="${esc(v)}" class="${mono ? 'mono' : ''}" spellcheck="false" ${extra}>`;
 const dimInput = (k, v) => `<input type="text" id="f-${k}" data-f="${k}" data-dimfield="1" value="${esc(v)}" class="mono" list="symList" spellcheck="false">`;
 const sel = (k, v, opts) => `<select id="f-${k}" data-f="${k}">${opts.map(o => `<option value="${esc(o[0])}"${String(o[0]) === String(v) ? ' selected' : ''}>${esc(o[1])}</option>`).join('')}</select>`;
+// ── what an operation computes: a formula for math, a description for ops that only move values around ──
+// shown at the top of its details; sizes are the layer's own where that helps
+function opExplain(n) {
+  const p = n.params, D = x => esc(dimText(x));
+  const ix = S.info && S.info.ix, inSh = k => { const s = ix && (ix.inKeys.get(n.id) || [])[k]; return s ? S.info.shapes.get(s) : null; };
+  const x0 = inSh(0), last = x0 && x0.length ? D(x0[x0.length - 1]) : 'd';
+  const box = (eq, text) => `<div class="opmath">${eq ? `<div class="eq">${eq}</div>` : ''}${text ? `<p>${text}</p>` : ''}</div>`;
+  const ew = 'elementwise: each value on its own, any shape.';
+  switch (n.type) {
+    case 'input': return box('', 'Where data enters the model: a tensor of the shape shown, the first size being the batch (e). It becomes an argument of forward().');
+    case 'output': return box('', 'Where data leaves the model: forward() returns what arrives here (several Outputs: a tuple, in order).');
+    case 'linear': return box(`y = x W<sup>T</sup>${p.bias ? ' + b' : ''}`,
+      `Each of the ${D(p.out)} outputs is a weighted sum of all ${D(p.in)} inputs: y<sub>j</sub> = Σ<sub>i</sub> W<sub>ji</sub> x<sub>i</sub>${p.bias ? ' + b<sub>j</sub>' : ''}. W is ${D(p.out)} × ${D(p.in)}${p.bias ? `, b has ${D(p.out)} values` : ''}. It acts on the last size; the others (batch, positions) are kept.${p.tie ? ' Its W is shared with the layer it is tied to.' : ''}`);
+    case 'embed': return p.positions
+      ? box('y<sub>t</sub> = P[t],  t = 0 … T−1', `A learned table P of ${D(p.num)} rows × ${D(p.dim)}: position t gets row t. Usually added to the token embeddings so the model knows where each token is.`)
+      : box('y = E[id]', `A learned table E of ${D(p.num)} rows (one per token id) × ${D(p.dim)}: each id is replaced by its row. Same as a Linear applied to a one-hot vector, without the multiply.`);
+    case 'norm': {
+      const af = p.affine === false ? '' : ' · γ + β', g2 = p.affine === false ? '' : ' γ and β are learned (start at 1 and 0).';
+      switch (p.kind) {
+        case 'RMSNorm': return box('y = x / √(mean(x²) + ε) · γ', `Over the last size (${last}) of each position: divides by the root mean square, without subtracting the mean. γ is learned (starts at 1).`);
+        case 'BatchNorm1d': return box(`y = (x − μ) / √(σ² + ε)${af}`, `μ and σ² per feature, over the batch (and positions). In training, the batch's own; in eval, running averages kept during training.${g2}`);
+        case 'BatchNorm2d': return box(`y = (x − μ) / √(σ² + ε)${af}`, `μ and σ² per channel, over the batch and all pixels. In training, the batch's own; in eval, running averages kept during training.${g2}`);
+        case 'GroupNorm': return box(`y = (x − μ) / √(σ² + ε)${af}`, `The ${last} features are split into ${esc(p.groups || 8)} groups; μ and σ² per example and group.${g2}`);
+        case 'InstanceNorm1d': return box('y = (x − μ) / √(σ² + ε)', 'μ and σ² per example and feature, over the positions of the sequence.');
+        default: return box(`y = (x − μ) / √(σ² + ε)${af}`, `μ and σ² are the mean and variance over the last size (${last}) of each position, so every position comes out with mean 0 and variance 1.${g2}`);
+      }
+    }
+    case 'act': switch (p.fn) {
+      case 'relu': return box('y = max(0, x)', 'Keeps positives, zeroes negatives; ' + ew);
+      case 'leaky_relu': return box(`y = x if x > 0, else ${esc(p.slope ?? '0.01')}·x`, 'ReLU with a small slope for negatives, so they still pass a gradient; ' + ew);
+      case 'sigmoid': return box('y = σ(x) = 1 / (1 + e<sup>−x</sup>)', 'Squashes any value into (0, 1), 0.5 at x = 0; used for gates and probabilities; ' + ew);
+      case 'tanh': return box('y = tanh(x) = (e<sup>x</sup> − e<sup>−x</sup>) / (e<sup>x</sup> + e<sup>−x</sup>)', 'Squashes any value into (−1, 1), 0 at x = 0; tanh(x) = 2σ(2x) − 1; ' + ew);
+      case 'silu': return box('y = x · σ(x) = x / (1 + e<sup>−x</sup>)', 'Also called swish: about x for large x, about 0 for very negative x, smooth in between (dips slightly below 0); ' + ew);
+      case 'gelu': return box('y = x · Φ(x)', 'Φ is the standard normal CDF: each value is kept with weight "how likely a normal sample is below it". A smooth ReLU; ' + ew);
+      case 'gelu_tanh': return box('y = ½ x (1 + tanh(√(2/π) (x + 0.044715 x³)))', 'The tanh approximation of GELU (as in GPT-2); ' + ew);
+      case 'softplus': return box('y = log(1 + e<sup>x</sup>)', 'A smooth ReLU that is always positive (about x for large x); used where a value must be > 0, like Mamba\'s time step; ' + ew);
+      case 'softmax': return box(`y<sub>i</sub> = e<sup>x<sub>i</sub></sup> / Σ<sub>j</sub> e<sup>x<sub>j</sub></sup>`, `Along dim ${esc(p.dim ?? -1)}: turns scores into positive weights that sum to 1; the largest score gets the most.`);
+    } return box('', 'An activation, applied ' + ew);
+    case 'dropout': return box(`training: y = x · m / (1 − ${esc(p.p)}),  m ~ Bernoulli(${esc(1 - +p.p || 0.9)})`, `In training, each value is zeroed with probability ${esc(p.p)} and the rest are scaled up so the average stays the same. In eval (and the variance plot) it passes x through unchanged.`);
+    case 'binop': {
+      const op = p.op || '+', sym = { '+': '+', '-': '−', '*': '⊙', '/': '÷', '@': '@' }[op] || op, c = p.const !== '' && p.const != null ? esc(p.const) : null;
+      if (op === '@') return box('Y = A @ B', 'Matrix product over the last two sizes: (… × n × k) @ (… × k × m) → (… × n × m), each entry Σ<sub>k</sub> A<sub>ik</sub> B<sub>kj</sub>; the sizes before them are batched. In attention: q @ kᵀ gives the scores, weights @ v the mix.');
+      if (c) return box(p.rev ? `y = ${c} ${sym} x` : `y = x ${sym} ${c}`, 'With a constant, ' + ew);
+      const name = { '+': 'Adds', '-': 'Subtracts', '*': 'Multiplies', '/': 'Divides' }[op];
+      return box(`y = a ${sym} b`, `${name} the two inputs value by value. Shapes must match or broadcast (a size of 1, or a missing leading size, is repeated to fit).${op === '+' ? ' Adding a layer\'s input back to its output is a residual connection.' : op === '*' ? ' Multiplying by a sigmoid (or other gate) lets one tensor control how much of another passes.' : ''}`);
+    }
+    case 'heads': return box('(…, T, C) → (…, H, T, C/H)', `Reshape only: splits the ${last} features of each position into ${D(p.heads)} heads of ${last}/${D(p.heads)}, and moves the head axis before the positions so each head attends on its own. No values change.`);
+    case 'merge': return box('(…, H, T, D) → (…, T, H·D)', 'Reshape only: puts the heads back side by side in the features of each position (the inverse of split heads). No values change.');
+    case 'transpose': return box('(…, a, b) → (…, b, a)', 'Swaps the last two sizes (kᵀ in attention, or patches × channels after a flatten). No values change, only their order.');
+    case 'scale': return box('y = x / √d', `d is the last size (the head width). Keeps q · k from growing with d, so the softmax that follows doesn't saturate.`);
+    case 'mask': return p.mode === 'given'
+      ? box('s<sub>tu</sub> = −∞ where the mask is false', 'Scores of the pairs the mask (input 2) disallows become −∞, so after the softmax they get weight exactly 0.')
+      : box('s<sub>tu</sub> = −∞ for u > t', 'Position t may only look at itself and earlier positions: scores for later ones become −∞, so after the softmax their weight is exactly 0.');
+    case 'rope': return box('(x<sub>i</sub>, x<sub>i+D/2</sub>) → rotated by θ = t · base<sup>−2i/D</sup>', `Each pair of features at position t is rotated by an angle that grows with t: x<sub>i</sub> cos θ − x<sub>i+D/2</sub> sin θ, x<sub>i</sub> sin θ + x<sub>i+D/2</sub> cos θ (base ${esc(p.base)}). Applied to q and k, so q · k depends on how far apart two positions are.${p.mode === 'axial' || p.mode === 'mrope' ? ' The positions come from input 2, one per axis.' : ''}`);
+    case 'conv': return p.transposed
+      ? box(`y[o, s·i+u, s·j+v] += Σ<sub>c</sub> W[c, o, u, v] · x[c, i, j]`, `The reverse of a strided convolution: each input pixel spreads into a ${esc(p.k)} × ${esc(p.k)} patch of the output, weighted by W (${D(p.in)} × ${D(p.out)} × ${esc(p.k)} × ${esc(p.k)}), stride s = ${esc(p.stride)}. Output size (H − 1)·s − 2·pad + k: kernel 2, stride 2 doubles it.`)
+      : box(`y[o, i, j] = ${p.bias ? 'b[o] + ' : ''}Σ<sub>c,u,v</sub> W[o, c, u, v] · x[c, s·i + u − p, s·j + v − p]`, `A Linear on each ${esc(p.k)} × ${esc(p.k)} window of all ${D(p.in)} input channels, slid over the image with stride s = ${esc(p.stride)} and zero padding p = ${esc(p.pad)}; the same weights at every position. W is ${D(p.out)} × ${D(p.in)} × ${esc(p.k)} × ${esc(p.k)}. Output size ⌊(H + 2p − k) / s⌋ + 1.`);
+    case 'conv1d': return box(`y<sub>t</sub> = ${p.bias ? 'b + ' : ''}Σ<sub>j=0…${esc(+p.k - 1 || 'k−1')}</sub> w<sub>j</sub> · x<sub>t−${esc(+p.k - 1 || 'k+1')}+j</sub>`, `For each of the ${D(p.ch)} channels on its own (its own ${esc(p.k)} weights): a weighted sum of the current and the previous ${esc(+p.k - 1 || 'k − 1')} steps, with zeros before the start. It never looks ahead.`);
+    case 'pool': return p.kind === 'adaptive'
+      ? (String(p.size) === '1' ? box('y[c] = mean<sub>i,j</sub> x[c, i, j]', 'Global average pooling: each channel becomes the average of all its pixels, whatever the image size (adaptive pooling to 1 × 1).')
+        : box(`y = mean of each window, windows sized to give ${esc(p.size)} × ${esc(p.size)}`, 'Adaptive average pooling: you choose the output size, and the windows are worked out to cover the map.'))
+      : box(`y[c, i, j] = ${p.kind === 'avg' ? 'mean' : 'max'} of x[c] over the ${esc(p.k)} × ${esc(p.k)} window at (s·i, s·j)`, `Per channel, no weights: ${p.kind === 'avg' ? 'the average' : 'the largest value'} of each window, stride s = ${esc(p.stride !== '' && p.stride != null ? p.stride : p.k)} (so the map shrinks by about that factor).`);
+    case 'upsample': return box(`(H, W) → (${esc(p.scale)}·H, ${esc(p.scale)}·W)`, p.mode === 'bilinear' ? 'Enlarges the image, filling in new pixels by linear interpolation between neighbours. No weights.' : 'Enlarges the image by repeating each pixel into a block. No weights.');
+    case 'delay': return box('y<sub>t</sub> = x<sub>t−1</sub>,  y<sub>0</sub> = 0', 'The value from one time step earlier. In a loop it is the state carried from step to step (an RNN\'s h); the code becomes a for loop over time.');
+    case 'token': return box('y = [c ; x<sub>1</sub> ; … ; x<sub>T</sub>]', `Puts ${esc(p.n)} learned vector${String(p.n) === '1' ? '' : 's'} (the same for every example) in front of the sequence, which becomes ${esc(p.n)} longer. A classifier then reads the output at that position (ViT's and BERT's class token).`);
+    case 'select': return box(`y = x[:, ${esc(p.index)}]`, 'Keeps one position of the sequence and drops that axis, e.g. the class token for a classifier head.');
+    case 'param': return box(`y = θ   (${esc(String(p.shape).split(',').map(s => dimText(s.trim())).join(' × '))})`, `A learned tensor used as it is, with no input: ${{ zeros: 'starts at zeros', ones: 'starts at ones', normal: `starts N(0, ${esc(p.init_arg || '0.02')}²)`, s4d: 'starts at log 1 … N along its last size (Mamba\'s A_log)', sincos2d: 'fixed 2-D sine/cosine position values (usually frozen)' }[p.init] || 'its own init'}. It broadcasts against what it is combined with.`);
+    case 'noise': return box('ε ~ N(0, 1)', 'Fresh standard normal values, shaped like the input (whose values are not used), new every call. A VAE\'s z = μ + ε · σ samples this way so gradients still reach μ and σ.');
+    case 'loss': {
+      const L = { cross_entropy: ['L = −mean log softmax(z)<sub>y</sub> = −mean (z<sub>y</sub> − log Σ<sub>j</sub> e<sup>z<sub>j</sub></sup>)', `The model output z holds raw scores (logits) per class; y is the right class. Lower when the right class gets most of the probability.${+p.label_smoothing > 0 ? ` With label smoothing ${esc(p.label_smoothing)}, the target puts that much weight spread over all classes.` : ''}${p.mode === 'next' ? ' Next token: position t is scored on token t + 1.' : p.mode === 'masked' ? ' Masked tokens: only the masked positions are scored.' : ''}`],
+        bce: ['L = −mean [y log σ(z) + (1 − y) log(1 − σ(z))]', 'z is a raw score (logit) per output, y is 0 or 1 (or a probability). Each output is its own yes/no question.'],
+        mse: ['L = mean (ŷ − y)²', 'The average squared difference: big errors count a lot more than small ones.'],
+        l1: ['L = mean |ŷ − y|', 'The average absolute difference: every unit of error counts the same, so outliers pull less than with MSE.'],
+        huber: [`L = mean of ½(ŷ − y)² if |ŷ − y| ≤ δ, else δ(|ŷ − y| − ½δ)`, `Squared for small errors, absolute for large ones (δ = ${esc(p.delta || '1.0')}); δ = 1 is smooth L1.`],
+        kl: ['L = mean over examples of ½ Σ (μ² + σ² − log σ² − 1),  σ² = e<sup>log σ²</sup>', 'How far the Gaussian N(μ, σ²) (input 1 the mean, input 2 the log-variance) is from N(0, 1), summed over the latent features. A VAE\'s regularizer.'] }[p.fn] || ['', ''];
+      return box(L[0], L[1] + (+p.weight !== 1 && p.weight !== '' && p.weight != null ? ` Counted ${esc(p.weight)}× in the total loss.` : ''));
+    }
+    case 'func': {
+      const fn = String(p.fn || ''), ex = String(p.extra || '').trim();
+      if (p.init) return box('', `A custom module, built as <span class="mono">${esc(p.init)}</span> and called on its input${+p.n > 1 ? 's' : ''}; Torch Canvas passes it through as written.`);
+      if (/(^|\.)flatten$/.test(fn)) return box(`(…) → flattened from dim ${esc(ex || '0')}`, `Reshape only: merges the sizes from dim ${esc(ex.split(',')[0] || '0')}${ex.includes(',') ? ' to dim ' + esc(ex.split(',')[1].trim()) : ' to the end'} into one (their product). No values change.`);
+      if (/(^|\.)unflatten$/.test(fn)) return box('', `Reshape only: splits one size into several (${esc(ex)}). No values change.`);
+      if (/(^|\.)(reshape|view)$/.test(fn)) return box('', `Reshape only: the same values, arranged as (${esc(ex)}).`);
+      if (/(^|\.)(transpose|permute|swapaxes)$/.test(fn)) return box('', `Reorders the axes (${esc(ex)}): the same values, read in another order.`);
+      if (/(^|\.)unsqueeze$/.test(fn)) return box(`adds a size-1 axis at dim ${esc(ex)}`, 'Reshape only: lets this tensor broadcast against one with a size there (e.g. one value per unit, repeated along the state).');
+      if (/(^|\.)squeeze$/.test(fn)) return box(`removes the size-1 axis at dim ${esc(ex)}`, 'Reshape only. No values change.');
+      if (/(^|\.)(sum|mean)$/.test(fn)) return box(`y = ${/sum$/.test(fn) ? 'Σ' : 'mean'} over dim ${esc(ex)}`, `${/sum$/.test(fn) ? 'Adds up' : 'Averages'} the values along that axis, which goes away.`);
+      if (/(^|\.)exp$/.test(fn)) return box('y = e<sup>x</sup>', ew);
+      if (/(^|\.)(cat|concat|concatenate)$/.test(fn)) return box(`y = [a ; b] along ${esc(ex || 'dim=0')}`, 'Joins the inputs end to end along that axis; every other size must match. No values change.');
+      if (/(^|\.)stack$/.test(fn)) return box(`y = stack along ${esc(ex || 'dim=0')}`, 'Puts same-shaped inputs together along a new axis.');
+      if (/(^|\.)(matmul|mm|bmm)$/.test(fn)) return box('Y = A @ B', 'Matrix product over the last two sizes.');
+      if (/(^|\.)repeat_interleave$/.test(fn)) return box('', `Repeats each entry along an axis (${esc(ex)}), e.g. one key/value head shared by several query heads.`);
+      if (fn === 'sinusoidal_positions') return box('y = x + PE,  PE(t, 2i) = sin(t / 10000<sup>2i/d</sup>),  PE(t, 2i+1) = cos(…)', 'Adds the fixed position encoding of the original Transformer: each feature pair is a sine and cosine of the position at its own frequency. No weights.');
+      if (fn === 'take_positions') return box('y[b, k] = x[b, idx[b, k]]', 'Gathers, for each example, the positions listed in the index input (input 2), in that order: K of the N positions. A (1, N, d) table is shared by every example. I-JEPA picks its context and target patches this way.');
+      if (fn === 'last_positions') return box('y = x[:, N − K :]', 'Keeps the last K positions of the sequence, K being the length of input 2: what came of tokens that were appended at the end.');
+      if (NN.HELPER_OPS[fn]) return box('', esc(NN.helperDoc(fn)));
+      return box('', `Calls <span class="mono">${esc(fn)}(…${ex ? ', ' + esc(ex) : ''})</span> as written. Torch Canvas passes it through without knowing what it computes (the output shape is assumed to be the input's).`);
+    }
+  }
+  return '';
+}
 function renderInspector() {
   const el = $('#insp');
   const has = S.sel.nodes.size || S.sel.edges.size || S.sel.group;
@@ -6089,6 +6232,7 @@ function renderInspector() {
   const sh = S.info.shapes.get(n.id);
   const titles = { embed: p.positions ? 'Position embedding' : 'Embedding', heads: 'Split heads', merge: 'Merge heads', transpose: 'Transpose', scale: 'Scale by 1/√d', conv: 'Convolution (2-D)', pool: 'Pooling', upsample: 'Upsample', delay: 'Delay', token: 'Learned token', select: 'Select a position', param: 'Parameter', conv1d: 'Causal convolution', noise: 'Noise', mask: 'Causal mask', rope: 'Rotary position embedding', loss: 'Loss', input: 'Input', output: 'Output', linear: 'Linear', norm: 'Normalization', act: 'Activation', binop: 'Elementwise op', dropout: 'Dropout', func: 'Custom op' };
   h += `<h4>${titles[n.type]}</h4>`;
+  h += opExplain(n);
   switch (n.type) {
     case 'input': {
       const all = NN.parseShape(p.shape), batched = all[0] === NN.BATCH, dims = all.filter((d, i) => !(i === 0 && d === NN.BATCH));
@@ -8671,6 +8815,6 @@ idb.get('last').then(r => { if (r && (r.dir || r.file)) { S.remembered = r; if (
 requestAnimationFrame(fit);
 window.addEventListener('resize', () => render());
 // for the routing checks in tools/ (read-only access to the open graph and the router)
-window.__tc = { S, route, drawFrom, box, keyOf, byId, switchTo, openLibrary, findLibEntry, render };
+window.__tc = { S, route, drawFrom, box, keyOf, byId, switchTo, openLibrary, openLibraryBlock, findLibEntry, render, renderInspector, selectionChanged };
 })();
 </script>
