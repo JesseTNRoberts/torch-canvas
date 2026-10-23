@@ -1,6 +1,6 @@
 {
  "title": "EncoderLayer",
- "description": "A Transformer encoder layer (post-norm, as nn.TransformerEncoderLayer): multi-head self-attention, dropout, residual add, LayerNorm; then Linear → ReLU → dropout → Linear, dropout, residual add, LayerNorm.",
+ "description": "A Transformer encoder layer (post-norm, as nn.TransformerEncoderLayer): multi-head self-attention, dropout, residual add, LayerNorm; then Linear \u2192 ReLU \u2192 dropout \u2192 Linear, dropout, residual add, LayerNorm.",
  "labels": "n_head=heads, ff=feed-forward width",
  "graph": {
   "name": "EncoderLayer",
@@ -15,8 +15,8 @@
    {
     "id": "n1w70q",
     "type": "input",
-    "x": 280,
-    "y": 1200,
+    "x": 126.5,
+    "y": 856,
     "params": {
      "name": "x",
      "shape": "e, t, d",
@@ -26,8 +26,8 @@
    {
     "id": "n2ilpe",
     "type": "linear",
-    "x": 90,
-    "y": 1120,
+    "x": 331,
+    "y": 776,
     "params": {
      "in": "d",
      "out": "d",
@@ -45,8 +45,8 @@
    {
     "id": "n3ihys",
     "type": "linear",
-    "x": 280,
-    "y": 1120,
+    "x": 535,
+    "y": 776,
     "params": {
      "in": "d",
      "out": "d",
@@ -64,8 +64,8 @@
    {
     "id": "n4z05b",
     "type": "linear",
-    "x": 470,
-    "y": 1120,
+    "x": 739,
+    "y": 776,
     "params": {
      "in": "d",
      "out": "d",
@@ -83,8 +83,8 @@
    {
     "id": "n5hom8",
     "type": "heads",
-    "x": 90,
-    "y": 1060,
+    "x": 378,
+    "y": 701,
     "params": {
      "heads": "n_head",
      "title": "",
@@ -94,8 +94,8 @@
    {
     "id": "n6laib",
     "type": "heads",
-    "x": 280,
-    "y": 1060,
+    "x": 535,
+    "y": 701,
     "params": {
      "heads": "n_head",
      "title": "",
@@ -105,8 +105,8 @@
    {
     "id": "n7vh6f",
     "type": "heads",
-    "x": 470,
-    "y": 1060,
+    "x": 692,
+    "y": 701,
     "params": {
      "heads": "n_head",
      "title": "",
@@ -116,8 +116,8 @@
    {
     "id": "n8l2z0",
     "type": "scale",
-    "x": 90,
-    "y": 1005,
+    "x": 478,
+    "y": 637,
     "params": {
      "title": "",
      "var": "q"
@@ -126,8 +126,8 @@
    {
     "id": "n95wl8",
     "type": "transpose",
-    "x": 280,
-    "y": 1005,
+    "x": 584,
+    "y": 637,
     "params": {
      "title": "",
      "var": ""
@@ -136,8 +136,8 @@
    {
     "id": "navlj5",
     "type": "binop",
-    "x": 185,
-    "y": 950,
+    "x": 535,
+    "y": 575,
     "params": {
      "op": "@",
      "const": "",
@@ -149,8 +149,8 @@
    {
     "id": "nbylqh",
     "type": "act",
-    "x": 185,
-    "y": 895,
+    "x": 535,
+    "y": 513,
     "params": {
      "fn": "softmax",
      "dim": "-1",
@@ -161,8 +161,8 @@
    {
     "id": "ncsuzc",
     "type": "dropout",
-    "x": 185,
-    "y": 845,
+    "x": 535,
+    "y": 449,
     "params": {
      "p": 0.1,
      "name": "sa_drop",
@@ -173,8 +173,8 @@
    {
     "id": "ndv84f",
     "type": "binop",
-    "x": 340,
-    "y": 795,
+    "x": 535,
+    "y": 387,
     "params": {
      "op": "@",
      "const": "",
@@ -186,8 +186,8 @@
    {
     "id": "neqq73",
     "type": "merge",
-    "x": 340,
-    "y": 745,
+    "x": 535,
+    "y": 325,
     "params": {
      "title": "",
      "var": "y"
@@ -196,8 +196,8 @@
    {
     "id": "nfrpd6",
     "type": "linear",
-    "x": 340,
-    "y": 690,
+    "x": 535,
+    "y": 250,
     "params": {
      "in": "d",
      "out": "d",
@@ -215,8 +215,8 @@
    {
     "id": "nwb4gp",
     "type": "dropout",
-    "x": 320,
-    "y": 640,
+    "x": 535,
+    "y": 175,
     "params": {
      "p": 0.1,
      "name": "dropout1",
@@ -227,8 +227,8 @@
    {
     "id": "nxnv7a",
     "type": "binop",
-    "x": 320,
-    "y": 590,
+    "x": 535,
+    "y": 100,
     "params": {
      "op": "+",
      "const": "",
@@ -240,8 +240,8 @@
    {
     "id": "nyxymp",
     "type": "norm",
-    "x": 320,
-    "y": 540,
+    "x": 636,
+    "y": 100,
     "params": {
      "kind": "LayerNorm",
      "dim": "d",
@@ -255,8 +255,8 @@
    {
     "id": "n132k4r",
     "type": "linear",
-    "x": 320,
-    "y": 480,
+    "x": 946,
+    "y": 464,
     "params": {
      "in": "d",
      "out": "ff",
@@ -274,8 +274,8 @@
    {
     "id": "n14cw2d",
     "type": "act",
-    "x": 320,
-    "y": 425,
+    "x": 946,
+    "y": 389,
     "params": {
      "fn": "relu",
      "dim": "-1",
@@ -286,8 +286,8 @@
    {
     "id": "n15fppx",
     "type": "dropout",
-    "x": 320,
-    "y": 375,
+    "x": 946,
+    "y": 325,
     "params": {
      "p": 0.1,
      "name": "dropout",
@@ -298,8 +298,8 @@
    {
     "id": "n16sie7",
     "type": "linear",
-    "x": 320,
-    "y": 320,
+    "x": 946,
+    "y": 250,
     "params": {
      "in": "ff",
      "out": "d",
@@ -317,8 +317,8 @@
    {
     "id": "n1bostb",
     "type": "dropout",
-    "x": 320,
-    "y": 260,
+    "x": 946,
+    "y": 175,
     "params": {
      "p": 0.1,
      "name": "dropout2",
@@ -329,8 +329,8 @@
    {
     "id": "n1cvyjq",
     "type": "binop",
-    "x": 320,
-    "y": 210,
+    "x": 946,
+    "y": 100,
     "params": {
      "op": "+",
      "const": "",
@@ -342,8 +342,8 @@
    {
     "id": "n1dtkva",
     "type": "norm",
-    "x": 320,
-    "y": 160,
+    "x": 1047,
+    "y": 100,
     "params": {
      "kind": "LayerNorm",
      "dim": "d",
@@ -357,7 +357,7 @@
    {
     "id": "n1ijkzm",
     "type": "output",
-    "x": 320,
+    "x": 1219,
     "y": 100,
     "params": {
      "name": "out",

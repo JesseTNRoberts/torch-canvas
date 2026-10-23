@@ -962,10 +962,14 @@ function baseRoute(e) {
       }
     }
     let p;
+    // a box beside the lane leaves from its side facing the lane (a post-norm LayerNorm on the residual stream);
+    // otherwise from its top
+    const side = !NN.isCircle(s) && (laneX > A.x + A.w + 6 ? 1 : laneX < A.x - 6 ? -1 : 0);
     if (NN.isCircle(s)) p = [s.x + (laneX > s.x ? A.r : -A.r), s.y];
+    else if (side) p = [side > 0 ? A.x + A.w : A.x, s.y];
     else p = [s.x, A.y];
     pts.push(p);
-    if (!NN.isCircle(s)) pts.push([p[0], p[1] - 14]);
+    if (!NN.isCircle(s) && !side) pts.push([p[0], p[1] - 14]);
     const yb = B.y + B.h + 18;
     pts.push([laneX, pts[pts.length - 1][1]], [laneX, yb], [t.x, yb], [t.x, B.y + B.h]);
     return finish(pts, e);
@@ -4326,6 +4330,6 @@ idb.get('last').then(r => { if (r && (r.dir || r.file)) { S.remembered = r; if (
 requestAnimationFrame(fit);
 window.addEventListener('resize', () => render());
 // for the routing checks in tools/ (read-only access to the open graph and the router)
-window.__tc = { S, route, drawFrom, box, keyOf, byId, switchTo, openLibrary, openLibraryBlock, findLibEntry, render, renderInspector, selectionChanged, fit };
+window.__tc = { S, route, drawFrom, box, keyOf, byId, switchTo, openLibrary, openLibraryBlock, findLibEntry, render, renderInspector, selectionChanged, fit, sizeOf };
 })();
 </script>

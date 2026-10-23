@@ -1,6 +1,6 @@
 {
  "title": "BottleneckDown",
- "description": "The first ResNet bottleneck block of a stage: like Bottleneck, but it changes the channels (and halves the size with stride 2, on the 3×3), so its shortcut is a 1×1 convolution with the same stride and a BatchNorm.",
+ "description": "The first ResNet bottleneck block of a stage: like Bottleneck, but it changes the channels (and halves the size with stride 2, on the 3\u00d73), so its shortcut is a 1\u00d71 convolution with the same stride and a BatchNorm.",
  "labels": "width=width, stride=stride, c_out=output channels",
  "graph": {
   "name": "BottleneckDown",
@@ -17,8 +17,8 @@
    {
     "id": "n1iczca",
     "type": "input",
-    "x": 220,
-    "y": 760,
+    "x": 145,
+    "y": 648,
     "params": {
      "name": "x",
      "shape": "e, c_in, H, W",
@@ -28,8 +28,8 @@
    {
     "id": "n1jcccl",
     "type": "conv",
-    "x": 220,
-    "y": 702,
+    "x": 366,
+    "y": 648,
     "params": {
      "in": "c_in",
      "out": "width",
@@ -45,8 +45,8 @@
    {
     "id": "n1k5syw",
     "type": "norm",
-    "x": 220,
-    "y": 644,
+    "x": 366,
+    "y": 579,
     "params": {
      "kind": "BatchNorm2d",
      "dim": "width",
@@ -60,8 +60,8 @@
    {
     "id": "n1l8xi5",
     "type": "act",
-    "x": 220,
-    "y": 586,
+    "x": 366,
+    "y": 515,
     "params": {
      "fn": "relu",
      "dim": "-1",
@@ -72,8 +72,8 @@
    {
     "id": "n1mp39d",
     "type": "conv",
-    "x": 220,
-    "y": 528,
+    "x": 366,
+    "y": 446,
     "params": {
      "in": "width",
      "out": "width",
@@ -89,8 +89,8 @@
    {
     "id": "n1n37ez",
     "type": "norm",
-    "x": 220,
-    "y": 470,
+    "x": 366,
+    "y": 377,
     "params": {
      "kind": "BatchNorm2d",
      "dim": "width",
@@ -104,8 +104,8 @@
    {
     "id": "n1of5qc",
     "type": "act",
-    "x": 220,
-    "y": 412,
+    "x": 366,
+    "y": 313,
     "params": {
      "fn": "relu",
      "dim": "-1",
@@ -116,8 +116,8 @@
    {
     "id": "n1ppslm",
     "type": "conv",
-    "x": 220,
-    "y": 354,
+    "x": 366,
+    "y": 244,
     "params": {
      "in": "width",
      "out": "c_out",
@@ -133,8 +133,8 @@
    {
     "id": "n1q7e3j",
     "type": "norm",
-    "x": 220,
-    "y": 296,
+    "x": 366,
+    "y": 175,
     "params": {
      "kind": "BatchNorm2d",
      "dim": "c_out",
@@ -148,8 +148,8 @@
    {
     "id": "n1r0o03",
     "type": "conv",
-    "x": 430,
-    "y": 528,
+    "x": 145,
+    "y": 567,
     "params": {
      "in": "c_in",
      "out": "c_out",
@@ -165,8 +165,8 @@
    {
     "id": "n1sk84g",
     "type": "norm",
-    "x": 430,
-    "y": 412,
+    "x": 145,
+    "y": 486,
     "params": {
      "kind": "BatchNorm2d",
      "dim": "c_out",
@@ -180,8 +180,8 @@
    {
     "id": "n1t24br",
     "type": "binop",
-    "x": 220,
-    "y": 238,
+    "x": 366,
+    "y": 100,
     "params": {
      "op": "+",
      "const": "",
@@ -193,8 +193,8 @@
    {
     "id": "n1ug9mt",
     "type": "act",
-    "x": 220,
-    "y": 180,
+    "x": 447,
+    "y": 100,
     "params": {
      "fn": "relu",
      "dim": "-1",
@@ -205,8 +205,8 @@
    {
     "id": "n1vnu5y",
     "type": "output",
-    "x": 220,
-    "y": 122,
+    "x": 617,
+    "y": 100,
     "params": {
      "name": "out",
      "title": ""

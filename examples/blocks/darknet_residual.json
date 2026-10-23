@@ -1,6 +1,6 @@
 {
  "title": "DarknetResidual",
- "description": "Darknet-53 residual block: a 1×1 DarknetConv to half the channels, a 3×3 back to the channels, plus the input.",
+ "description": "Darknet-53 residual block: a 1\u00d71 DarknetConv to half the channels, a 3\u00d73 back to the channels, plus the input.",
  "graph": {
   "name": "DarknetResidual",
   "symbols": {
@@ -13,8 +13,8 @@
    {
     "id": "n3nwic5",
     "type": "input",
-    "x": 200,
-    "y": 400,
+    "x": 148.7,
+    "y": 275,
     "params": {
      "name": "x",
      "shape": "e, c, H, W",
@@ -24,8 +24,8 @@
    {
     "id": "n3oinnr",
     "type": "block",
-    "x": 200,
-    "y": 330,
+    "x": 426,
+    "y": 275,
     "params": {
      "block": "b3mjkhh",
      "args": {
@@ -45,8 +45,8 @@
    {
     "id": "n3pktw1",
     "type": "block",
-    "x": 200,
-    "y": 260,
+    "x": 426,
+    "y": 187,
     "params": {
      "block": "b3mjkhh",
      "args": {
@@ -66,8 +66,8 @@
    {
     "id": "n3qobfa",
     "type": "binop",
-    "x": 200,
-    "y": 196,
+    "x": 426,
+    "y": 100,
     "params": {
      "op": "+",
      "const": "",
@@ -79,8 +79,8 @@
    {
     "id": "n3r76l6",
     "type": "output",
-    "x": 200,
-    "y": 132,
+    "x": 585,
+    "y": 100,
     "params": {
      "name": "out",
      "title": ""

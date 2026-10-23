@@ -1,6 +1,6 @@
 {
  "title": "GatedBlock",
- "description": "Pre-norm gated residual branch: x + (σ(N W) ⊙ N W ⊙ N V) W_out, with N = RMSNorm(x).",
+ "description": "Pre-norm gated residual branch: x + (\u03c3(N W) \u2299 N W \u2299 N V) W_out, with N = RMSNorm(x).",
  "labels": "h=hidden",
  "graph": {
   "name": "GatedBlock",
@@ -13,8 +13,8 @@
    {
     "id": "n293pwn",
     "type": "input",
-    "x": 60,
-    "y": 650,
+    "x": 108,
+    "y": 511,
     "params": {
      "name": "x",
      "shape": "e, d",
@@ -24,8 +24,8 @@
    {
     "id": "n2arcrs",
     "type": "norm",
-    "x": 200,
-    "y": 600,
+    "x": 312,
+    "y": 511,
     "params": {
      "kind": "RMSNorm",
      "dim": "d",
@@ -39,8 +39,8 @@
    {
     "id": "n2bh5dt",
     "type": "linear",
-    "x": 146,
-    "y": 515,
+    "x": 252,
+    "y": 442,
     "params": {
      "in": "d",
      "out": "h",
@@ -56,8 +56,8 @@
    {
     "id": "n2cq2u4",
     "type": "linear",
-    "x": 258,
-    "y": 515,
+    "x": 372,
+    "y": 442,
     "params": {
      "in": "d",
      "out": "h",
@@ -73,8 +73,8 @@
    {
     "id": "n2dhirc",
     "type": "act",
-    "x": 100,
-    "y": 430,
+    "x": 312,
+    "y": 371,
     "params": {
      "fn": "sigmoid",
      "dim": "-1",
@@ -85,8 +85,8 @@
    {
     "id": "n2emvag",
     "type": "binop",
-    "x": 146,
-    "y": 380,
+    "x": 312,
+    "y": 307,
     "params": {
      "op": "*",
      "const": "",
@@ -98,8 +98,8 @@
    {
     "id": "n2f2pwz",
     "type": "binop",
-    "x": 200,
-    "y": 325,
+    "x": 312,
+    "y": 247,
     "params": {
      "op": "*",
      "const": "",
@@ -111,8 +111,8 @@
    {
     "id": "n2guyof",
     "type": "linear",
-    "x": 200,
-    "y": 270,
+    "x": 312,
+    "y": 180,
     "params": {
      "in": "h",
      "out": "d",
@@ -128,8 +128,8 @@
    {
     "id": "n2h925r",
     "type": "binop",
-    "x": 200,
-    "y": 205,
+    "x": 312,
+    "y": 100,
     "params": {
      "op": "+",
      "const": "",
@@ -141,8 +141,8 @@
    {
     "id": "n2iauvj",
     "type": "output",
-    "x": 200,
-    "y": 140,
+    "x": 430,
+    "y": 100,
     "params": {
      "name": "out",
      "title": ""

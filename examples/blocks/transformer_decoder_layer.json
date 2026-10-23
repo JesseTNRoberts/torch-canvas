@@ -16,8 +16,8 @@
    {
     "id": "n1kkdpw",
     "type": "input",
-    "x": 280,
-    "y": 1900,
+    "x": 126.5,
+    "y": 920,
     "params": {
      "name": "x",
      "shape": "e, t, d",
@@ -27,8 +27,8 @@
    {
     "id": "n1l9nff",
     "type": "input",
-    "x": 800,
-    "y": 1240,
+    "x": 995,
+    "y": 876,
     "params": {
      "name": "memory",
      "shape": "e, s, d",
@@ -38,8 +38,8 @@
    {
     "id": "n1mvmq9",
     "type": "linear",
-    "x": 90,
-    "y": 1820,
+    "x": 341,
+    "y": 840,
     "params": {
      "in": "d",
      "out": "d",
@@ -57,8 +57,8 @@
    {
     "id": "n1nnqxv",
     "type": "linear",
-    "x": 280,
-    "y": 1820,
+    "x": 545,
+    "y": 840,
     "params": {
      "in": "d",
      "out": "d",
@@ -76,8 +76,8 @@
    {
     "id": "n1oboni",
     "type": "linear",
-    "x": 470,
-    "y": 1820,
+    "x": 749,
+    "y": 840,
     "params": {
      "in": "d",
      "out": "d",
@@ -95,8 +95,8 @@
    {
     "id": "n1p9z9s",
     "type": "heads",
-    "x": 90,
-    "y": 1760,
+    "x": 388,
+    "y": 765,
     "params": {
      "heads": "n_head",
      "title": "",
@@ -106,8 +106,8 @@
    {
     "id": "n1qazfk",
     "type": "heads",
-    "x": 280,
-    "y": 1760,
+    "x": 545,
+    "y": 765,
     "params": {
      "heads": "n_head",
      "title": "",
@@ -117,8 +117,8 @@
    {
     "id": "n1rfurd",
     "type": "heads",
-    "x": 470,
-    "y": 1760,
+    "x": 702,
+    "y": 765,
     "params": {
      "heads": "n_head",
      "title": "",
@@ -128,8 +128,8 @@
    {
     "id": "n1shf4d",
     "type": "scale",
-    "x": 90,
-    "y": 1705,
+    "x": 488,
+    "y": 701,
     "params": {
      "title": "",
      "var": "q"
@@ -138,8 +138,8 @@
    {
     "id": "n1th9nt",
     "type": "transpose",
-    "x": 280,
-    "y": 1705,
+    "x": 594,
+    "y": 701,
     "params": {
      "title": "",
      "var": ""
@@ -148,8 +148,8 @@
    {
     "id": "n1u453q",
     "type": "binop",
-    "x": 185,
-    "y": 1650,
+    "x": 545,
+    "y": 639,
     "params": {
      "op": "@",
      "const": "",
@@ -161,8 +161,8 @@
    {
     "id": "n1vb4h8",
     "type": "mask",
-    "x": 185,
-    "y": 1600,
+    "x": 545,
+    "y": 577,
     "params": {
      "mode": "causal",
      "title": "",
@@ -172,8 +172,8 @@
    {
     "id": "n1x79yf",
     "type": "act",
-    "x": 185,
-    "y": 1550,
+    "x": 545,
+    "y": 513,
     "params": {
      "fn": "softmax",
      "dim": "-1",
@@ -184,8 +184,8 @@
    {
     "id": "n1y49gf",
     "type": "dropout",
-    "x": 185,
-    "y": 1500,
+    "x": 545,
+    "y": 449,
     "params": {
      "p": 0.1,
      "name": "sa_drop",
@@ -196,8 +196,8 @@
    {
     "id": "n1zcx77",
     "type": "binop",
-    "x": 340,
-    "y": 1450,
+    "x": 545,
+    "y": 387,
     "params": {
      "op": "@",
      "const": "",
@@ -209,8 +209,8 @@
    {
     "id": "n203wtc",
     "type": "merge",
-    "x": 340,
-    "y": 1400,
+    "x": 545,
+    "y": 325,
     "params": {
      "title": "",
      "var": "y"
@@ -219,8 +219,8 @@
    {
     "id": "n21un4n",
     "type": "linear",
-    "x": 340,
-    "y": 1345,
+    "x": 545,
+    "y": 250,
     "params": {
      "in": "d",
      "out": "d",
@@ -238,8 +238,8 @@
    {
     "id": "n2iryvo",
     "type": "dropout",
-    "x": 320,
-    "y": 1290,
+    "x": 545,
+    "y": 175,
     "params": {
      "p": 0.1,
      "name": "dropout1",
@@ -250,8 +250,8 @@
    {
     "id": "n2j8t7b",
     "type": "binop",
-    "x": 320,
-    "y": 1240,
+    "x": 545,
+    "y": 100,
     "params": {
      "op": "+",
      "const": "",
@@ -263,8 +263,8 @@
    {
     "id": "n2ke7bw",
     "type": "norm",
-    "x": 320,
-    "y": 1190,
+    "x": 646,
+    "y": 100,
     "params": {
      "kind": "LayerNorm",
      "dim": "d",
@@ -278,8 +278,8 @@
    {
     "id": "n2p9yid",
     "type": "linear",
-    "x": 230,
-    "y": 1130,
+    "x": 1403,
+    "y": 776,
     "params": {
      "in": "d",
      "out": "d",
@@ -297,8 +297,8 @@
    {
     "id": "n2qtz2s",
     "type": "linear",
-    "x": 420,
-    "y": 1130,
+    "x": 995,
+    "y": 776,
     "params": {
      "in": "d",
      "out": "d",
@@ -316,8 +316,8 @@
    {
     "id": "n2rab6s",
     "type": "linear",
-    "x": 610,
-    "y": 1130,
+    "x": 1199,
+    "y": 776,
     "params": {
      "in": "d",
      "out": "d",
@@ -335,8 +335,8 @@
    {
     "id": "n2s283o",
     "type": "heads",
-    "x": 230,
-    "y": 1070,
+    "x": 1356,
+    "y": 701,
     "params": {
      "heads": "n_head",
      "title": "",
@@ -346,8 +346,8 @@
    {
     "id": "n2tromg",
     "type": "heads",
-    "x": 420,
-    "y": 1070,
+    "x": 1042,
+    "y": 701,
     "params": {
      "heads": "n_head",
      "title": "",
@@ -357,8 +357,8 @@
    {
     "id": "n2uibkz",
     "type": "heads",
-    "x": 610,
-    "y": 1070,
+    "x": 1199,
+    "y": 701,
     "params": {
      "heads": "n_head",
      "title": "",
@@ -368,8 +368,8 @@
    {
     "id": "n2vnhk6",
     "type": "scale",
-    "x": 230,
-    "y": 1015,
+    "x": 1257,
+    "y": 637,
     "params": {
      "title": "",
      "var": "q"
@@ -378,8 +378,8 @@
    {
     "id": "n2whq0n",
     "type": "transpose",
-    "x": 420,
-    "y": 1015,
+    "x": 1150,
+    "y": 637,
     "params": {
      "title": "",
      "var": ""
@@ -388,8 +388,8 @@
    {
     "id": "n2xcuxl",
     "type": "binop",
-    "x": 325,
-    "y": 960,
+    "x": 1199,
+    "y": 575,
     "params": {
      "op": "@",
      "const": "",
@@ -401,8 +401,8 @@
    {
     "id": "n2yr2ka",
     "type": "act",
-    "x": 325,
-    "y": 905,
+    "x": 1199,
+    "y": 513,
     "params": {
      "fn": "softmax",
      "dim": "-1",
@@ -413,8 +413,8 @@
    {
     "id": "n2zlxof",
     "type": "dropout",
-    "x": 325,
-    "y": 855,
+    "x": 1199,
+    "y": 449,
     "params": {
      "p": 0.1,
      "name": "ca_drop",
@@ -425,8 +425,8 @@
    {
     "id": "n30ioz6",
     "type": "binop",
-    "x": 480,
-    "y": 805,
+    "x": 1199,
+    "y": 387,
     "params": {
      "op": "@",
      "const": "",
@@ -438,8 +438,8 @@
    {
     "id": "n31aqfo",
     "type": "merge",
-    "x": 480,
-    "y": 755,
+    "x": 1199,
+    "y": 325,
     "params": {
      "title": "",
      "var": "y"
@@ -448,8 +448,8 @@
    {
     "id": "n32piqd",
     "type": "linear",
-    "x": 480,
-    "y": 700,
+    "x": 1199,
+    "y": 250,
     "params": {
      "in": "d",
      "out": "d",
@@ -467,8 +467,8 @@
    {
     "id": "n3jxeyj",
     "type": "dropout",
-    "x": 460,
-    "y": 650,
+    "x": 1199,
+    "y": 175,
     "params": {
      "p": 0.1,
      "name": "dropout2",
@@ -479,8 +479,8 @@
    {
     "id": "n3ktb8x",
     "type": "binop",
-    "x": 460,
-    "y": 600,
+    "x": 1199,
+    "y": 100,
     "params": {
      "op": "+",
      "const": "",
@@ -492,8 +492,8 @@
    {
     "id": "n3l390u",
     "type": "norm",
-    "x": 460,
-    "y": 550,
+    "x": 1300,
+    "y": 100,
     "params": {
      "kind": "LayerNorm",
      "dim": "d",
@@ -507,8 +507,8 @@
    {
     "id": "n3qg3qu",
     "type": "linear",
-    "x": 460,
-    "y": 490,
+    "x": 1610,
+    "y": 464,
     "params": {
      "in": "d",
      "out": "ff",
@@ -526,8 +526,8 @@
    {
     "id": "n3r9n01",
     "type": "act",
-    "x": 460,
-    "y": 435,
+    "x": 1610,
+    "y": 389,
     "params": {
      "fn": "relu",
      "dim": "-1",
@@ -538,8 +538,8 @@
    {
     "id": "n3s6wh8",
     "type": "dropout",
-    "x": 460,
-    "y": 385,
+    "x": 1610,
+    "y": 325,
     "params": {
      "p": 0.1,
      "name": "dropout",
@@ -550,8 +550,8 @@
    {
     "id": "n3t3rua",
     "type": "linear",
-    "x": 460,
-    "y": 330,
+    "x": 1610,
+    "y": 250,
     "params": {
      "in": "ff",
      "out": "d",
@@ -569,8 +569,8 @@
    {
     "id": "n3yq6tt",
     "type": "dropout",
-    "x": 460,
-    "y": 270,
+    "x": 1610,
+    "y": 175,
     "params": {
      "p": 0.1,
      "name": "dropout3",
@@ -581,8 +581,8 @@
    {
     "id": "n3zqdgv",
     "type": "binop",
-    "x": 460,
-    "y": 220,
+    "x": 1610,
+    "y": 100,
     "params": {
      "op": "+",
      "const": "",
@@ -594,8 +594,8 @@
    {
     "id": "n40xkhs",
     "type": "norm",
-    "x": 460,
-    "y": 170,
+    "x": 1711,
+    "y": 100,
     "params": {
      "kind": "LayerNorm",
      "dim": "d",
@@ -609,8 +609,8 @@
    {
     "id": "n45of9b",
     "type": "output",
-    "x": 460,
-    "y": 110,
+    "x": 1883,
+    "y": 100,
     "params": {
      "name": "out",
      "title": ""

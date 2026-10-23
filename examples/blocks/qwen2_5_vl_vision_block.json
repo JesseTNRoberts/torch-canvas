@@ -14,8 +14,8 @@
    {
     "id": "n1y8ku",
     "type": "input",
-    "x": 134,
-    "y": 600,
+    "x": 133.9,
+    "y": 851,
     "params": {
      "name": "x",
      "shape": "1, t, d",
@@ -25,8 +25,8 @@
    {
     "id": "n2ho02",
     "type": "input",
-    "x": 314,
-    "y": 600,
+    "x": 578,
+    "y": 951,
     "params": {
      "name": "mask",
      "shape": "t, t",
@@ -36,8 +36,8 @@
    {
     "id": "n332et",
     "type": "input",
-    "x": 494,
-    "y": 600,
+    "x": 428,
+    "y": 951,
     "params": {
      "name": "pos",
      "shape": "t, 2",
@@ -47,8 +47,8 @@
    {
     "id": "n452l6",
     "type": "norm",
-    "x": 314,
-    "y": 526,
+    "x": 500,
+    "y": 851,
     "params": {
      "kind": "RMSNorm",
      "dim": "d",
@@ -62,8 +62,8 @@
    {
     "id": "n6w9j3",
     "type": "linear",
-    "x": 112,
-    "y": 452,
+    "x": 362,
+    "y": 776,
     "params": {
      "in": "d",
      "out": "d",
@@ -80,8 +80,8 @@
    {
     "id": "n7qq9a",
     "type": "linear",
-    "x": 314,
-    "y": 452,
+    "x": 500,
+    "y": 776,
     "params": {
      "in": "d",
      "out": "d",
@@ -98,8 +98,8 @@
    {
     "id": "n85agx",
     "type": "linear",
-    "x": 516,
-    "y": 452,
+    "x": 638,
+    "y": 776,
     "params": {
      "in": "d",
      "out": "d",
@@ -116,8 +116,8 @@
    {
     "id": "ncz0q3",
     "type": "heads",
-    "x": 112,
-    "y": 378,
+    "x": 336,
+    "y": 701,
     "params": {
      "heads": "n_head",
      "title": "",
@@ -127,8 +127,8 @@
    {
     "id": "ndprnf",
     "type": "heads",
-    "x": 314,
-    "y": 378,
+    "x": 500,
+    "y": 701,
     "params": {
      "heads": "n_head",
      "title": "",
@@ -138,8 +138,8 @@
    {
     "id": "nep5x3",
     "type": "heads",
-    "x": 516,
-    "y": 378,
+    "x": 664,
+    "y": 701,
     "params": {
      "heads": "n_head",
      "title": "",
@@ -149,8 +149,8 @@
    {
     "id": "nie1jo",
     "type": "rope",
-    "x": 213,
-    "y": 304,
+    "x": 428,
+    "y": 637,
     "params": {
      "base": "10000",
      "mode": "axial",
@@ -162,8 +162,8 @@
    {
     "id": "njgsbe",
     "type": "rope",
-    "x": 415,
-    "y": 304,
+    "x": 571,
+    "y": 637,
     "params": {
      "base": "10000",
      "mode": "axial",
@@ -175,8 +175,8 @@
    {
     "id": "nogr2l",
     "type": "scale",
-    "x": 213,
-    "y": 230,
+    "x": 442,
+    "y": 573,
     "params": {
      "title": "",
      "var": ""
@@ -185,8 +185,8 @@
    {
     "id": "nple0x",
     "type": "transpose",
-    "x": 415,
-    "y": 230,
+    "x": 549,
+    "y": 573,
     "params": {
      "title": "",
      "var": ""
@@ -195,8 +195,8 @@
    {
     "id": "nsecyq",
     "type": "binop",
-    "x": 314,
-    "y": 156,
+    "x": 500,
+    "y": 511,
     "params": {
      "op": "@",
      "const": "",
@@ -208,8 +208,8 @@
    {
     "id": "nv0bli",
     "type": "mask",
-    "x": 314,
-    "y": 82,
+    "x": 500,
+    "y": 449,
     "params": {
      "mode": "given",
      "title": "",
@@ -219,8 +219,8 @@
    {
     "id": "ny6xou",
     "type": "act",
-    "x": 314,
-    "y": 8,
+    "x": 500,
+    "y": 385,
     "params": {
      "fn": "softmax",
      "dim": "-1",
@@ -231,8 +231,8 @@
    {
     "id": "n10iun9",
     "type": "binop",
-    "x": 314,
-    "y": -66,
+    "x": 500,
+    "y": 323,
     "params": {
      "op": "@",
      "const": "",
@@ -244,8 +244,8 @@
    {
     "id": "n136269",
     "type": "merge",
-    "x": 988,
-    "y": -66,
+    "x": 500,
+    "y": 261,
     "params": {
      "title": "",
      "var": ""
@@ -254,8 +254,8 @@
    {
     "id": "n15st8d",
     "type": "linear",
-    "x": 988,
-    "y": 8,
+    "x": 500,
+    "y": 186,
     "params": {
      "in": "d",
      "out": "d",
@@ -272,8 +272,8 @@
    {
     "id": "n17py7m",
     "type": "binop",
-    "x": 988,
-    "y": 82,
+    "x": 500,
+    "y": 100,
     "params": {
      "op": "+",
      "const": "",
@@ -285,8 +285,8 @@
    {
     "id": "n1aamlm",
     "type": "norm",
-    "x": 988,
-    "y": 156,
+    "x": 926,
+    "y": 471,
     "params": {
      "kind": "RMSNorm",
      "dim": "d",
@@ -300,8 +300,8 @@
    {
     "id": "n1c21n1",
     "type": "binop",
-    "x": 988,
-    "y": 526,
+    "x": 926,
+    "y": 100,
     "params": {
      "op": "+",
      "const": "",
@@ -313,8 +313,8 @@
    {
     "id": "n1el37s",
     "type": "linear",
-    "x": 887,
-    "y": 230,
+    "x": 857,
+    "y": 396,
     "params": {
      "in": "d",
      "out": "ff",
@@ -331,8 +331,8 @@
    {
     "id": "n1ff28b",
     "type": "linear",
-    "x": 1089,
-    "y": 230,
+    "x": 995,
+    "y": 396,
     "params": {
      "in": "d",
      "out": "ff",
@@ -349,8 +349,8 @@
    {
     "id": "n1i3vvj",
     "type": "act",
-    "x": 988,
-    "y": 304,
+    "x": 926,
+    "y": 321,
     "params": {
      "fn": "silu",
      "dim": "-1",
@@ -361,8 +361,8 @@
    {
     "id": "n1kw751",
     "type": "binop",
-    "x": 988,
-    "y": 378,
+    "x": 926,
+    "y": 259,
     "params": {
      "op": "*",
      "const": "",
@@ -374,8 +374,8 @@
    {
     "id": "n1njgk6",
     "type": "linear",
-    "x": 988,
-    "y": 452,
+    "x": 926,
+    "y": 186,
     "params": {
      "in": "ff",
      "out": "d",
@@ -392,8 +392,8 @@
    {
     "id": "n1qh6in",
     "type": "output",
-    "x": 988,
-    "y": 600,
+    "x": 1070,
+    "y": 100,
     "params": {
      "name": "out",
      "title": ""

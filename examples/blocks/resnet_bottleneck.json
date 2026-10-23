@@ -1,6 +1,6 @@
 {
  "title": "Bottleneck",
- "description": "ResNet bottleneck block: 1×1 convolution down to the width, 3×3, 1×1 back up to the channels, each followed by BatchNorm (ReLU between), plus the identity shortcut and a final ReLU.",
+ "description": "ResNet bottleneck block: 1\u00d71 convolution down to the width, 3\u00d73, 1\u00d71 back up to the channels, each followed by BatchNorm (ReLU between), plus the identity shortcut and a final ReLU.",
  "labels": "width=width",
  "graph": {
   "name": "Bottleneck",
@@ -15,8 +15,8 @@
    {
     "id": "nuuep9",
     "type": "input",
-    "x": 220,
-    "y": 760,
+    "x": 145,
+    "y": 648,
     "params": {
      "name": "x",
      "shape": "e, c, H, W",
@@ -26,8 +26,8 @@
    {
     "id": "nvph99",
     "type": "conv",
-    "x": 220,
-    "y": 702,
+    "x": 339,
+    "y": 648,
     "params": {
      "in": "c",
      "out": "width",
@@ -43,8 +43,8 @@
    {
     "id": "nwtb1n",
     "type": "norm",
-    "x": 220,
-    "y": 644,
+    "x": 339,
+    "y": 579,
     "params": {
      "kind": "BatchNorm2d",
      "dim": "width",
@@ -58,8 +58,8 @@
    {
     "id": "nx6m2s",
     "type": "act",
-    "x": 220,
-    "y": 586,
+    "x": 339,
+    "y": 515,
     "params": {
      "fn": "relu",
      "dim": "-1",
@@ -70,8 +70,8 @@
    {
     "id": "nyq0lh",
     "type": "conv",
-    "x": 220,
-    "y": 528,
+    "x": 339,
+    "y": 446,
     "params": {
      "in": "width",
      "out": "width",
@@ -87,8 +87,8 @@
    {
     "id": "nzaauz",
     "type": "norm",
-    "x": 220,
-    "y": 470,
+    "x": 339,
+    "y": 377,
     "params": {
      "kind": "BatchNorm2d",
      "dim": "width",
@@ -102,8 +102,8 @@
    {
     "id": "n10s320",
     "type": "act",
-    "x": 220,
-    "y": 412,
+    "x": 339,
+    "y": 313,
     "params": {
      "fn": "relu",
      "dim": "-1",
@@ -114,8 +114,8 @@
    {
     "id": "n117ujz",
     "type": "conv",
-    "x": 220,
-    "y": 354,
+    "x": 339,
+    "y": 244,
     "params": {
      "in": "width",
      "out": "c",
@@ -131,8 +131,8 @@
    {
     "id": "n122xlm",
     "type": "norm",
-    "x": 220,
-    "y": 296,
+    "x": 339,
+    "y": 175,
     "params": {
      "kind": "BatchNorm2d",
      "dim": "c",
@@ -146,8 +146,8 @@
    {
     "id": "n134reo",
     "type": "binop",
-    "x": 220,
-    "y": 238,
+    "x": 339,
+    "y": 100,
     "params": {
      "op": "+",
      "const": "",
@@ -159,8 +159,8 @@
    {
     "id": "n14bnn9",
     "type": "act",
-    "x": 220,
-    "y": 180,
+    "x": 420,
+    "y": 100,
     "params": {
      "fn": "relu",
      "dim": "-1",
@@ -171,8 +171,8 @@
    {
     "id": "n15jwoh",
     "type": "output",
-    "x": 220,
-    "y": 122,
+    "x": 590,
+    "y": 100,
     "params": {
      "name": "out",
      "title": ""

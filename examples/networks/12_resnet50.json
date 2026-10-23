@@ -1,6 +1,6 @@
 {
  "title": "ResNet-50 (ImageNet)",
- "description": "ResNet-50 as in torchvision (v1.5, stride on the 3×3): a 7×7 stem and max pool, then four stages of bottleneck blocks (3, 4, 6, 3) at 256 / 512 / 1024 / 2048 channels, global average pooling and a 1000-way Linear. 25.6M parameters; the same layers, in the same order, as torchvision.models.resnet50.",
+ "description": "ResNet-50 as in torchvision (v1.5, stride on the 3\u00d73): a 7\u00d77 stem and max pool, then four stages of bottleneck blocks (3, 4, 6, 3) at 256 / 512 / 1024 / 2048 channels, global average pooling and a 1000-way Linear. 25.6M parameters; the same layers, in the same order, as torchvision.models.resnet50.",
  "graph": {
   "name": "ResNet50",
   "symbols": {
@@ -452,8 +452,8 @@
       {
        "id": "nuuep9",
        "type": "input",
-       "x": 220,
-       "y": 760,
+       "x": 145,
+       "y": 648,
        "params": {
         "name": "x",
         "shape": "e, c, H, W",
@@ -463,8 +463,8 @@
       {
        "id": "nvph99",
        "type": "conv",
-       "x": 220,
-       "y": 702,
+       "x": 339,
+       "y": 648,
        "params": {
         "in": "c",
         "out": "width",
@@ -480,8 +480,8 @@
       {
        "id": "nwtb1n",
        "type": "norm",
-       "x": 220,
-       "y": 644,
+       "x": 339,
+       "y": 579,
        "params": {
         "kind": "BatchNorm2d",
         "dim": "width",
@@ -495,8 +495,8 @@
       {
        "id": "nx6m2s",
        "type": "act",
-       "x": 220,
-       "y": 586,
+       "x": 339,
+       "y": 515,
        "params": {
         "fn": "relu",
         "dim": "-1",
@@ -507,8 +507,8 @@
       {
        "id": "nyq0lh",
        "type": "conv",
-       "x": 220,
-       "y": 528,
+       "x": 339,
+       "y": 446,
        "params": {
         "in": "width",
         "out": "width",
@@ -524,8 +524,8 @@
       {
        "id": "nzaauz",
        "type": "norm",
-       "x": 220,
-       "y": 470,
+       "x": 339,
+       "y": 377,
        "params": {
         "kind": "BatchNorm2d",
         "dim": "width",
@@ -539,8 +539,8 @@
       {
        "id": "n10s320",
        "type": "act",
-       "x": 220,
-       "y": 412,
+       "x": 339,
+       "y": 313,
        "params": {
         "fn": "relu",
         "dim": "-1",
@@ -551,8 +551,8 @@
       {
        "id": "n117ujz",
        "type": "conv",
-       "x": 220,
-       "y": 354,
+       "x": 339,
+       "y": 244,
        "params": {
         "in": "width",
         "out": "c",
@@ -568,8 +568,8 @@
       {
        "id": "n122xlm",
        "type": "norm",
-       "x": 220,
-       "y": 296,
+       "x": 339,
+       "y": 175,
        "params": {
         "kind": "BatchNorm2d",
         "dim": "c",
@@ -583,8 +583,8 @@
       {
        "id": "n134reo",
        "type": "binop",
-       "x": 220,
-       "y": 238,
+       "x": 339,
+       "y": 100,
        "params": {
         "op": "+",
         "const": "",
@@ -596,8 +596,8 @@
       {
        "id": "n14bnn9",
        "type": "act",
-       "x": 220,
-       "y": 180,
+       "x": 420,
+       "y": 100,
        "params": {
         "fn": "relu",
         "dim": "-1",
@@ -608,8 +608,8 @@
       {
        "id": "n15jwoh",
        "type": "output",
-       "x": 220,
-       "y": 122,
+       "x": 590,
+       "y": 100,
        "params": {
         "name": "out",
         "title": ""
@@ -715,8 +715,8 @@
       {
        "id": "n1iczca",
        "type": "input",
-       "x": 220,
-       "y": 760,
+       "x": 145,
+       "y": 648,
        "params": {
         "name": "x",
         "shape": "e, c_in, H, W",
@@ -726,8 +726,8 @@
       {
        "id": "n1jcccl",
        "type": "conv",
-       "x": 220,
-       "y": 702,
+       "x": 366,
+       "y": 648,
        "params": {
         "in": "c_in",
         "out": "width",
@@ -743,8 +743,8 @@
       {
        "id": "n1k5syw",
        "type": "norm",
-       "x": 220,
-       "y": 644,
+       "x": 366,
+       "y": 579,
        "params": {
         "kind": "BatchNorm2d",
         "dim": "width",
@@ -758,8 +758,8 @@
       {
        "id": "n1l8xi5",
        "type": "act",
-       "x": 220,
-       "y": 586,
+       "x": 366,
+       "y": 515,
        "params": {
         "fn": "relu",
         "dim": "-1",
@@ -770,8 +770,8 @@
       {
        "id": "n1mp39d",
        "type": "conv",
-       "x": 220,
-       "y": 528,
+       "x": 366,
+       "y": 446,
        "params": {
         "in": "width",
         "out": "width",
@@ -787,8 +787,8 @@
       {
        "id": "n1n37ez",
        "type": "norm",
-       "x": 220,
-       "y": 470,
+       "x": 366,
+       "y": 377,
        "params": {
         "kind": "BatchNorm2d",
         "dim": "width",
@@ -802,8 +802,8 @@
       {
        "id": "n1of5qc",
        "type": "act",
-       "x": 220,
-       "y": 412,
+       "x": 366,
+       "y": 313,
        "params": {
         "fn": "relu",
         "dim": "-1",
@@ -814,8 +814,8 @@
       {
        "id": "n1ppslm",
        "type": "conv",
-       "x": 220,
-       "y": 354,
+       "x": 366,
+       "y": 244,
        "params": {
         "in": "width",
         "out": "c_out",
@@ -831,8 +831,8 @@
       {
        "id": "n1q7e3j",
        "type": "norm",
-       "x": 220,
-       "y": 296,
+       "x": 366,
+       "y": 175,
        "params": {
         "kind": "BatchNorm2d",
         "dim": "c_out",
@@ -846,8 +846,8 @@
       {
        "id": "n1r0o03",
        "type": "conv",
-       "x": 430,
-       "y": 528,
+       "x": 145,
+       "y": 567,
        "params": {
         "in": "c_in",
         "out": "c_out",
@@ -863,8 +863,8 @@
       {
        "id": "n1sk84g",
        "type": "norm",
-       "x": 430,
-       "y": 412,
+       "x": 145,
+       "y": 486,
        "params": {
         "kind": "BatchNorm2d",
         "dim": "c_out",
@@ -878,8 +878,8 @@
       {
        "id": "n1t24br",
        "type": "binop",
-       "x": 220,
-       "y": 238,
+       "x": 366,
+       "y": 100,
        "params": {
         "op": "+",
         "const": "",
@@ -891,8 +891,8 @@
       {
        "id": "n1ug9mt",
        "type": "act",
-       "x": 220,
-       "y": 180,
+       "x": 447,
+       "y": 100,
        "params": {
         "fn": "relu",
         "dim": "-1",
@@ -903,8 +903,8 @@
       {
        "id": "n1vnu5y",
        "type": "output",
-       "x": 220,
-       "y": 122,
+       "x": 617,
+       "y": 100,
        "params": {
         "name": "out",
         "title": ""

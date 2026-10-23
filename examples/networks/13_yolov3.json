@@ -1,6 +1,6 @@
 {
  "title": "YOLOv3 (416, COCO)",
- "description": "YOLOv3 as in Darknet's yolov3.cfg: the Darknet-53 backbone (Conv-BN-LeakyReLU layers and 1 + 2 + 8 + 8 + 4 residual blocks), then detection at three scales: 13 × 13 for large objects, and 26 × 26 and 52 × 52 after upsampling and joining the backbone's features. Each output has 255 = 3 boxes × (4 coordinates + objectness + 80 classes) channels per cell. 61.9M parameters.",
+ "description": "YOLOv3 as in Darknet's yolov3.cfg: the Darknet-53 backbone (Conv-BN-LeakyReLU layers and 1 + 2 + 8 + 8 + 4 residual blocks), then detection at three scales: 13 \u00d7 13 for large objects, and 26 \u00d7 26 and 52 \u00d7 52 after upsampling and joining the backbone's features. Each output has 255 = 3 boxes \u00d7 (4 coordinates + objectness + 80 classes) channels per cell. 61.9M parameters.",
  "graph": {
   "name": "YOLOv3",
   "symbols": {
@@ -774,8 +774,8 @@
       {
        "id": "n3nwic5",
        "type": "input",
-       "x": 200,
-       "y": 400,
+       "x": 148.7,
+       "y": 275,
        "params": {
         "name": "x",
         "shape": "e, c, H, W",
@@ -785,8 +785,8 @@
       {
        "id": "n3oinnr",
        "type": "block",
-       "x": 200,
-       "y": 330,
+       "x": 426,
+       "y": 275,
        "params": {
         "block": "b3mjkhh",
         "args": {
@@ -806,8 +806,8 @@
       {
        "id": "n3pktw1",
        "type": "block",
-       "x": 200,
-       "y": 260,
+       "x": 426,
+       "y": 187,
        "params": {
         "block": "b3mjkhh",
         "args": {
@@ -827,8 +827,8 @@
       {
        "id": "n3qobfa",
        "type": "binop",
-       "x": 200,
-       "y": 196,
+       "x": 426,
+       "y": 100,
        "params": {
         "op": "+",
         "const": "",
@@ -840,8 +840,8 @@
       {
        "id": "n3r76l6",
        "type": "output",
-       "x": 200,
-       "y": 132,
+       "x": 585,
+       "y": 100,
        "params": {
         "name": "out",
         "title": ""
@@ -1166,7 +1166,7 @@
      "groups": []
     },
     "labels": {
-     "n_out": "outputs per cell: 3 × (5 + classes)"
+     "n_out": "outputs per cell: 3 \u00d7 (5 + classes)"
     },
     "lib": "blocks/yolo_detect.json"
    }

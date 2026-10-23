@@ -16,8 +16,8 @@
    {
     "id": "n2ora80",
     "type": "input",
-    "x": 237,
-    "y": 600,
+    "x": 130.2,
+    "y": 919,
     "params": {
      "name": "x",
      "shape": "e, t, d",
@@ -27,8 +27,8 @@
    {
     "id": "n2p3up2",
     "type": "input",
-    "x": 440,
-    "y": 600,
+    "x": 381,
+    "y": 999,
     "params": {
      "name": "pos",
      "shape": "3, e, t",
@@ -38,8 +38,8 @@
    {
     "id": "n2qwsqo",
     "type": "norm",
-    "x": 339,
-    "y": 526,
+    "x": 614,
+    "y": 919,
     "params": {
      "kind": "RMSNorm",
      "dim": "d",
@@ -53,8 +53,8 @@
    {
     "id": "n2sly8v",
     "type": "linear",
-    "x": 112,
-    "y": 452,
+    "x": 476,
+    "y": 844,
     "params": {
      "in": "d",
      "out": "d",
@@ -71,8 +71,8 @@
    {
     "id": "n2txbap",
     "type": "linear",
-    "x": 339,
-    "y": 452,
+    "x": 614,
+    "y": 844,
     "params": {
      "in": "d",
      "out": "d_kv",
@@ -89,8 +89,8 @@
    {
     "id": "n2u2crx",
     "type": "linear",
-    "x": 565,
-    "y": 452,
+    "x": 752,
+    "y": 844,
     "params": {
      "in": "d",
      "out": "d_kv",
@@ -107,8 +107,8 @@
    {
     "id": "n2ytlc7",
     "type": "heads",
-    "x": 112,
-    "y": 378,
+    "x": 457,
+    "y": 769,
     "params": {
      "heads": "n_head",
      "title": "",
@@ -118,8 +118,8 @@
    {
     "id": "n2zjoon",
     "type": "heads",
-    "x": 339,
-    "y": 378,
+    "x": 617,
+    "y": 769,
     "params": {
      "heads": "n_kv",
      "title": "",
@@ -129,8 +129,8 @@
    {
     "id": "n303po8",
     "type": "heads",
-    "x": 565,
-    "y": 378,
+    "x": 774,
+    "y": 769,
     "params": {
      "heads": "n_kv",
      "title": "",
@@ -140,8 +140,8 @@
    {
     "id": "n34r5rf",
     "type": "rope",
-    "x": 112,
-    "y": 304,
+    "x": 381,
+    "y": 704,
     "params": {
      "base": "1000000",
      "mode": "mrope",
@@ -153,8 +153,8 @@
    {
     "id": "n357d22",
     "type": "rope",
-    "x": 339,
-    "y": 304,
+    "x": 671,
+    "y": 704,
     "params": {
      "base": "1000000",
      "mode": "mrope",
@@ -166,8 +166,8 @@
    {
     "id": "n3a0c0v",
     "type": "func",
-    "x": 452,
-    "y": 230,
+    "x": 663,
+    "y": 638,
     "params": {
      "fn": ".repeat_interleave",
      "extra": "8, dim=1",
@@ -181,8 +181,8 @@
    {
     "id": "n3bkjoo",
     "type": "func",
-    "x": 565,
-    "y": 304,
+    "x": 904,
+    "y": 704,
     "params": {
      "fn": ".repeat_interleave",
      "extra": "8, dim=1",
@@ -196,8 +196,8 @@
    {
     "id": "n3ehwkw",
     "type": "scale",
-    "x": 225,
-    "y": 230,
+    "x": 526,
+    "y": 638,
     "params": {
      "title": "",
      "var": ""
@@ -206,8 +206,8 @@
    {
     "id": "n3fdp0c",
     "type": "transpose",
-    "x": 339,
-    "y": 156,
+    "x": 614,
+    "y": 573,
     "params": {
      "title": "",
      "var": ""
@@ -216,8 +216,8 @@
    {
     "id": "n3ixb84",
     "type": "binop",
-    "x": 339,
-    "y": 82,
+    "x": 614,
+    "y": 511,
     "params": {
      "op": "@",
      "const": "",
@@ -229,8 +229,8 @@
    {
     "id": "n3lztlg",
     "type": "mask",
-    "x": 339,
-    "y": 8,
+    "x": 614,
+    "y": 449,
     "params": {
      "mode": "causal",
      "title": "",
@@ -240,8 +240,8 @@
    {
     "id": "n3nvllr",
     "type": "act",
-    "x": 339,
-    "y": -66,
+    "x": 614,
+    "y": 385,
     "params": {
      "fn": "softmax",
      "dim": "-1",
@@ -252,8 +252,8 @@
    {
     "id": "n3piix7",
     "type": "binop",
-    "x": 1095,
-    "y": -66,
+    "x": 614,
+    "y": 323,
     "params": {
      "op": "@",
      "const": "",
@@ -265,8 +265,8 @@
    {
     "id": "n3sfnxg",
     "type": "merge",
-    "x": 1095,
-    "y": 8,
+    "x": 614,
+    "y": 261,
     "params": {
      "title": "",
      "var": ""
@@ -275,8 +275,8 @@
    {
     "id": "n3uf2ti",
     "type": "linear",
-    "x": 1095,
-    "y": 82,
+    "x": 614,
+    "y": 186,
     "params": {
      "in": "d",
      "out": "d",
@@ -293,8 +293,8 @@
    {
     "id": "n3w3wjv",
     "type": "binop",
-    "x": 1095,
-    "y": 156,
+    "x": 614,
+    "y": 100,
     "params": {
      "op": "+",
      "const": "",
@@ -306,8 +306,8 @@
    {
     "id": "n3zajfi",
     "type": "norm",
-    "x": 1095,
-    "y": 230,
+    "x": 1171,
+    "y": 471,
     "params": {
      "kind": "RMSNorm",
      "dim": "d",
@@ -321,8 +321,8 @@
    {
     "id": "n41byrp",
     "type": "binop",
-    "x": 1095,
-    "y": 600,
+    "x": 1171,
+    "y": 100,
     "params": {
      "op": "+",
      "const": "",
@@ -334,8 +334,8 @@
    {
     "id": "n433w51",
     "type": "linear",
-    "x": 981,
-    "y": 304,
+    "x": 1102,
+    "y": 396,
     "params": {
      "in": "d",
      "out": "ff",
@@ -352,8 +352,8 @@
    {
     "id": "n4415np",
     "type": "linear",
-    "x": 1208,
-    "y": 304,
+    "x": 1240,
+    "y": 396,
     "params": {
      "in": "d",
      "out": "ff",
@@ -370,8 +370,8 @@
    {
     "id": "n475k81",
     "type": "act",
-    "x": 1095,
-    "y": 378,
+    "x": 1171,
+    "y": 321,
     "params": {
      "fn": "silu",
      "dim": "-1",
@@ -382,8 +382,8 @@
    {
     "id": "n49kgga",
     "type": "binop",
-    "x": 1095,
-    "y": 452,
+    "x": 1171,
+    "y": 259,
     "params": {
      "op": "*",
      "const": "",
@@ -395,8 +395,8 @@
    {
     "id": "n4c55lp",
     "type": "linear",
-    "x": 1095,
-    "y": 526,
+    "x": 1171,
+    "y": 186,
     "params": {
      "in": "ff",
      "out": "d",
@@ -413,8 +413,8 @@
    {
     "id": "n4fwbk8",
     "type": "output",
-    "x": 1851,
-    "y": 600,
+    "x": 1312,
+    "y": 100,
     "params": {
      "name": "out",
      "title": ""
