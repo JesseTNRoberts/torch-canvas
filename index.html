@@ -86,6 +86,13 @@ header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding
 aside, .right { min-height: 0; overflow: auto; background: var(--panel); }
 aside { border-right: 1px solid var(--line); padding: 12px; display: flex; flex-direction: column; gap: 18px; }
 .right { border-left: 1px solid var(--line); display: grid; grid-template-rows: auto auto minmax(0, 1fr); }
+.resizer { display: none; }
+@media (min-width: 981px) {
+  .main { grid-template-columns: var(--left-w, 228px) 5px minmax(0, 1fr) 5px var(--right-w, minmax(340px, 34%)); }
+  .resizer { display: block; position: relative; z-index: 2; cursor: col-resize; touch-action: none; background: var(--line); opacity: .55; transition: opacity .12s, background .12s; }
+  .resizer:hover, .resizer.drag, .resizer:focus-visible { background: var(--stream); opacity: 1; outline: 0; }
+  .resizer::after { content: ""; position: absolute; inset: 0 -4px; }
+}
 h3 { margin: 0 0 8px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); display: flex; align-items: center; justify-content: space-between; }
 .palette { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
 .ctabs { display: flex; flex-wrap: wrap; gap: 0 2px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
@@ -448,6 +455,7 @@ details summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
         <p class="hint"><kbd>Shift</kbd>-drag to box-select · <kbd>⌫</kbd> delete · <kbd>Ctrl</kbd><kbd>C</kbd>/<kbd>V</kbd> copy/paste · <kbd>Ctrl</kbd><kbd>S</kbd> save to file · <kbd>F</kbd> fit view · <kbd>Esc</kbd> back to the model tab · right-click a layer for more options</p>
       </section>
     </aside>
+    <div class="resizer" id="resizeLeft" role="separator" aria-orientation="vertical" aria-label="Resize the component palette" tabindex="0" title="Drag to resize. Double-click to reset."></div>
 
     <div class="canvas-wrap" id="wrap">
       <div class="tabstrip" id="tabstrip" role="tablist" aria-label="Open networks"></div>
@@ -468,6 +476,7 @@ details summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
       <div class="var-float" id="varFloat" hidden role="dialog" aria-label="Init variance"><div class="var-fhead"><b>Init variance</b><span class="var-stale" id="varStale" hidden>The model changed since this plot.</span><span class="spacer"></span><button class="btn" id="varRe">Replot</button><button class="x" id="varClose" aria-label="Close">×</button></div><div class="var-pane" id="varPane"></div></div>
       <div class="canvas-ctl"><button class="btn" id="zVar" title="Plot the expected forward and backward variance at each Linear right after init">Plot variance</button><button class="btn" id="zSizes" aria-pressed="false" title="Show the tensor size on every branch">Show sizes</button><button class="btn" id="zSvg" title="Save the diagram exactly as shown (with the size labels where you placed them) as an SVG">Export SVG</button><button class="btn" id="zOut" aria-label="Zoom out">−</button><button class="btn" id="zFit">Fit</button><button class="btn" id="zIn" aria-label="Zoom in">+</button></div>
     </div>
+    <div class="resizer" id="resizeRight" role="separator" aria-orientation="vertical" aria-label="Resize the right pane" tabindex="0" title="Drag to resize. Double-click to reset."></div>
 
     <div class="right">
       <div class="tabs"><span class="tab" aria-selected="true" style="cursor:default">PyTorch</span></div>
@@ -7172,6 +7181,49 @@ renderProject();
 idb.get('last').then(r => { if (r && (r.dir || r.file)) { S.remembered = r; if (!S.dir) renderProject(); } }).catch(() => {});
 requestAnimationFrame(fit);
 window.addEventListener('resize', () => render());
+// Draggable dividers beside the palette and the right pane. Only in the three-column layout (the media query below).
+const PANE_KEY = 'torchcanvas.panes', PANE_MIN = { left: 160, right: 280, centre: 320 }, BAR = 5;
+const wideLayout = matchMedia('(min-width: 981px)');
+const pane = { left: null, right: null }; // px, or null for the stylesheet default
+try { const s = JSON.parse(localStorage.getItem(PANE_KEY) || '{}'); for (const side of ['left', 'right']) if (Number.isFinite(s[side])) pane[side] = s[side]; } catch {}
+const paneWidth = side => (side === 'left' ? $('aside') : $('.right')).getBoundingClientRect().width;
+// The widest a side can be while the centre keeps its minimum; the other side keeps its current width.
+const paneMax = side => $('.main').getBoundingClientRect().width - paneWidth(side === 'left' ? 'right' : 'left') - PANE_MIN.centre - 2 * BAR;
+const paneApply = () => { for (const side of ['left', 'right']) { if (pane[side] == null) $('.main').style.removeProperty(`--${side}-w`); else $('.main').style.setProperty(`--${side}-w`, pane[side] + 'px'); } };
+let paneRaf = 0;
+// The canvas and the SVG measure themselves on resize, so tell them after every change.
+const paneChanged = () => { paneApply(); cancelAnimationFrame(paneRaf); paneRaf = requestAnimationFrame(() => window.dispatchEvent(new Event('resize'))); };
+const paneSave = () => { try { localStorage.setItem(PANE_KEY, JSON.stringify(pane)); } catch {} };
+const paneSet = (side, px) => { pane[side] = Math.round(Math.max(PANE_MIN[side], Math.min(paneMax(side), px))); paneChanged(); };
+for (const side of ['left', 'right']) {
+  const bar = $(side === 'left' ? '#resizeLeft' : '#resizeRight');
+  bar.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    e.preventDefault(); bar.setPointerCapture(e.pointerId); bar.classList.add('drag');
+    const rect = $('.main').getBoundingClientRect();
+    const move = ev => paneSet(side, side === 'left' ? ev.clientX - rect.left : rect.right - ev.clientX);
+    const up = () => { bar.classList.remove('drag'); bar.removeEventListener('pointermove', move); bar.removeEventListener('pointerup', up); bar.removeEventListener('pointercancel', up); paneSave(); };
+    bar.addEventListener('pointermove', move); bar.addEventListener('pointerup', up); bar.addEventListener('pointercancel', up);
+  });
+  bar.addEventListener('dblclick', () => { pane[side] = null; paneChanged(); paneSave(); });
+  bar.addEventListener('keydown', e => {
+    const dir = { ArrowLeft: -1, ArrowRight: 1 }[e.key]; if (!dir) return;
+    e.preventDefault(); paneSet(side, paneWidth(side) + (side === 'left' ? 1 : -1) * dir * 24); paneSave();
+  });
+}
+// A narrower window can leave a stored size too wide for the centre, so clamp the sizes in use (saved again on the next drag).
+const paneFit = () => {
+  if (!wideLayout.matches) return false;
+  let moved = false;
+  for (const side of ['left', 'right']) {
+    if (pane[side] == null) continue;
+    const fit = Math.max(PANE_MIN[side], Math.floor(paneMax(side)));
+    if (pane[side] > fit) { pane[side] = fit; moved = true; paneApply(); }
+  }
+  return moved;
+};
+window.addEventListener('resize', () => { if (paneFit()) paneChanged(); });
+paneApply(); paneFit();
 // for the routing checks in tools/ (read-only access to the open graph and the router)
 window.__tc = { S, route, drawFrom, box, keyOf, byId, switchTo, openLibrary, findLibEntry, render };
 })();
