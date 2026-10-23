@@ -60,7 +60,7 @@ The variance plot looks at a recurrence one step at a time, without running thro
 
 ## Editing
 
-Select an element and press Delete (or Cmd/Ctrl+Delete) to remove it. Every network starts at an Input arrow and ends at an Output arrow; place them from Components → Layers.
+Select an element and press Delete (or Cmd/Ctrl+Delete) to remove it. Double-click an element (or select it and press Enter, or right-click → Show details) to open its details panel: its settings, what it computes, its nickname and note. While the panel is open it follows the selection; it closes with × or when nothing is selected. Double-clicking a block opens its inside instead, so a block's details are under right-click → Show details. Every network starts at an Input arrow and ends at an Output arrow; place them from Components → Layers.
 
 ## Sizes
 
@@ -77,7 +77,7 @@ The automatic path avoids other layers and keeps connections apart. A connection
 Connections can be styled without touching the code:
 
 - **Move one:** drag any segment of a connection; it stays square-cornered, and a segment that meets a layer gets a short jog so the line still leaves and enters the layer the same way. The bends are saved with the network; the ends follow the layers when you move them. Double-click a connection (or right-click → Reset route) to put it back on the automatic path. Auto layout resets all routes.
-- **Colour, weight, dash:** click a connection (Shift-click for several) and set its colour (a palette or any colour), weight (hairline to heavy) and line (solid, dashed, dotted) in the details panel; the arrowhead takes the colour. Right-click → Reset look goes back to the automatic style.
+- **Colour, weight, dash:** double-click a connection (or select several with Shift-click, then right-click → Colour and weight…) and set its colour (a palette or any colour), weight (hairline to heavy) and line (solid, dashed, dotted) in the details panel; the arrowhead takes the colour. Right-click → Reset look goes back to the automatic style.
 
 Both are only the drawing: the generated code is the same, and SVG export prints them as shown.
 
@@ -142,6 +142,14 @@ This uses Chrome's File System Access API, so it works in the local version (`np
 The examples in the menu are grouped by category (MLPs, Convolutional networks, Transformers, and so on); click a category to open or close it, and the category of the model you're looking at starts open. Each model has a category too: the selector next to its name in the top bar shows it, and you can pick another one or make a new one with **New category…**. A model without one is listed under **Other**, which is also where your own models go by default. The category is saved with the model, as a `# category: …` line at the top of the `.py` file.
 
 Open tabs are kept in your browser between visits. A tab opened from an example remembers which version of the example it came from: if the example has changed since and you haven't edited the tab, it is brought up to date when the app starts (Undo brings back the copy that was open); a tab you have edited is left as it is, and Open / import opens the current version alongside it.
+
+## Editing the code
+
+The code panel can be edited directly: press **Edit** above the code, or double-click a line to start editing there. Ctrl+Enter (or **Apply**) reads the code back into the diagram; Esc or **Cancel** leaves the diagram as it was (with edits typed, Esc asks for a second press). Tab and Shift+Tab indent and outdent, and Enter keeps the indentation. If the code can't be read, the diagram stays as it is and the message points at the line. Ctrl+Z undoes an applied edit.
+
+What the code doesn't hold is carried over from the diagram it replaces: where each layer sits, wire routes, nicknames, notes, the split Delay, tie-line lanes and library links. Layers are matched by kind and name in code order, so a layer you add appears next to its neighbours with room made for it, and one you remove leaves the rest where they were. Size names come back as well: in the literal style, a 768 that was `d` is `d` again, and changing every 768 that was `d` changes `d` itself. Editing a library block's class changes that block everywhere it's used, as editing inside its diagram does. A library block's own tab shows its code without an Edit button; edit it from a network that uses it.
+
+If the diagram changes while you're editing (an untouched editor simply follows it), the panel says so: Apply then replaces the diagram with your code. Unapplied edits stay with their model when you switch to another tab.
 
 ## Import
 

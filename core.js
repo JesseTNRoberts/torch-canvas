@@ -3333,6 +3333,118 @@ const NN = (() => {
     return text.replace(/\n{4,}/g, '\n\n\n');
   }
 
-  return { lowerReshapes, reshapeSteps, reshapeStepCode, reshapeShape, reshapeAxisSource, stepsToPattern, reshapeDescribe, reshapePlan, stepsShape, parseSizes, HELPER_OPS, indexInputRange, FREEZABLE, helperDoc, srcKey, splitKey, blockOutputs, blockClassCode, LOSSES, lossParts, lossPlan, weightShape, tieOwner, blockParams, blockInputs, expandBlocks, instantiateBlock, presetResidualMLPBlocks, NORMS, linkSizes, syncWidths, mergeIntoSource, uid, BATCH, DEFAULTS, ACTS, INITS, initCode, makeNode, inCount, isCircle, index, topo, evalDim, parseShape, inferShapes, paramCount, propagateWidth, generate, importPython, importFx, autoLayout, nodeSize, nodeLabel, presetResidualMLP, parse, identsIn };
+
+  // ── code edits: carry the diagram over ──
+  // After the code panel is edited, the new code is read into a fresh graph. What the code doesn't hold (where each
+  // node sits, wire routes, nicknames, notes, the split Delay and tie-line lanes, library links) is carried over from
+  // the graph it replaces, node by node; size names come back too ("768" in literal code is d again, and changing
+  // every 768 that was d changes d). Nodes are paired by kind and name in code order. layout(g) is the caller's
+  // auto layout, used to place the nodes the code added next to their neighbours.
+  const DIAGRAM_ONLY = ['title', 'note', 'tone', 'split', 'tie_x', 'demo', 'lib'];
+  function carryDiagram(old, neu, layout, sz = nodeSize) {
+    const clone = x => JSON.parse(JSON.stringify(x));
+    const lines = g => { const m = new Map(); try { const r = generate(g, { shapeComments: false, literalDims: false }); for (const [k, ls] of r.lineMap) if (ls.length) m.set(k, Math.min(...ls)); } catch {} return m; };
+    const pairsOf = (a, b) => {
+      const la = lines(a), lb = lines(b), ia = index(a), ib = index(b);
+      const ord = (g, l) => { const pos = new Map(g.nodes.map((n, i) => [n.id, i])); return (x, y) => ((l.has(x.id) ? l.get(x.id) : 1e9) - (l.has(y.id) ? l.get(y.id) : 1e9)) || pos.get(x.id) - pos.get(y.id); };
+      const oa = ord(a, la), ob = ord(b, lb), pairs = new Map(), used = new Set();
+      for (const key of [(g, ix, n) => { const gr = ix.groupOf.get(n.id); return `${gr ? gr.attr : ''}|${n.type}|${n.params.name || n.params.fn || n.params.op || n.params.kind || ''}`; }, (g, ix, n) => n.type]) {
+        const bucket = (g, ix, skip, cmp) => { const m = new Map(); for (const n of [...g.nodes].sort(cmp)) if (!skip(n)) { const k = key(g, ix, n); if (!m.has(k)) m.set(k, []); m.get(k).push(n); } return m; };
+        const A = bucket(a, ia, n => pairs.has(n.id), oa), B = bucket(b, ib, n => used.has(n.id), ob);
+        for (const [k, xs] of A) { const ys = B.get(k) || []; xs.forEach((x, i) => { if (ys[i]) { pairs.set(x.id, ys[i]); used.add(ys[i].id); } }); }
+      }
+      return pairs; // old id → new node
+    };
+    const place = (a, b) => {
+      const pairs = pairsOf(a, b), back = new Map([...pairs].map(([o, n]) => [n.id, o])), byIdA = new Map(a.nodes.map(n => [n.id, n]));
+      if (layout) layout(b);
+      const auto = new Map(b.nodes.map(n => [n.id, [n.x, n.y]]));
+      for (const [oid, n] of pairs) {
+        const o = byIdA.get(oid); n.x = o.x; n.y = o.y;
+        for (const k of DIAGRAM_ONLY) if (o.params[k] != null && o.params[k] !== '' && (n.params[k] == null || n.params[k] === '')) n.params[k] = clone(o.params[k]);
+      }
+      // nodes the code added: where the auto layout put them, relative to the nearest paired node
+      const shifted = new Map();
+      if (pairs.size >= Math.max(1, b.nodes.length * 0.5)) {
+        const nb = new Map(b.nodes.map(n => [n.id, []])); for (const e of b.edges) { if (nb.has(e.from) && nb.has(e.to)) { nb.get(e.from).push(e.to); nb.get(e.to).push(e.from); } }
+        for (const n of b.nodes) if (!back.has(n.id)) {
+          const seen = new Set([n.id]); let q = [n.id], hit = null;
+          while (q.length && !hit) { const nx = []; for (const id of q) for (const m of nb.get(id) || []) if (!seen.has(m)) { seen.add(m); if (back.has(m)) { hit = hit || m; } nx.push(m); } q = nx; }
+          if (hit) { const m = b.nodes.find(z => z.id === hit), [ux, uy] = auto.get(n.id), [mx, my] = auto.get(hit); n.x = m.x + ux - mx; n.y = m.y + uy - my; n._near = m.y; }
+        }
+        // make room: a new node that lands on another one opens a gap, moving everything on its far side (as a row
+        // inserted into the diagram)
+        const bx = n => { const s = sz(n); return { x0: n.x - s.w / 2, x1: n.x + s.w / 2, y0: n.y - s.h / 2, y1: n.y + s.h / 2 }; };
+        const hitsAny = u => { const A = bx(u); return b.nodes.some(v => v !== u && (() => { const B = bx(v); return A.x0 < B.x1 + 10 && B.x0 < A.x1 + 10 && A.y0 < B.y1 + 14 && B.y0 < A.y1 + 14; })()); };
+        for (const u of b.nodes) if (!back.has(u.id) && u._near != null && hitsAny(u)) {
+          const up = u.y <= u._near, d = sz(u).h + 38;
+          for (const v of b.nodes) if (v !== u && (up ? v.y <= u.y + 2 : v.y >= u.y - 2)) {
+            v.y += up ? -d : d; shifted.set(v.id, (shifted.get(v.id) || 0) + (up ? -d : d));
+            if (v.params.split && typeof v.params.split === 'object') v.params.split.y += up ? -d : d;
+          }
+        }
+        for (const u of b.nodes) delete u._near;
+      } else if (layout) layout(b);
+      // wire routes between paired nodes
+      const key = (f, t, p) => `${f}>${t}#${p}`, routes = new Map();
+      for (const e of a.edges) if (e.route) routes.set(key(e.from, e.to, e.port), e.route);
+      for (const e of b.edges) { const f = back.get(e.from), t = back.get(e.to); const r = f && t && (shifted.get(e.from) || 0) === (shifted.get(e.to) || 0) && routes.get(key(f, t, e.port)); if (r) e.route = clone(r); }
+      return pairs;
+    };
+    // sizes: the old names for the same values
+    const evalNum = (expr, syms) => {
+      const s = String(expr == null ? '' : expr).trim(); if (!s) return null;
+      if (/^-?\d+(\.\d+)?$/.test(s)) return +s;
+      if (!/^[\w\s+\-*/().]+$/.test(s)) return null;
+      let miss = false; const js = s.replace(IDENT, id => (syms && syms[id] != null && syms[id] !== '' && !isNaN(+syms[id]) ? '(' + +syms[id] + ')' : ((miss = true), '0'))).replace(/\/\//g, '/');
+      if (miss) return null; try { const v = Function('"use strict";return (' + js + ')')(); return Number.isFinite(v) ? v : null; } catch { return null; }
+    };
+    const slots = n => { // [get list, set list] for each size field of a node
+      const out = [], p = n.params;
+      for (const f of (DIMF[n.type] || [])) if (typeof p[f] === 'string') {
+        if (f === 'sizes') out.push([f, () => sizePairs(p[f]).map(x => x[1]), vs => { const ks = sizePairs(p[f]).map(x => x[0]); p[f] = ks.map((k, i) => `${k}=${vs[i]}`).join(', '); }]);
+        else if (f === 'shape') out.push([f, () => parseShape(p[f]), vs => { p[f] = vs.join(', '); }]);
+        else out.push([f, () => [p[f]], vs => { p[f] = vs[0]; }]);
+      }
+      if (n.type === 'block' && p.args) for (const k of Object.keys(p.args)) out.push(['args.' + k, () => [String(p.args[k])], vs => { p.args[k] = vs[0]; }]);
+      return out;
+    };
+    const sizes = (a, b, pairs) => {
+      const os = a.symbols || {}, ns = Object.assign({}, b.symbols || {}), byIdA = new Map(a.nodes.map(n => [n.id, n]));
+      // a new size name that the old graph uses for another value gets a fresh name first
+      const ren = new Map();
+      for (const k of Object.keys(ns)) if (k in os && +os[k] !== +ns[k]) { let j = 2; while ((k + '_' + j) in os || (k + '_' + j) in ns) j++; ren.set(k, k + '_' + j); }
+      if (ren.size) { for (const n of b.nodes) for (const [, get, set] of slots(n)) set(get().map(v => String(v).replace(IDENT, t => ren.get(t) || t))); for (const [k, v] of ren) { ns[v] = ns[k]; delete ns[k]; } }
+      const recs = [];
+      for (const [oid, n] of pairs) {
+        const o = byIdA.get(oid); if (o.type !== n.type) continue;
+        const sn = new Map(slots(n).map(([k, get, set]) => [k, [get, set]]));
+        for (const [k, get] of slots(o)) { const m = sn.get(k); if (!m) continue; const ov = get().map(String), nv = m[0]().map(String); if (ov.length !== nv.length) continue; recs.push({ ov, nv, set: m[1], val: nv.map(v => evalNum(v, ns)) }); }
+      }
+      // a size whose every use changed to the same value: the size itself changed
+      const syms = Object.assign({}, os), uses = new Map();
+      for (const r of recs) r.ov.forEach((e, i) => { if (/^[A-Za-z_]\w*$/.test(e) && e in os) { if (!uses.has(e)) uses.set(e, new Set()); uses.get(e).add(r.val[i]); } });
+      for (const [k, vs] of uses) if (vs.size === 1) { const v = [...vs][0]; if (v != null && Number.isInteger(v) && v !== +os[k]) syms[k] = v; }
+      for (const r of recs) r.set(r.ov.map((e, i) => { const v = evalNum(e, syms); return v != null && r.val[i] != null && Math.abs(v - r.val[i]) < 1e-9 ? e : r.nv[i]; }));
+      const used = new Set(); for (const n of b.nodes) for (const [, get] of slots(n)) get().forEach(v => identsIn(v).forEach(t => used.add(t)));
+      for (const k of Object.keys(ns)) if (used.has(k) && !(k in syms)) syms[k] = ns[k];
+      b.symbols = syms;
+    };
+    const walk = (a, b) => {
+      const pairs = place(a, b); sizes(a, b, pairs);
+      const ob = Object.values(a.blocks || {});
+      for (const nb of Object.values(b.blocks || {})) {
+        const o = ob.find(x => x.name === nb.name); if (!o) { if (layout && nb.graph) layout(nb.graph); continue; }
+        for (const k of Object.keys(o)) if (!['id', 'name', 'graph', 'labels'].includes(k) && nb[k] == null) nb[k] = clone(o[k]);
+        if (o.labels) nb.labels = Object.assign({}, nb.labels || {}, clone(o.labels)); // the friendly names of its sizes
+        if (o.graph && nb.graph) walk(o.graph, nb.graph);
+      }
+    };
+    walk(old, neu);
+    for (const k of Object.keys(old)) if (!['name', 'symbols', 'nodes', 'edges', 'groups', 'blocks'].includes(k) && neu[k] == null) neu[k] = clone(old[k]);
+    return neu;
+  }
+
+  return { carryDiagram, lowerReshapes, reshapeSteps, reshapeStepCode, reshapeShape, reshapeAxisSource, stepsToPattern, reshapeDescribe, reshapePlan, stepsShape, parseSizes, HELPER_OPS, indexInputRange, FREEZABLE, helperDoc, srcKey, splitKey, blockOutputs, blockClassCode, LOSSES, lossParts, lossPlan, weightShape, tieOwner, blockParams, blockInputs, expandBlocks, instantiateBlock, presetResidualMLPBlocks, NORMS, linkSizes, syncWidths, mergeIntoSource, uid, BATCH, DEFAULTS, ACTS, INITS, initCode, makeNode, inCount, isCircle, index, topo, evalDim, parseShape, inferShapes, paramCount, propagateWidth, generate, importPython, importFx, autoLayout, nodeSize, nodeLabel, presetResidualMLP, parse, identsIn };
 })();
 if (typeof module !== 'undefined') module.exports = NN;

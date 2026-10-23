@@ -244,4 +244,24 @@ for (const [f, want] of [['23_residual_cnn_gap.json', 57098], ['24_residual_cnn_
     if (!nested || new Set(names).size !== names.length || NN.generate(NN.importPython(code).graph).code !== code) { console.error('nested blocks round trip failed: ' + f); process.exit(1); }
   }
   console.log('nested blocks OK');
+  // editing the code: the diagram comes back unchanged (layout, nicknames, notes, size names) when the code is read back,
+  // and an edit changes only what it touches
+  {
+    const ex = __dirname + '/examples/networks/', lay = x => NN.autoLayout(x);
+    const sig = g => JSON.stringify([g.nodes.map(n => [n.x, n.y, n.params.title || '', n.params.note || '', n.params.split || null]).sort(), Object.values(g.blocks || {}).map(b => [b.name, b.lib || '', b.graph.nodes.map(n => [n.x, n.y, n.params.title || '', n.params.note || '']).sort()]).sort()]);
+    for (const f of fs.readdirSync(ex).filter(f => f.endsWith('.json'))) for (const lit of [true, false]) {
+      const g = JSON.parse(fs.readFileSync(ex + f, 'utf8')).graph, o = { literalDims: lit, shapeComments: true };
+      const h = NN.carryDiagram(g, NN.importPython(NN.generate(g, o).code).graph, lay);
+      if (sig(g) !== sig(h) || NN.generate(h, { literalDims: false }).code !== NN.generate(g, { literalDims: false }).code) { console.error(`code edit round trip changed the diagram: ${f} (literalDims=${lit})`); process.exit(1); }
+    }
+    const g = JSON.parse(fs.readFileSync(ex + '07_gpt2.json', 'utf8')).graph;
+    const h = NN.carryDiagram(g, NN.importPython(NN.generate(g, { literalDims: true }).code.replace(/768/g, '512')).graph, lay);
+    if (h.symbols.d !== 512 || !/def __init__\(self, vocab=50257, block=1024, d=512, n_head=12/.test(NN.generate(h, { literalDims: false }).code)) { console.error('code edit: changing every 768 should change d'); process.exit(1); }
+    const c = JSON.parse(fs.readFileSync(ex + '24_residual_cnn_dense.json', 'utf8')).graph;
+    const src = NN.generate(c, { literalDims: true }).code.replace('        x = self.block3(x)', '        x = self.drop(x)\n        x = self.block3(x)').replace('        self.fc = nn.Linear', '        self.drop = nn.Dropout(0.2)\n        self.fc = nn.Linear');
+    const k = NN.carryDiagram(c, NN.importPython(src).graph, lay), d = k.nodes.find(n => n.type === 'dropout');
+    const overlap = k.nodes.some(n => n !== d && Math.abs(n.x - d.x) < 100 && Math.abs(n.y - d.y) < 50);
+    if (!d || overlap || k.nodes.filter(n => n !== d).some(n => !c.nodes.some(m => m.type === n.type && m.x === n.x))) { console.error('code edit: an added layer should get room of its own in the same column'); process.exit(1); }
+  }
+  console.log('code edits OK');
 }

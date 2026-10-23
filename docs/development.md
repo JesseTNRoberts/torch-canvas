@@ -8,7 +8,7 @@ Running locally, building, testing, publishing on GitHub Pages and linking to ex
 
     npm start          # serves http://localhost:5173 — open it in Chrome
 
-It opens with the residual MLP example; more examples are under Open / import. Selecting anything opens a details panel on the right of the canvas. **New model** starts an editable Input → Linear → ReLU → Linear → Output network; add layers by clicking or dragging them from the Layers list. No dependencies. `index.html` is self-contained; `npm run build` regenerates it after editing `src.html` (UI), `core.js` (graph model, shape inference, code generation, importers), `engine.js` (variance prediction), `export.js` (train.py) or anything in `examples/`. `npm test` checks the diagram → code → diagram round trips (including losses) and the exports.
+It opens with the residual MLP example; more examples are under Open / import. Double-click a layer or connection (or select it and press Enter) to open its details panel on the right of the canvas. **New model** starts an editable Input → Linear → ReLU → Linear → Output network; add layers by clicking or dragging them from the Layers list. No dependencies. `index.html` is self-contained; `npm run build` regenerates it after editing `src.html` (UI), `core.js` (graph model, shape inference, code generation, importers), `engine.js` (variance prediction), `export.js` (train.py) or anything in `examples/`. `npm test` checks the diagram → code → diagram round trips (including losses) and the exports.
 
 ## Publishing on GitHub Pages
 

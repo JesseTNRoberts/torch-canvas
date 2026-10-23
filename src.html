@@ -89,7 +89,8 @@ header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding
 .main { min-height: 0; display: grid; grid-template-columns: 228px minmax(0, 1fr) minmax(340px, 34%); }
 aside, .right { min-height: 0; overflow: auto; background: var(--panel); }
 aside { border-right: 1px solid var(--line); padding: 12px; display: flex; flex-direction: column; gap: 18px; }
-.right { border-left: 1px solid var(--line); display: grid; grid-template-rows: auto auto minmax(0, 1fr); }
+.right { border-left: 1px solid var(--line); display: grid; grid-template-rows: auto auto auto minmax(0, 1fr); }
+.right > #codePane { grid-row: 4; }
 h3 { margin: 0 0 8px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); display: flex; align-items: center; justify-content: space-between; }
 .palette { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
 .ctabs { display: flex; flex-wrap: wrap; gap: 0 2px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
@@ -287,6 +288,14 @@ pre.code { margin: 0; padding: 10px 0 24px; font-family: var(--mono); font-size:
 pre.code .ln { display: block; padding: 0 14px 0 0; white-space: pre; }
 pre.code .ln::before { content: attr(data-n); display: inline-block; width: 3.4em; padding-right: 1em; text-align: right; color: var(--faint); user-select: none; }
 pre.code .ln.hl { background: var(--hl); }
+.code-edit { position: relative; display: inline-block; min-width: 100%; min-height: 100%; vertical-align: top; background: var(--code-bg); }
+.code-edit pre.code { pointer-events: none; }
+.code-edit textarea { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; border: 0; outline: 0; resize: none; overflow: hidden; box-sizing: border-box;
+  padding: 10px 14px 24px 4.4em; font-family: var(--mono); font-size: 12px; line-height: 1.6; tab-size: 4; white-space: pre; background: transparent; color: transparent; caret-color: var(--ink); }
+.code-edit textarea::selection { background: color-mix(in srgb, var(--stream) 28%, transparent); color: transparent; }
+#codePane.editing { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--stream) 45%, transparent); }
+.code-err { display: block; white-space: pre-wrap; }
+.codebar kbd { font-family: var(--mono); font-size: 10.5px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; background: var(--panel); }
 .k { color: var(--kw); } .s { color: var(--str); } .nu { color: var(--num); } .c { color: var(--com); font-style: italic; } .cl { color: var(--cls); } .sf { color: var(--muted); }
 .var-float { position: absolute; left: 14px; bottom: 58px; width: min(500px, calc(100% - 28px)); max-height: calc(100% - 110px); display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 10px 34px rgba(20, 20, 40, .16); z-index: 6; }
 .var-float[hidden] { display: none !important; }
@@ -469,7 +478,7 @@ details summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
           <div class="row" style="margin-top:8px"><button class="btn" id="bNewBlock">New block</button><button class="btn" id="bSaveBlock" title="Turn the selected layers into a reusable block">Save selection as block</button></div>
         </div>
         <p class="hint" id="compEmpty" hidden>No components match.</p>
-        <p class="hint" style="margin-top:10px">Click or drag a component onto the canvas, and drag from a component's top dot to another to connect. Hover for what it does; right-click for more.</p>
+        <p class="hint" style="margin-top:10px">Click or drag a component onto the canvas, and drag from a component's top dot to another to connect. Hover for what it does; double-click a layer for its details, right-click for more.</p>
       </section>
       <section id="projSec" hidden></section>
       <section>
@@ -501,13 +510,18 @@ details summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
     <div class="right">
       <div class="tabs"><span class="tab" aria-selected="true" style="cursor:default">PyTorch</span></div>
       <div id="codeBar" class="codebar">
-        <label><input type="checkbox" id="oShapes" checked> shape comments</label>
-        <label><input type="checkbox" id="oSilu"> fuse σ(x)·x → F.silu</label>
-        <label title="Write sizes as constructor arguments instead of numbers"><input type="checkbox" id="oNamed"> named sizes</label>
+        <label class="cb-view"><input type="checkbox" id="oShapes" checked> shape comments</label>
+        <label class="cb-view"><input type="checkbox" id="oSilu"> fuse σ(x)·x → F.silu</label>
+        <label class="cb-view" title="Write sizes as constructor arguments instead of numbers"><input type="checkbox" id="oNamed"> named sizes</label>
+        <span class="cb-edit" hidden>Editing the code · <kbd>Ctrl</kbd><kbd>Enter</kbd> applies it to the diagram</span>
         <span class="spacer"></span>
-        <button class="btn" id="bCopy">Copy code</button>
+        <button class="btn cb-view" id="bEditCode" title="Edit the code here and apply it to the diagram (or double-click the code)">Edit</button>
+        <button class="btn cb-view" id="bCopy">Copy code</button>
+        <button class="btn cb-edit" id="bCodeCancel" hidden title="Discard these edits (Esc)">Cancel</button>
+        <button class="btn primary cb-edit" id="bCodeApply" hidden title="Read this code into the diagram (Ctrl+Enter)">Apply</button>
       </div>
-      <div class="pane" id="codePane"><ul class="warns" id="warns" hidden></ul><pre class="code" id="code"></pre></div>
+      <div class="warns code-err" id="codeErr" role="status" hidden></div>
+      <div class="pane" id="codePane"><ul class="warns" id="warns" hidden></ul><pre class="code" id="code"></pre><div class="code-edit" id="codeEdit" hidden><pre class="code" id="codeHl" aria-hidden="true"></pre><textarea id="codeTa" spellcheck="false" autocapitalize="off" autocomplete="off" wrap="off" aria-label="PyTorch code"></textarea></div></div>
     </div>
   </div>
 </div>
@@ -1550,6 +1564,21 @@ function renderCode() {
     }
   }
   S.gen = r;
+  // another open model: edits in progress stay with the model they were made in
+  if (S.codeEdit && S.codeEdit.doc !== S.cur) {
+    const ta = $('#codeTa'), d = docById(S.codeEdit.doc);
+    if (d && ta.value !== S.codeEdit.base) d.codeDraft = { text: ta.value, base: S.codeEdit.base, stale: S.codeEdit.stale };
+    S.codeEdit = null; $('#codeEdit').hidden = true; $('#code').hidden = false; codeEditError('');
+  }
+  const draft = !S.codeEdit && !R().libHost && docById(S.cur) && docById(S.cur).codeDraft;
+  if (draft) { delete docById(S.cur).codeDraft; startCodeEdit(-1, draft); }
+  renderCodeBar();
+  if (S.codeEdit) { // the diagram changed while the code is being edited: follow it unless something was typed
+    const ta = $('#codeTa');
+    if (ta.value === S.codeEdit.base) { if (r.code !== S.codeEdit.base) { ta.value = S.codeEdit.base = r.code; codeEditPaint(); } }
+    else if (r.code !== S.codeEdit.base && !S.codeEdit.stale) { S.codeEdit.stale = true; codeEditError('The diagram has changed since you started editing. Apply replaces it with this code; Cancel keeps the diagram.'); }
+    return;
+  }
   const hl = new Set();
   const ids = [...S.sel.nodes]; if (S.sel.group) ids.push('g:' + S.sel.group);
   for (const id of ids) (r.lineMap.get(id) || []).forEach(l => hl.add(l));
@@ -1557,6 +1586,93 @@ function renderCode() {
   const w = $('#warns'); w.hidden = !r.warnings.length; w.innerHTML = r.warnings.map(x => `<li>${esc(x)}</li>`).join('');
   if (hl.size) { const first = $('#code .ln.hl'); if (first) { const pane = $('#codePane'); const top = first.offsetTop; if (top < pane.scrollTop || top > pane.scrollTop + pane.clientHeight - 40) pane.scrollTop = top - 60; } }
 }
+// ── editing the code: the text is read back into the diagram (core carryDiagram keeps the layout, nicknames and notes) ──
+S.codeEdit = null;
+function renderCodeBar() {
+  const ed = !!S.codeEdit, host = !!R().libHost;
+  document.querySelectorAll('#codeBar .cb-view').forEach(x => (x.hidden = ed));
+  document.querySelectorAll('#codeBar .cb-edit').forEach(x => (x.hidden = !ed));
+  const b = $('#bEditCode'); b.disabled = host;
+  b.title = host ? "A library block's code is edited in its diagram, or in the code of a network that uses it" : 'Edit the code here and apply it to the diagram (or double-click the code)';
+  $('#codePane').classList.toggle('editing', ed);
+}
+function codeEditPaint() {
+  $('#codeHl').innerHTML = $('#codeTa').value.split('\n').map((ln, i) => `<span class="ln" data-n="${i + 1}">${highlight(ln) || ' '}</span>`).join('');
+}
+function startCodeEdit(line, draft) {
+  if (R().libHost || S.codeEdit) return;
+  const pane = $('#codePane'), top = pane.scrollTop, ta = $('#codeTa');
+  S.codeEdit = { base: draft ? draft.base : S.gen.code, stale: !!(draft && draft.stale), doc: S.cur };
+  ta.value = draft ? draft.text : S.gen.code; codeEditPaint();
+  $('#code').hidden = true; $('#codeEdit').hidden = false; codeEditError(''); renderCodeBar();
+  if (draft) return;
+  ta.focus({ preventScroll: true }); pane.scrollTop = top;
+  let at = 0; if (line > 0) { const ls = ta.value.split('\n'); for (let i = 0; i < Math.min(line, ls.length); i++) at += ls[i].length + 1; at += (ls[line] || '').match(/^\s*/)[0].length; }
+  ta.setSelectionRange(at, at);
+}
+function stopCodeEdit() {
+  S.codeEdit = null; $('#codeEdit').hidden = true; $('#code').hidden = false; $('#codeErr').hidden = true; renderCode();
+}
+function codeEditError(msg) { const e = $('#codeErr'); e.hidden = !msg; e.textContent = msg || ''; }
+function applyCodeEdit() {
+  if (!S.codeEdit) return true;
+  const text = $('#codeTa').value;
+  if (text === S.codeEdit.base) { stopCodeEdit(); return true; }
+  let res;
+  try { res = NN.importPython(text); if (!res.graph || !res.graph.nodes.length) throw new Error('There is no model here to read.'); }
+  catch (ex) {
+    codeEditError("Couldn't read this code, so the diagram is unchanged: " + ex.message);
+    const m = /\bLine (\d+)/i.exec(ex.message), ta = $('#codeTa');
+    if (m) { // put the caret on that line
+      const ls = ta.value.split('\n'), k = Math.min(+m[1] - 1, ls.length - 1); let at = 0; for (let i = 0; i < k; i++) at += ls[i].length + 1;
+      ta.focus({ preventScroll: true }); ta.setSelectionRange(at, at + ls[k].length);
+      const ln = $('#codeHl').children[k], pane = $('#codePane'); if (ln) pane.scrollTop = Math.max(0, ln.offsetTop - pane.clientHeight / 3);
+    }
+    return false;
+  }
+  const old = R(), g = res.graph, inBlock = S.edit && old.blocks && old.blocks[S.edit] ? old.blocks[S.edit].name : null;
+  NN.carryDiagram(old, g, x => NN.autoLayout(x, sizeOf), sizeOf);
+  if (res.literalDims != null) S.opts.literalDims = res.literalDims;
+  // blocks still linked to the library keep this code's version (and pass it on, as an edit in the diagram would)
+  syncLinked(g, { skip: new Set(Object.values(g.blocks || {}).filter(b => b.lib).map(b => b.id)) });
+  S.codeEdit = null; $('#codeEdit').hidden = true; $('#code').hidden = false; codeEditError('');
+  commit(() => { setModel(g); clearSel(); });
+  const nb = inBlock && Object.values(g.blocks || {}).find(b => b.name === inBlock); if (nb) switchTo(nb.id);
+  if (res.warnings.length) { const w = $('#warns'); w.hidden = false; w.innerHTML += res.warnings.map(x => `<li>Import: ${esc(x)}</li>`).join(''); }
+  toast('Code applied to the diagram.' + (res.warnings.length ? ` ${res.warnings.length} note${res.warnings.length > 1 ? 's' : ''} in the code panel.` : '') + ' Ctrl+Z undoes it.');
+  return true;
+}
+$('#bEditCode').onclick = () => startCodeEdit(0);
+$('#bCodeApply').onclick = () => applyCodeEdit();
+$('#bCodeCancel').onclick = () => stopCodeEdit();
+$('#code').addEventListener('dblclick', e => { const ln = e.target.closest('.ln'); startCodeEdit(ln ? +ln.dataset.n - 1 : 0); });
+$('#codeTa').addEventListener('input', () => { codeEditPaint(); if (S.codeEdit) S.codeEdit.escAt = 0; });
+$('#codeTa').addEventListener('keydown', e => {
+  const ta = e.target, mod = e.ctrlKey || e.metaKey;
+  if (mod && e.key === 'Enter') { e.preventDefault(); applyCodeEdit(); return; }
+  if (mod && e.key.toLowerCase() === 's') { e.preventDefault(); e.stopPropagation(); if (applyCodeEdit()) R().libHost ? saveLibNow(R().libHost) : saveFile(); return; }
+  if (e.key === 'Escape') {
+    e.preventDefault(); e.stopPropagation();
+    if (ta.value === S.codeEdit.base || Date.now() - (S.codeEdit.escAt || 0) < 2500) return stopCodeEdit();
+    S.codeEdit.escAt = Date.now(); codeEditError('Press Esc again to discard your edits, or Ctrl+Enter to apply them.'); return;
+  }
+  const a = ta.selectionStart, b = ta.selectionEnd, v = ta.value;
+  const put = (text, s0, s1, caret) => { ta.setRangeText(text, s0, s1, 'end'); if (caret != null) ta.setSelectionRange(caret, caret); codeEditPaint(); };
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const l0 = v.lastIndexOf('\n', a - 1) + 1;
+    if (a === b && !e.shiftKey) return put('    ', a, b);
+    const l1 = b > a && v[b - 1] === '\n' ? b - 1 : b, block = v.slice(l0, l1);
+    const out = e.shiftKey ? block.replace(/^ {1,4}/gm, '') : block.replace(/^/gm, '    ');
+    ta.setRangeText(out, l0, l1, 'select'); codeEditPaint(); return;
+  }
+  if (e.key === 'Enter' && !e.shiftKey && !mod && !e.altKey) { // keep the indent, one more after a colon
+    e.preventDefault();
+    const l0 = v.lastIndexOf('\n', a - 1) + 1, line = v.slice(l0, a), ind = line.match(/^\s*/)[0] + (/:\s*(#.*)?$/.test(line) ? '    ' : '');
+    return put('\n' + ind, a, b);
+  }
+});
+
 const PY = /(#.*$)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|\b(import|from|as|class|def|return|if|for|in|not|and|or|None|True|False|super|lambda|with)\b|\b(self)\b|\b(\d+(?:\.\d+)?)\b|\b([A-Z]\w*)\b/g;
 function highlight(line) {
   let out = '', last = 0;
@@ -1730,7 +1846,8 @@ function opExplain0(n) {
 function renderInspector() {
   const el = $('#insp');
   const has = S.sel.nodes.size || S.sel.edges.size || S.sel.group;
-  $('#drawer').hidden = !has || S.drawerClosed;
+  if (!has) S.drawerOpen = false; // the details panel opens on a double-click (or Enter, or Details in the menu) and then follows the selection
+  $('#drawer').hidden = !has || !S.drawerOpen;
   if (!has) { el.innerHTML = ''; return; }
   const datalist = `<datalist id="symList">${Object.keys(S.g.symbols).filter(k => k !== NN.BATCH).map(k => `<option value="${esc(k)}">`).join('')}</datalist>`;
   const nSel = S.sel.nodes.size;
@@ -2270,6 +2387,11 @@ svg.addEventListener('pointerdown', e => {
   const pt = toWorld(e.clientX, e.clientY);
   const dimT = t.closest('[data-dimedge]'), out = t.closest('[data-out]'), nodeT = t.closest('[data-node]'), edgeT = t.closest('[data-edge]'), gT = t.closest('[data-glabel]');
   const linT = t.closest('[data-lindim]'), tieT = t.closest('[data-tielink]');
+  // double-click, detected here because the first press redraws the canvas (so the browser's dblclick doesn't arrive)
+  const tap = !linT && !tieT && !dimT && !out ? (nodeT ? 'n' + nodeT.dataset.node : edgeT ? 'e' + edgeT.dataset.edge : null) : null, now = Date.now();
+  const dbl = tap && S.lastTap && S.lastTap.k === tap && now - S.lastTap.t < 450 && Math.hypot(e.clientX - S.lastTap.x, e.clientY - S.lastTap.y) < 8;
+  S.lastTap = dbl ? null : { k: tap, t: now, x: e.clientX, y: e.clientY };
+  if (dbl) { e.stopPropagation(); S.drag = null; return doubleTap(nodeT, edgeT); }
   if (tieT) {
     const n = byId(tieT.dataset.tielink); e.stopPropagation(); svg.setPointerCapture(e.pointerId);
     S.drag = { kind: 'tie', n, start: pt, lane0: +tieT.dataset.lane, before: snap(), moved: false };
@@ -2384,12 +2506,21 @@ svg.addEventListener('pointerup', e => {
     selectionChanged();
   }
 });
-svg.addEventListener('dblclick', e => {
-  const nt = e.target.closest('[data-node]'); if (!nt) return;
-  const n = byId(nt.dataset.node);
-  if (n && n.type === 'block') enterBlock(n.params.block); else setTab('insp');
-});
-function selectionChanged() { S.drawerClosed = false; render(); renderCode(); renderInspector(); }
+// double-click: a block opens its inside; any other layer or connection opens the details panel (a routed
+// connection goes back to its automatic path instead)
+function doubleTap(nodeT, edgeT) {
+  if (nodeT) {
+    const n = byId(nodeT.dataset.node); if (!n) return;
+    if (n.type === 'block') return enterBlock(n.params.block);
+    if (!S.sel.nodes.has(n.id) || S.sel.nodes.size > 1) { clearSel(); S.sel.nodes.add(n.id); }
+  } else if (edgeT) {
+    const ed = S.g.edges.find(x => x.id === edgeT.dataset.edge); if (!ed) return;
+    if (ed.route) return commit(() => { delete ed.route; });
+    clearSel(); S.sel.edges.add(ed.id);
+  }
+  S.drawerOpen = true; selectionChanged();
+}
+function selectionChanged() { render(); renderCode(); renderInspector(); }
 
 // The layer that decides a tensor's width: walk back through width-preserving ops.
 function setterOf(id) {
@@ -2608,7 +2739,7 @@ function nodeMenu(x, y, clickedId) {
       + item('expand', 'Expand into layers', 'Replace this use with its layers') + '<hr>' + h;
   }
   if (ids.length && !ids.every(id => byId(id) && ['input', 'output', 'loss'].includes(byId(id).type))) h += item('saveblock', 'Save selection as block', 'A library block with as many inputs and outputs as the selection has');
-  h += item('dup', ids.length > 1 ? 'Duplicate layers' : one && one.type === 'block' ? 'Duplicate block' : 'Duplicate layer') + item('inspect', 'Show details') + item('del', 'Delete', '', '', 'danger');
+  h += item('dup', ids.length > 1 ? 'Duplicate layers' : one && one.type === 'block' ? 'Duplicate block' : 'Duplicate layer') + item('inspect', 'Show details', one && one.type === 'block' ? 'Double-click opens the inside' : 'Or double-click · Enter') + item('del', 'Delete', '', '', 'danger');
   openCtx(x, y, h, el => {
     el.addEventListener('click', e => {
       const b = e.target.closest('[data-act]'); if (!b) return;
@@ -2666,7 +2797,7 @@ function edgeMenu(x, y, id) {
     + (es.some(z => z.route) ? item('reroute', 'Reset route', 'Back to the automatic path') : '') + (es.some(z => z.style) ? item('relook', 'Reset look') : '')
     + item('del', ids.length > 1 ? 'Delete connections' : 'Delete connection', '', '', 'danger'), el => el.addEventListener('click', ev => {
     const a = ev.target.closest('[data-act]'); if (!a) return; closeCtx();
-    if (a.dataset.act === 'look') { S.drawerClosed = false; renderInspector(); }
+    if (a.dataset.act === 'look') { S.drawerOpen = true; renderInspector(); }
     if (a.dataset.act === 'reroute') commit(() => es.forEach(z => delete z.route));
     if (a.dataset.act === 'relook') commit(() => es.forEach(z => delete z.style));
     if (a.dataset.act === 'del') deleteSel();
@@ -2675,7 +2806,7 @@ function edgeMenu(x, y, id) {
 function groupMenu(x, y, gid) {
   clearSel(); S.sel.group = gid; selectionChanged();
   const gr = S.g.groups.find(g => g.id === gid);
-  openCtx(x, y, `<div class="hd">${esc(gr.label)} <span>${esc(gr.cls)}</span></div>` + item('dup', 'Duplicate block', 'Gets its own width') + item('ungroup', 'Ungroup') + item('inspect', 'Open in inspector') + item('del', 'Delete layers', '', '', 'danger'), el => {
+  openCtx(x, y, `<div class="hd">${esc(gr.label)} <span>${esc(gr.cls)}</span></div>` + item('dup', 'Duplicate block', 'Gets its own width') + item('ungroup', 'Ungroup') + item('inspect', 'Details…', 'Or double-click') + item('del', 'Delete layers', '', '', 'danger'), el => {
     el.addEventListener('click', e => {
       const b = e.target.closest('[data-act]'); if (!b) return; const act = b.dataset.act;
       if (act === 'dup') { copySel(); paste(); }
@@ -2697,7 +2828,7 @@ function canvasMenu(x, y, wpt) {
 }
 svg.addEventListener('dblclick', e => {
   const he = e.target.closest && e.target.closest('[data-edge]');
-  if (he) { const ed = S.g.edges.find(x => x.id === he.dataset.edge); if (ed && ed.route) { e.stopPropagation(); commit(() => { delete ed.route; }); } return; }
+  if (he || e.target.closest('[data-node]')) return; // handled on pointerdown (doubleTap)
   const t = e.target.closest && e.target.closest('[data-dimedge]'); if (!t) return;
   const ed = S.g.edges.find(x => x.id === t.dataset.dimedge); if (!ed || !ed.lbl) return;
   e.stopPropagation(); closePop(); commit(() => { delete ed.lbl; });
@@ -3284,6 +3415,7 @@ document.addEventListener('keydown', e => {
   else if (mod && e.key.toLowerCase() === 'c') { if (copySel()) toast('Copied. Paste with Ctrl+V.'); }
   /* Ctrl+V is handled by the paste event: model code builds a diagram, otherwise copied layers are pasted */
   else if (mod && e.key.toLowerCase() === 'a') { e.preventDefault(); clearSel(); S.g.nodes.forEach(n => S.sel.nodes.add(n.id)); selectionChanged(); }
+  else if (e.key === 'Enter' && (S.sel.nodes.size || S.sel.edges.size || S.sel.group)) { e.preventDefault(); S.drawerOpen = true; renderInspector(); }
   else if (e.key === 'f' || e.key === 'F') fit();
   else if (e.key === 'Escape') { if (!S.sel.nodes.size && !S.sel.edges.size && S.edit) exitBlock(); else { clearSel(); closePop(); selectionChanged(); } }
 });
@@ -3299,8 +3431,8 @@ function doRedo() { if (!S.redo.length) return; S.undo.push(snap()); restore(S.r
 
 // ── header / tabs ──
 // The details panel slides in over the right side of the canvas whenever something is selected.
-function setTab(t) { if (t === 'insp') { S.drawerClosed = false; renderInspector(); } }
-$('#drawerClose').onclick = () => { S.drawerClosed = true; renderInspector(); };
+function setTab(t) { if (t === 'insp') { S.drawerOpen = true; renderInspector(); } }
+$('#drawerClose').onclick = () => { S.drawerOpen = false; renderInspector(); };
 $('#bUndo').onclick = doUndo; $('#bRedo').onclick = doRedo;
 $('#bLayout').onclick = () => commit(() => { NN.autoLayout(S.g, sizeOf); S.g.edges.forEach(e => delete e.route); }) || fit();
 function starterModel() {
