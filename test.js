@@ -120,7 +120,7 @@ for (const [f, want, delays] of [['14_rnn.json', 5768, 1], ['15_lstm.json', 2151
 }
 // Residual CNNs (pre-norm blocks with image GroupNorm): the global-average-pooling head and the dense head share one
 // block; both round-trip, have the right parameter counts, and plot.
-for (const [f, want] of [['23_residual_cnn_gap.json', 57098], ['24_residual_cnn_dense.json', 72458]]) {
+for (const [f, want] of [['23_residual_cnn_gap.json', 57098], ['24_residual_cnn_dense.json', 72458], ['25_residual_cnn_expanded.json', 57098]]) {
   const g = JSON.parse(require('fs').readFileSync(__dirname + '/examples/networks/' + f, 'utf8')).graph;
   const a = NN.generate(g, { literalDims: true }).code, b = NN.generate(NN.importPython(a).graph, { literalDims: true }).code;
   if (a !== b || !/nn\.GroupNorm\(1, 32\)/.test(a) || /GroupNorm\(1, 7\)/.test(a)) { console.error(f + ' round trip failed'); process.exit(1); }

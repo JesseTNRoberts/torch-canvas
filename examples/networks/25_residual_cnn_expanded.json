@@ -1,0 +1,666 @@
+{
+ "title": "Residual CNN, every layer drawn out",
+ "description": "The residual CNN with the global-average-pooling head, with its three pre-norm residual blocks drawn out layer by layer instead of as PreNormConvBlock uses, laid out like the Residual MLP: the residual stream runs along the top through the + nodes, and each block is a column below its +: GroupNorm \u2192 ReLU \u2192 3\u00d73 conv, twice. A 5\u00d75 conv stem and 2\u00d72 max pooling lead in, 2\u00d72 max pooling follows the first block, and a final GroupNorm and ReLU, global average pooling and one Linear make the head. 57,098 parameters, the same network and the same code as Residual CNN, global average pooling head, written without the block class.",
+ "category": "Convolutional networks",
+ "graph": {
+  "name": "ResCNNExpanded",
+  "symbols": {
+   "e": 8
+  },
+  "nodes": [
+   {
+    "id": "n1mom4",
+    "type": "input",
+    "x": 130,
+    "y": 770,
+    "params": {
+     "name": "x",
+     "shape": "e, 1, 28, 28",
+     "title": ""
+    }
+   },
+   {
+    "id": "n26mkz",
+    "type": "conv",
+    "x": 130,
+    "y": 690,
+    "params": {
+     "in": "1",
+     "out": "32",
+     "k": "5",
+     "stride": "1",
+     "pad": "2",
+     "bias": true,
+     "transposed": false,
+     "name": "stem",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n4k487",
+    "type": "pool",
+    "x": 130,
+    "y": 600,
+    "params": {
+     "kind": "max",
+     "k": "2",
+     "stride": "",
+     "pad": "0",
+     "size": "1",
+     "title": "",
+     "var": "x"
+    }
+   },
+   {
+    "id": "n6me37",
+    "type": "norm",
+    "x": 420,
+    "y": 600,
+    "params": {
+     "kind": "GroupNorm",
+     "dim": "32",
+     "groups": 1,
+     "eps": "",
+     "name": "b1_norm1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n8ilqu",
+    "type": "act",
+    "x": 420,
+    "y": 534,
+    "params": {
+     "fn": "relu",
+     "dim": "-1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "naakyi",
+    "type": "conv",
+    "x": 420,
+    "y": 468,
+    "params": {
+     "in": "32",
+     "out": "32",
+     "k": "3",
+     "stride": "1",
+     "pad": "1",
+     "bias": true,
+     "transposed": false,
+     "name": "b1_conv1",
+     "title": "",
+     "var": "h"
+    }
+   },
+   {
+    "id": "nc0ekj",
+    "type": "norm",
+    "x": 420,
+    "y": 402,
+    "params": {
+     "kind": "GroupNorm",
+     "dim": "32",
+     "groups": 1,
+     "eps": "",
+     "name": "b1_norm2",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nef7q2",
+    "type": "act",
+    "x": 420,
+    "y": 336,
+    "params": {
+     "fn": "relu",
+     "dim": "-1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "ngsbli",
+    "type": "conv",
+    "x": 420,
+    "y": 270,
+    "params": {
+     "in": "32",
+     "out": "32",
+     "k": "3",
+     "stride": "1",
+     "pad": "1",
+     "bias": true,
+     "transposed": false,
+     "name": "b1_conv2",
+     "title": "",
+     "var": "h"
+    }
+   },
+   {
+    "id": "nipfjg",
+    "type": "binop",
+    "x": 420,
+    "y": 205,
+    "params": {
+     "op": "+",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nl1yvh",
+    "type": "pool",
+    "x": 565,
+    "y": 205,
+    "params": {
+     "kind": "max",
+     "k": "2",
+     "stride": "",
+     "pad": "0",
+     "size": "1",
+     "title": "",
+     "var": "x"
+    }
+   },
+   {
+    "id": "nnx0u1",
+    "type": "norm",
+    "x": 710,
+    "y": 600,
+    "params": {
+     "kind": "GroupNorm",
+     "dim": "32",
+     "groups": 1,
+     "eps": "",
+     "name": "b2_norm1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "npzum7",
+    "type": "act",
+    "x": 710,
+    "y": 534,
+    "params": {
+     "fn": "relu",
+     "dim": "-1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nrh6l9",
+    "type": "conv",
+    "x": 710,
+    "y": 468,
+    "params": {
+     "in": "32",
+     "out": "32",
+     "k": "3",
+     "stride": "1",
+     "pad": "1",
+     "bias": true,
+     "transposed": false,
+     "name": "b2_conv1",
+     "title": "",
+     "var": "h"
+    }
+   },
+   {
+    "id": "ntiemj",
+    "type": "norm",
+    "x": 710,
+    "y": 402,
+    "params": {
+     "kind": "GroupNorm",
+     "dim": "32",
+     "groups": 1,
+     "eps": "",
+     "name": "b2_norm2",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nvm4ye",
+    "type": "act",
+    "x": 710,
+    "y": 336,
+    "params": {
+     "fn": "relu",
+     "dim": "-1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nxggr1",
+    "type": "conv",
+    "x": 710,
+    "y": 270,
+    "params": {
+     "in": "32",
+     "out": "32",
+     "k": "3",
+     "stride": "1",
+     "pad": "1",
+     "bias": true,
+     "transposed": false,
+     "name": "b2_conv2",
+     "title": "",
+     "var": "h"
+    }
+   },
+   {
+    "id": "nzpqbq",
+    "type": "binop",
+    "x": 710,
+    "y": 205,
+    "params": {
+     "op": "+",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": "x"
+    }
+   },
+   {
+    "id": "n129nr7",
+    "type": "norm",
+    "x": 1000,
+    "y": 600,
+    "params": {
+     "kind": "GroupNorm",
+     "dim": "32",
+     "groups": 1,
+     "eps": "",
+     "name": "b3_norm1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n14mpx2",
+    "type": "act",
+    "x": 1000,
+    "y": 534,
+    "params": {
+     "fn": "relu",
+     "dim": "-1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n16yhyr",
+    "type": "conv",
+    "x": 1000,
+    "y": 468,
+    "params": {
+     "in": "32",
+     "out": "32",
+     "k": "3",
+     "stride": "1",
+     "pad": "1",
+     "bias": true,
+     "transposed": false,
+     "name": "b3_conv1",
+     "title": "",
+     "var": "h"
+    }
+   },
+   {
+    "id": "n18cam8",
+    "type": "norm",
+    "x": 1000,
+    "y": 402,
+    "params": {
+     "kind": "GroupNorm",
+     "dim": "32",
+     "groups": 1,
+     "eps": "",
+     "name": "b3_norm2",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1a2obw",
+    "type": "act",
+    "x": 1000,
+    "y": 336,
+    "params": {
+     "fn": "relu",
+     "dim": "-1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1c1uil",
+    "type": "conv",
+    "x": 1000,
+    "y": 270,
+    "params": {
+     "in": "32",
+     "out": "32",
+     "k": "3",
+     "stride": "1",
+     "pad": "1",
+     "bias": true,
+     "transposed": false,
+     "name": "b3_conv2",
+     "title": "",
+     "var": "h"
+    }
+   },
+   {
+    "id": "n1ei9w8",
+    "type": "binop",
+    "x": 1000,
+    "y": 205,
+    "params": {
+     "op": "+",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": "x"
+    }
+   },
+   {
+    "id": "n1hskth",
+    "type": "norm",
+    "x": 1290,
+    "y": 270,
+    "params": {
+     "kind": "GroupNorm",
+     "dim": "32",
+     "groups": 1,
+     "eps": "",
+     "name": "norm",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1j10cg",
+    "type": "act",
+    "x": 1290,
+    "y": 345,
+    "params": {
+     "fn": "relu",
+     "dim": "-1",
+     "title": "",
+     "var": "x"
+    }
+   },
+   {
+    "id": "n1ldwja",
+    "type": "pool",
+    "x": 1290,
+    "y": 420,
+    "params": {
+     "kind": "adaptive",
+     "k": "2",
+     "stride": "",
+     "pad": "0",
+     "size": "1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1nxa2a",
+    "type": "reshape",
+    "x": 1290,
+    "y": 500,
+    "params": {
+     "pattern": "e a b c -> e (a b c)",
+     "sizes": "",
+     "note": "",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1p98ah",
+    "type": "linear",
+    "x": 1290,
+    "y": 585,
+    "params": {
+     "in": "32",
+     "out": "10",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": false,
+     "bias_init": "",
+     "tie": "",
+     "name": "fc",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1rx6fd",
+    "type": "output",
+    "x": 1290,
+    "y": 670,
+    "params": {
+     "name": "out",
+     "title": ""
+    }
+   }
+  ],
+  "edges": [
+   {
+    "id": "e357yu",
+    "from": "n1mom4",
+    "to": "n26mkz",
+    "port": 0
+   },
+   {
+    "id": "e5l2ol",
+    "from": "n26mkz",
+    "to": "n4k487",
+    "port": 0
+   },
+   {
+    "id": "e7ybfd",
+    "from": "n4k487",
+    "to": "n6me37",
+    "port": 0
+   },
+   {
+    "id": "e9rs58",
+    "from": "n6me37",
+    "to": "n8ilqu",
+    "port": 0
+   },
+   {
+    "id": "eb6645",
+    "from": "n8ilqu",
+    "to": "naakyi",
+    "port": 0
+   },
+   {
+    "id": "ed8n2b",
+    "from": "naakyi",
+    "to": "nc0ekj",
+    "port": 0
+   },
+   {
+    "id": "efjj0c",
+    "from": "nc0ekj",
+    "to": "nef7q2",
+    "port": 0
+   },
+   {
+    "id": "ehorgx",
+    "from": "nef7q2",
+    "to": "ngsbli",
+    "port": 0
+   },
+   {
+    "id": "ejh1q8",
+    "from": "n4k487",
+    "to": "nipfjg",
+    "port": 0
+   },
+   {
+    "id": "ekmigj",
+    "from": "ngsbli",
+    "to": "nipfjg",
+    "port": 1
+   },
+   {
+    "id": "em63pe",
+    "from": "nipfjg",
+    "to": "nl1yvh",
+    "port": 0
+   },
+   {
+    "id": "eoyso2",
+    "from": "nl1yvh",
+    "to": "nnx0u1",
+    "port": 0
+   },
+   {
+    "id": "eqvfyx",
+    "from": "nnx0u1",
+    "to": "npzum7",
+    "port": 0
+   },
+   {
+    "id": "esabin",
+    "from": "npzum7",
+    "to": "nrh6l9",
+    "port": 0
+   },
+   {
+    "id": "euydqh",
+    "from": "nrh6l9",
+    "to": "ntiemj",
+    "port": 0
+   },
+   {
+    "id": "ewoafd",
+    "from": "ntiemj",
+    "to": "nvm4ye",
+    "port": 0
+   },
+   {
+    "id": "eyfzhj",
+    "from": "nvm4ye",
+    "to": "nxggr1",
+    "port": 0
+   },
+   {
+    "id": "e10xf86",
+    "from": "nl1yvh",
+    "to": "nzpqbq",
+    "port": 0
+   },
+   {
+    "id": "e111ve9",
+    "from": "nxggr1",
+    "to": "nzpqbq",
+    "port": 1
+   },
+   {
+    "id": "e13vgj0",
+    "from": "nzpqbq",
+    "to": "n129nr7",
+    "port": 0
+   },
+   {
+    "id": "e15xmir",
+    "from": "n129nr7",
+    "to": "n14mpx2",
+    "port": 0
+   },
+   {
+    "id": "e17ymu4",
+    "from": "n14mpx2",
+    "to": "n16yhyr",
+    "port": 0
+   },
+   {
+    "id": "e19quzj",
+    "from": "n16yhyr",
+    "to": "n18cam8",
+    "port": 0
+   },
+   {
+    "id": "e1bywlp",
+    "from": "n18cam8",
+    "to": "n1a2obw",
+    "port": 0
+   },
+   {
+    "id": "e1dbyay",
+    "from": "n1a2obw",
+    "to": "n1c1uil",
+    "port": 0
+   },
+   {
+    "id": "e1fylo5",
+    "from": "nzpqbq",
+    "to": "n1ei9w8",
+    "port": 0
+   },
+   {
+    "id": "e1g76qk",
+    "from": "n1c1uil",
+    "to": "n1ei9w8",
+    "port": 1
+   },
+   {
+    "id": "e1igfhl",
+    "from": "n1ei9w8",
+    "to": "n1hskth",
+    "port": 0
+   },
+   {
+    "id": "e1k8exh",
+    "from": "n1hskth",
+    "to": "n1j10cg",
+    "port": 0
+   },
+   {
+    "id": "e1mp00o",
+    "from": "n1j10cg",
+    "to": "n1ldwja",
+    "port": 0
+   },
+   {
+    "id": "e1odu55",
+    "from": "n1ldwja",
+    "to": "n1nxa2a",
+    "port": 0
+   },
+   {
+    "id": "e1qxbjb",
+    "from": "n1nxa2a",
+    "to": "n1p98ah",
+    "port": 0
+   },
+   {
+    "id": "e1sg9r5",
+    "from": "n1p98ah",
+    "to": "n1rx6fd",
+    "port": 0
+   }
+  ],
+  "groups": []
+ }
+}
