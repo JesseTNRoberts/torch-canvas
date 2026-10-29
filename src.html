@@ -676,9 +676,17 @@ function restore(json) {
 // which version of an example a tab was opened from, and whether it has been edited since: an untouched tab of an
 // example that has changed is brought up to date when the app starts
 const libSigOf = src => { let h = 5381; const t = String(src || ''); for (let i = 0; i < t.length; i++) h = ((h * 33) ^ t.charCodeAt(i)) >>> 0; return h.toString(36); };
-const docEdited = d => !!(d.edited || ((d.id === S.cur ? S.undo : d.undo) || []).length > (d.baseUndo || 0));
+const docEdited = d => !!(d.edited || ((d.id === S.cur ? S.undo : d.undo) || []).length !== (d.baseUndo || 0)); // (also undoing past an automatic update: the old copy)
+let saveWarned = false;
 function save() {
-  try { localStorage.setItem(STORE, JSON.stringify({ v: 2, docs: S.docs.map(d => (d.id === S.cur ? S.root : d.root)), from: S.docs.map(d => d.fromLib || null), sig: S.docs.map(d => d.libSig || null), ed: S.docs.map(docEdited), cur: Math.max(0, S.docs.findIndex(d => d.id === S.cur)) })); } catch {}
+  if (savedOff) return; // leaving data that couldn't be opened (or copied) untouched this visit
+  // an example tab with no edits is kept as a reference to the example (it reopens as the example)
+  const docOf = d => { const r = d.id === S.cur ? S.root : d.root; return d.fromLib && !docEdited(d) && !r.libHost && d.libSig && S.library.some(x => x.file === d.fromLib && x.kind === 'network' && x.type === 'json') ? { libRef: d.fromLib } : r; };
+  try { localStorage.setItem(STORE, JSON.stringify({ v: 2, docs: S.docs.map(docOf), from: S.docs.map(d => d.fromLib || null), sig: S.docs.map(d => d.libSig || null), ed: S.docs.map(docEdited), cur: Math.max(0, S.docs.findIndex(d => d.id === S.cur)) })); saveWarned = false; }
+  catch (e) {
+    // full (or blocked) browser storage: editing goes on, but the open tabs won't be there next time
+    if (!saveWarned) { saveWarned = true; setTimeout(() => toast("This browser's storage for Torch Canvas is full, so your open tabs won't be kept when you close the page. Save your model to a file (Ctrl+S, or Export), or close tabs you don't need."), 0); }
+  }
 }
 function load() { try { const s = localStorage.getItem(STORE); if (s) { const g = JSON.parse(s); if (g && Array.isArray(g.nodes)) return g; } } catch {} return null; }
 function clearSel() { S.sel.nodes.clear(); S.sel.edges.clear(); S.sel.group = null; }
@@ -3566,7 +3574,45 @@ const clone = o => JSON.parse(JSON.stringify(o));
 const labelStr = o => Object.entries(o || {}).map(([k, v]) => `${k}=${v}`).join(', ');
 // (a nested use's local block id differs between networks; it is compared by its library file instead)
 const libKey = b => JSON.stringify([b.graph.nodes, b.graph.edges, b.graph.groups || [], b.graph.symbols || {}, b.labels || {}], (k, v) => (k === 'block' && typeof v === 'string' ? undefined : v));
-let libOverrides = {}; try { libOverrides = JSON.parse(localStorage.getItem(LIBSTORE) || '{}') || {}; } catch {}
+// If the last start stopped part-way while opening what was saved in this browser (the saved tabs and library edits),
+// that saved data is set aside under torchcanvas.backup.<time>.* and the app starts fresh. The flag covers only reading
+// and opening the saved data (from here to the first tab shown), and a start in progress in another tab (a few seconds
+// old) is left alone. If the copy can't be made (storage full), the saved data stays where it is, untouched: this run
+// neither reads nor overwrites it.
+const BOOT = 'torchcanvas.booting';
+let bootRecovered = null, savedOff = false;
+try {
+  const b = +localStorage.getItem(BOOT) || 0;
+  if (b && Date.now() - b > 8000) {
+    const stamp = new Date(b).toISOString().slice(0, 19).replace(/[-:]/g, '').replace('T', '-');
+    // keep one earlier backup at most, so repeated recoveries don't fill the storage
+    const olds = Object.keys(localStorage).filter(k => k.startsWith('torchcanvas.backup.')).sort();
+    const keepStamp = olds.length ? olds[olds.length - 1].split('.')[2] : null;
+    for (const k of olds) if (k.split('.')[2] !== keepStamp) localStorage.removeItem(k);
+    let copied = true;
+    for (const k of [STORE, 'torchcanvas.libblocks.v1']) {
+      const v = localStorage.getItem(k); if (v == null) continue;
+      try { localStorage.setItem(`torchcanvas.backup.${stamp}.${k.split('.')[1]}`, v); localStorage.removeItem(k); } catch { copied = false; }
+    }
+    if (copied) bootRecovered = stamp; else savedOff = true;
+    localStorage.removeItem(BOOT);
+  }
+  if (!savedOff && !localStorage.getItem(BOOT)) localStorage.setItem(BOOT, String(Date.now()));
+} catch {}
+const bootDone = () => { try { if (!savedOff) localStorage.removeItem(BOOT); } catch {} };
+// library edits are written here (not while the saved data is being left untouched)
+const storeLib = () => { if (savedOff) return; try { localStorage.setItem(LIBSTORE, JSON.stringify(libOverrides)); } catch {} };
+let libOverrides = {}; try { libOverrides = savedOff ? {} : JSON.parse(localStorage.getItem(LIBSTORE) || '{}') || {}; } catch {}
+// library edits saved in this browser: each is checked like a saved tab; ones that can't be used are dropped
+if (!libOverrides || typeof libOverrides !== 'object' || Array.isArray(libOverrides)) libOverrides = {};
+for (const [f, o] of Object.entries(libOverrides)) {
+  if (!o || typeof o !== 'object') { delete libOverrides[f]; continue; }
+  if (o.deleted) { if (typeof o.name !== 'string') delete libOverrides[f]; continue; }
+  const g = NN.sanitizeGraph(o.graph);
+  if (!g || typeof o.name !== 'string' || !o.name) { delete libOverrides[f]; continue; }
+  o.graph = g; if (!o.labels || typeof o.labels !== 'object') o.labels = {};
+  if (o.entry && typeof o.entry !== 'object') delete o.entry;
+}
 function parseLibBlock(entry) {
   let g;
   if (entry.type === 'json') { const j = JSON.parse(entry.source); g = j.graph || j; }
@@ -3680,7 +3726,7 @@ function persistLib(file) {
   const L = S.libBlocks[file]; if (!L) return;
   const e = L.entry;
   libOverrides[file] = { name: L.name, graph: L.graph, labels: L.labels, entry: { title: e.title, description: e.description, type: e.type, labels: labelStr(L.labels) } };
-  try { localStorage.setItem(LIBSTORE, JSON.stringify(libOverrides)); } catch {}
+  storeLib();
   if (S.libServer) { clearTimeout(libSaveT[file]); libSaveT[file] = setTimeout(() => writeLibFile(file), 600); }
 }
 function libFileText(L) {
@@ -3700,7 +3746,7 @@ async function writeLibFile(file, quiet) {
     const r = await fetch('examples/' + file, { method: 'PUT', body: text, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
     if (!r.ok) throw new Error(r.status);
     L.entry.source = text; delete libOverrides[file];
-    try { localStorage.setItem(LIBSTORE, JSON.stringify(libOverrides)); } catch {}
+    storeLib();
     if (!quiet && !S.libSavedOnce) { S.libSavedOnce = true; toast(`Saved ${L.name} to examples/${file}. Every network that uses it gets the change.`); }
     return true;
   } catch { if (!S.libSaveWarned) { S.libSaveWarned = true; toast(`Couldn't write examples/${file}; the change is kept in this browser.`); } return false; }
@@ -3775,7 +3821,7 @@ async function deleteLibraryBlock(file) {
   delete S.libBlocks[file];
   S.library = S.library.filter(x => x.file !== file);
   libOverrides[file] = { deleted: true, name: L.name };
-  try { localStorage.setItem(LIBSTORE, JSON.stringify(libOverrides)); } catch {}
+  storeLib();
   let wrote = '';
   if (S.libServer) {
     try { const r = await fetch('examples/' + file, { method: 'DELETE' }); if (r.ok) wrote = ` and examples/${file}`; } catch {}
@@ -4577,23 +4623,29 @@ function changed() {
   NN.syncWidths(S.g); syncBlockUses(); pushLinked(); render(); renderCode(); renderInspector(); renderBlocks(); renderBlockBar(); renderTabs(); save(); renderFileBar(); saveLayout(); varMarkStale();
 }
 let saved = null;
-try { const raw = localStorage.getItem(STORE); if (raw) saved = JSON.parse(raw); } catch {}
-const fromOf = new Map();
-if (saved && saved.v === 2 && Array.isArray(saved.docs) && Array.isArray(saved.from)) saved.docs.forEach((g, i) => { if (g && saved.from[i]) fromOf.set(g, saved.from[i]); });
-let roots = saved && saved.v === 2 && Array.isArray(saved.docs) ? saved.docs.filter(g => g && Array.isArray(g.nodes)) : saved && Array.isArray(saved.nodes) ? [saved] : [];
+try { const raw = savedOff ? null : localStorage.getItem(STORE); if (raw) saved = JSON.parse(raw); } catch {}
+if (!saved || typeof saved !== 'object') saved = null;
+// each saved tab: its graph (checked and repaired by NN.sanitizeGraph, or dropped), and the example it came from.
+// An untouched example tab is saved as just a reference to the example ({ libRef }), which keeps storage small.
+const savedAt = (k, i) => (saved && Array.isArray(saved[k]) ? saved[k][i] : undefined);
+const libGraph = file => { const e = S.library.find(x => x.file === file && x.kind === 'network' && x.type === 'json'); if (!e) return null; try { const j = JSON.parse(e.source); return j.graph || j; } catch { return null; } };
+let restored = (saved && saved.v === 2 && Array.isArray(saved.docs) ? saved.docs.map((g, i) => ({ g, i })) : saved && Array.isArray(saved.nodes) ? [{ g: saved, i: -1 }] : [])
+  .map(({ g, i }) => ({ i, from: typeof savedAt('from', i) === 'string' ? savedAt('from', i) : null, ref: !!(g && typeof g.libRef === 'string'), g: NN.sanitizeGraph(g && typeof g.libRef === 'string' ? libGraph(g.libRef) : g) }))
+  .filter(r => r.g);
 // an old saved example drawn with hidden groups is replaced by the current example
-roots = roots.map(g => (g.groups && g.groups.some(x => x.cls === 'GatedBlock' || x.cls === 'GatedHead') ? NN.presetResidualMLP() : g));
-if (!roots.length) roots = [NN.presetResidualMLP()];
-for (const g of roots) for (const n of g.nodes) { if ('tone' in n.params) delete n.params.tone; if (['Down projection', 'Output projection', 'Final norm'].includes(n.params.title)) n.params.title = ''; }
-roots.forEach(r => syncLinked(r));
-S.docs = roots.map(r => ({ id: NN.uid('d'), root: r, file: null, undo: [], redo: [], tabs: [], views: {}, fromLib: fromOf.get(r) || null }));
+for (const r of restored) if (r.g.groups.some(x => x.cls === 'GatedBlock' || x.cls === 'GatedHead')) r.g = NN.presetResidualMLP();
+if (!restored.length) restored = [{ i: -1, from: null, g: NN.presetResidualMLP() }];
+for (const { g } of restored) for (const n of g.nodes) { if ('tone' in n.params) delete n.params.tone; if (['Down projection', 'Output projection', 'Final norm'].includes(n.params.title)) n.params.title = ''; }
+restored.forEach(r => syncLinked(r.g));
+S.docs = restored.map(r => ({ id: NN.uid('d'), root: r.g, file: null, undo: [], redo: [], tabs: [], views: {}, fromLib: r.from, _i: r.i, _i0: r.i, _ref: r.ref }));
 // tabs of examples that have changed since they were opened: untouched ones (or ones saved before edits were tracked)
 // get the current version, with Undo bringing back the copy that was open; edited ones are left as they are
 {
-  const sigs = (saved && saved.sig) || [], eds = (saved && saved.ed) || [], updated = [], kept = [];
-  S.docs.forEach((d, i) => {
+  const updated = [], kept = [];
+  S.docs.forEach(d => {
+    const i = d._i, ref = d._ref; delete d._i; delete d._ref;
     const entry = d.fromLib && S.library.find(x => x.file === d.fromLib && x.kind === 'network' && x.type === 'json'); if (!entry) return;
-    const now = libSigOf(entry.source); d.libSig = sigs[i] || null; d.edited = eds[i] === true;
+    const now = libSigOf(entry.source); d.libSig = ref ? now : savedAt('sig', i) || null; d.edited = savedAt('ed', i) === true;
     if (d.libSig === now) return;
     if (d.edited) { kept.push(entry.title); return; }
     let g; try { const j = JSON.parse(entry.source); g = j.graph || j; } catch { return; }
@@ -4604,7 +4656,9 @@ S.docs = roots.map(r => ({ id: NN.uid('d'), root: r, file: null, undo: [], redo:
   else if (kept.length) setTimeout(() => toast(`The ${kept.join(', ')} example has changed since you opened it; your edited tab is unchanged. Open / import opens the current version.`), 600);
 }
 S.cur = null;
-activateDoc(S.docs[Math.min(saved && saved.cur || 0, S.docs.length - 1)].id);
+{ const at = S.docs.findIndex(d => d._i0 === (saved && saved.cur)); activateDoc(S.docs[at >= 0 ? at : 0].id); } // (cur counts the saved tabs, some of which may have been dropped)
+S.docs.forEach(d => delete d._i0);
+bootDone();
 renderProject();
 (function openFromLink() {
   let want = null; try { want = new URLSearchParams(location.search).get('open'); } catch {}
@@ -4623,6 +4677,8 @@ renderProject();
 idb.get('last').then(r => { if (r && (r.dir || r.file)) { S.remembered = r; if (!S.dir) renderProject(); } }).catch(() => {});
 requestAnimationFrame(fit);
 window.addEventListener('resize', () => render());
+if (savedOff) setTimeout(() => toast("Torch Canvas couldn't open what it had saved in this browser last time, and the storage is too full to keep a copy, so it was left as it is and this visit starts fresh without saving. Clear some of this site's storage to go back to saving."), 400);
+if (bootRecovered) setTimeout(() => toast(`Torch Canvas couldn't open what it had saved in this browser last time, so it started fresh. The saved tabs were set aside in this browser's storage as torchcanvas.backup.${bootRecovered}.`), 400);
 // for the routing checks in tools/ (read-only access to the open graph and the router)
 window.__tc = { S, route, drawFrom, box, keyOf, byId, switchTo, openLibrary, openLibraryBlock, findLibEntry, render, renderInspector, selectionChanged, fit, sizeOf };
 })();

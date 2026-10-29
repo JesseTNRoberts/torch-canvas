@@ -7,3 +7,5 @@ site/
 *.log
 /*.png
 tools/yolov3.cfg
+/graph.json
+/out/

@@ -1,0 +1,467 @@
+{
+ "name": "PreNormResidualMLP",
+ "nodes": [
+  {
+   "name": "x",
+   "op": "placeholder",
+   "target": "x",
+   "kwargs": {},
+   "args": [],
+   "shape": [
+    8,
+    784
+   ]
+  },
+  {
+   "name": "embed",
+   "op": "call_module",
+   "target": "embed",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "x"
+    }
+   ],
+   "module": {
+    "type": "Linear",
+    "repr": "nn.Linear(in_features=784, out_features=256, bias=True)",
+    "in_features": 784,
+    "out_features": 256,
+    "bias": true
+   }
+  },
+  {
+   "name": "blocks_0_norm",
+   "op": "call_module",
+   "target": "blocks.0.norm",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "embed"
+    }
+   ],
+   "module": {
+    "type": "LayerNorm",
+    "repr": "nn.LayerNorm((256,), eps=1e-05, elementwise_affine=True, bias=True)",
+    "dim": 256
+   },
+   "group": {
+    "path": "blocks.0",
+    "cls": "PreNormMLP"
+   }
+  },
+  {
+   "name": "blocks_0_fc_in",
+   "op": "call_module",
+   "target": "blocks.0.fc_in",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "blocks_0_norm"
+    }
+   ],
+   "module": {
+    "type": "Linear",
+    "repr": "nn.Linear(in_features=256, out_features=1024, bias=True)",
+    "in_features": 256,
+    "out_features": 1024,
+    "bias": true
+   },
+   "group": {
+    "path": "blocks.0",
+    "cls": "PreNormMLP"
+   }
+  },
+  {
+   "name": "gelu",
+   "op": "call_function",
+   "target": "torch._C._nn.gelu",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "blocks_0_fc_in"
+    }
+   ],
+   "group": {
+    "path": "blocks.0",
+    "cls": "PreNormMLP"
+   }
+  },
+  {
+   "name": "blocks_0_fc_out",
+   "op": "call_module",
+   "target": "blocks.0.fc_out",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "gelu"
+    }
+   ],
+   "module": {
+    "type": "Linear",
+    "repr": "nn.Linear(in_features=1024, out_features=256, bias=True)",
+    "in_features": 1024,
+    "out_features": 256,
+    "bias": true
+   },
+   "group": {
+    "path": "blocks.0",
+    "cls": "PreNormMLP"
+   }
+  },
+  {
+   "name": "add",
+   "op": "call_function",
+   "target": "operator.add",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "embed"
+    },
+    {
+     "node": "blocks_0_fc_out"
+    }
+   ],
+   "group": {
+    "path": "blocks.0",
+    "cls": "PreNormMLP"
+   }
+  },
+  {
+   "name": "blocks_1_norm",
+   "op": "call_module",
+   "target": "blocks.1.norm",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "add"
+    }
+   ],
+   "module": {
+    "type": "LayerNorm",
+    "repr": "nn.LayerNorm((256,), eps=1e-05, elementwise_affine=True, bias=True)",
+    "dim": 256
+   },
+   "group": {
+    "path": "blocks.1",
+    "cls": "PreNormMLP"
+   }
+  },
+  {
+   "name": "blocks_1_fc_in",
+   "op": "call_module",
+   "target": "blocks.1.fc_in",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "blocks_1_norm"
+    }
+   ],
+   "module": {
+    "type": "Linear",
+    "repr": "nn.Linear(in_features=256, out_features=1024, bias=True)",
+    "in_features": 256,
+    "out_features": 1024,
+    "bias": true
+   },
+   "group": {
+    "path": "blocks.1",
+    "cls": "PreNormMLP"
+   }
+  },
+  {
+   "name": "gelu_1",
+   "op": "call_function",
+   "target": "torch._C._nn.gelu",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "blocks_1_fc_in"
+    }
+   ],
+   "group": {
+    "path": "blocks.1",
+    "cls": "PreNormMLP"
+   }
+  },
+  {
+   "name": "blocks_1_fc_out",
+   "op": "call_module",
+   "target": "blocks.1.fc_out",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "gelu_1"
+    }
+   ],
+   "module": {
+    "type": "Linear",
+    "repr": "nn.Linear(in_features=1024, out_features=256, bias=True)",
+    "in_features": 1024,
+    "out_features": 256,
+    "bias": true
+   },
+   "group": {
+    "path": "blocks.1",
+    "cls": "PreNormMLP"
+   }
+  },
+  {
+   "name": "add_1",
+   "op": "call_function",
+   "target": "operator.add",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "add"
+    },
+    {
+     "node": "blocks_1_fc_out"
+    }
+   ],
+   "group": {
+    "path": "blocks.1",
+    "cls": "PreNormMLP"
+   }
+  },
+  {
+   "name": "blocks_2_norm",
+   "op": "call_module",
+   "target": "blocks.2.norm",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "add_1"
+    }
+   ],
+   "module": {
+    "type": "LayerNorm",
+    "repr": "nn.LayerNorm((256,), eps=1e-05, elementwise_affine=True, bias=True)",
+    "dim": 256
+   },
+   "group": {
+    "path": "blocks.2",
+    "cls": "PreNormMLP"
+   }
+  },
+  {
+   "name": "blocks_2_fc_in",
+   "op": "call_module",
+   "target": "blocks.2.fc_in",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "blocks_2_norm"
+    }
+   ],
+   "module": {
+    "type": "Linear",
+    "repr": "nn.Linear(in_features=256, out_features=1024, bias=True)",
+    "in_features": 256,
+    "out_features": 1024,
+    "bias": true
+   },
+   "group": {
+    "path": "blocks.2",
+    "cls": "PreNormMLP"
+   }
+  },
+  {
+   "name": "gelu_2",
+   "op": "call_function",
+   "target": "torch._C._nn.gelu",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "blocks_2_fc_in"
+    }
+   ],
+   "group": {
+    "path": "blocks.2",
+    "cls": "PreNormMLP"
+   }
+  },
+  {
+   "name": "blocks_2_fc_out",
+   "op": "call_module",
+   "target": "blocks.2.fc_out",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "gelu_2"
+    }
+   ],
+   "module": {
+    "type": "Linear",
+    "repr": "nn.Linear(in_features=1024, out_features=256, bias=True)",
+    "in_features": 1024,
+    "out_features": 256,
+    "bias": true
+   },
+   "group": {
+    "path": "blocks.2",
+    "cls": "PreNormMLP"
+   }
+  },
+  {
+   "name": "add_2",
+   "op": "call_function",
+   "target": "operator.add",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "add_1"
+    },
+    {
+     "node": "blocks_2_fc_out"
+    }
+   ],
+   "group": {
+    "path": "blocks.2",
+    "cls": "PreNormMLP"
+   }
+  },
+  {
+   "name": "blocks_3_norm",
+   "op": "call_module",
+   "target": "blocks.3.norm",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "add_2"
+    }
+   ],
+   "module": {
+    "type": "LayerNorm",
+    "repr": "nn.LayerNorm((256,), eps=1e-05, elementwise_affine=True, bias=True)",
+    "dim": 256
+   },
+   "group": {
+    "path": "blocks.3",
+    "cls": "PreNormMLP"
+   }
+  },
+  {
+   "name": "blocks_3_fc_in",
+   "op": "call_module",
+   "target": "blocks.3.fc_in",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "blocks_3_norm"
+    }
+   ],
+   "module": {
+    "type": "Linear",
+    "repr": "nn.Linear(in_features=256, out_features=1024, bias=True)",
+    "in_features": 256,
+    "out_features": 1024,
+    "bias": true
+   },
+   "group": {
+    "path": "blocks.3",
+    "cls": "PreNormMLP"
+   }
+  },
+  {
+   "name": "gelu_3",
+   "op": "call_function",
+   "target": "torch._C._nn.gelu",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "blocks_3_fc_in"
+    }
+   ],
+   "group": {
+    "path": "blocks.3",
+    "cls": "PreNormMLP"
+   }
+  },
+  {
+   "name": "blocks_3_fc_out",
+   "op": "call_module",
+   "target": "blocks.3.fc_out",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "gelu_3"
+    }
+   ],
+   "module": {
+    "type": "Linear",
+    "repr": "nn.Linear(in_features=1024, out_features=256, bias=True)",
+    "in_features": 1024,
+    "out_features": 256,
+    "bias": true
+   },
+   "group": {
+    "path": "blocks.3",
+    "cls": "PreNormMLP"
+   }
+  },
+  {
+   "name": "add_3",
+   "op": "call_function",
+   "target": "operator.add",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "add_2"
+    },
+    {
+     "node": "blocks_3_fc_out"
+    }
+   ],
+   "group": {
+    "path": "blocks.3",
+    "cls": "PreNormMLP"
+   }
+  },
+  {
+   "name": "norm",
+   "op": "call_module",
+   "target": "norm",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "add_3"
+    }
+   ],
+   "module": {
+    "type": "LayerNorm",
+    "repr": "nn.LayerNorm((256,), eps=1e-05, elementwise_affine=True, bias=True)",
+    "dim": 256
+   }
+  },
+  {
+   "name": "head",
+   "op": "call_module",
+   "target": "head",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "norm"
+    }
+   ],
+   "module": {
+    "type": "Linear",
+    "repr": "nn.Linear(in_features=256, out_features=10, bias=True)",
+    "in_features": 256,
+    "out_features": 10,
+    "bias": true
+   }
+  },
+  {
+   "name": "output",
+   "op": "output",
+   "target": "output",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "head"
+    }
+   ]
+  }
+ ]
+}

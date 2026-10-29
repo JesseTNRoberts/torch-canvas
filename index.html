@@ -987,7 +987,7 @@ const NN = (() => {
           const m = String(p.extra || '').match(/dim\s*=\s*(-?\d+)/);
           const fn = String(p.fn || '');
           const ex = String(p.extra || '').trim(), x0 = inS[0], ax = k => (k < 0 ? x0.length + k : k), par = d => (/^[A-Za-z_]\w*$|^\d+$/.test(d) ? d : `(${d})`);
-          if (HELPER_OPS[fn]) { out = HELPER_OPS[fn].shape(inS, sym); break; }
+          if (HELPER_OPS[fn]) { try { out = HELPER_OPS[fn].shape(inS, sym); } catch { out = x0; } break; } // (called with too few inputs: as an unknown op)
           // x.unsqueeze(k) / x.squeeze(k): a size-1 dimension in or out
           if (/(^|\.)unsqueeze$/.test(fn) && /^-?\d+$/.test(ex)) { const k = +ex < 0 ? x0.length + 1 + +ex : +ex; out = x0.slice(0, k).concat('1', x0.slice(k)); break; }
           if (/(^|\.)(sum|mean|amax|prod)$/.test(fn) && /^-?\d+$/.test(ex) && inS.length === 1) { const k = ax(+ex); out = x0.slice(0, k).concat(x0.slice(k + 1)); break; }
@@ -1235,7 +1235,9 @@ const NN = (() => {
     return RR.map(it => (it.n && from.has(it.n) ? from.get(it.n) : -1));
   }
   // PyTorch steps read from code → a pattern, naming the axes after their sizes (e for the batch)
-  function stepsToPattern(steps, x) {
+  // steps that don't fit the shape (an axis past the end, from damaged code) give null, as other misfits do
+  function stepsToPattern(steps, x) { try { return stepsToPattern0(steps, x); } catch { return null; } }
+  function stepsToPattern0(steps, x) {
     const used = new Set(), pool = 'abcdfgijklmnopqrsuvwxyz';
     const pick = (...cands) => { for (const c of cands) if (c && /^[a-z]$/.test(c) && !used.has(c)) { used.add(c); return c; } for (const c of pool) if (!used.has(c)) { used.add(c); return c; } return 'z' + used.size; };
     const sym = d => { const s = String(d); return /^[A-Za-z_]\w*$/.test(s) ? s : null; };
@@ -2791,7 +2793,8 @@ const NN = (() => {
 
   function parse(src) {
     const T = tokenize(src); let k = 0;
-    const peek = (o = 0) => T[k + o], next = () => T[k++];
+    const EOF = T[T.length - 1]; // looking past the end sees the end-of-file token; reading past it is an error
+    const peek = (o = 0) => T[k + o] || EOF, next = () => { if (k >= T.length) throw new Error('The code stops part-way through a statement.'); return T[k++]; };
     const is = (t, v) => peek().t === t && (v === undefined || peek().v === v);
     const isOp = v => is('op', v), isKw = v => is('name', v);
     const expect = (t, v) => { if (!is(t, v)) throw new SyntaxError(`Line ${peek().line}: expected ${v || t}, found ${peek().v ?? peek().t}`); return next(); };
@@ -3020,6 +3023,7 @@ const NN = (() => {
     };
     let curGroup = null, seqInput = false;
     const addNode = (type, params, inputs) => {
+      if (inputs.some(t => !isT(t))) throw new Error(`A ${type === 'func' ? 'function' : type} is given something that isn't a tensor${params && params.name ? ` (self.${params.name})` : ''}: a name that isn't defined yet, or code that stops part-way.`);
       const n = makeNode(type, params);
       g.nodes.push(n);
       inputs.forEach((t, port) => g.edges.push({ id: uid('e'), from: t.t, to: n.id, port }));
@@ -3151,7 +3155,12 @@ const NN = (() => {
       if (prev && prev.type === 'reshape' && Array.isArray(prev.params._steps) && !g.edges.some(z => z.from === prev.id)) { prev.params._steps.push(step); return { t: prev.id }; }
       return addNode('reshape', { pattern: '', sizes: '', _steps: [step] }, [self]);
     }
+    let callDepth = 0;
     function call(e, env) {
+      if (++callDepth > 150) throw new Error('The code calls itself without end (a function or module that calls itself).');
+      try { return call0(e, env); } finally { callDepth--; }
+    }
+    function call0(e, env) {
       const fv = ev(e.fn, env);
       const A = e.args.map(a => (a.k === 'star' ? ev(a.v, env) : ev(a, env)));
       const KW = Object.fromEntries(Object.entries(e.kw).map(([k2, v]) => [k2, ev(v, env)]));
@@ -3682,14 +3691,18 @@ const NN = (() => {
     const warnings = [], idOf = new Map(), groups = new Map();
     const dimSyms = new Map();
     const dim = v => { if (typeof v !== 'number') return String(v); if (!dimSyms.has(v)) { let nm = 'd' + v; g.symbols[nm] = v; dimSyms.set(v, nm); } return dimSyms.get(v); };
-    const FN = { 'torch.sigmoid': 'sigmoid', 'torch.tanh': 'tanh', 'torch.relu': 'relu', 'torch.nn.functional.silu': 'silu', 'torch.nn.functional.relu': 'relu', 'torch.nn.functional.gelu': 'gelu', 'torch.nn.functional.softmax': 'softmax', 'torch.softmax': 'softmax', 'torch.nn.functional.sigmoid': 'sigmoid' };
+    const FN = { 'torch._C._nn.gelu': 'gelu', 'torch.sigmoid': 'sigmoid', 'torch.tanh': 'tanh', 'torch.relu': 'relu', 'torch.nn.functional.silu': 'silu', 'torch.nn.functional.relu': 'relu', 'torch.nn.functional.gelu': 'gelu', 'torch.nn.functional.softmax': 'softmax', 'torch.softmax': 'softmax', 'torch.nn.functional.sigmoid': 'sigmoid' };
     const BIN = { 'operator.add': '+', 'operator.mul': '*', 'operator.sub': '-', 'operator.truediv': '/', 'operator.matmul': '@', 'torch.add': '+', 'torch.mul': '*' };
     const ACTM = { SiLU: 'silu', ReLU: 'relu', GELU: 'gelu', Sigmoid: 'sigmoid', Tanh: 'tanh', Softmax: 'softmax' };
+    const pyLit = v => (Array.isArray(v) ? `(${v.map(pyLit).join(', ')}${v.length === 1 ? ',' : ''})` : v === null ? 'None' : v === true ? 'True' : v === false ? 'False' : String(v)); // (3, -1) as Python writes it
+    const POOLF = { 'torch.nn.functional.max_pool2d': 'max', 'torch.nn.functional.avg_pool2d': 'avg', 'torch.nn.functional.adaptive_avg_pool2d': 'adaptive', 'torch.max_pool2d': 'max', 'torch._C._nn.avg_pool2d': 'avg', 'torch._C._nn.adaptive_avg_pool2d': 'adaptive' };
     for (const fn of data.nodes) {
-      const tensorArgs = (fn.args || []).filter(a => a && a.node).map(a => a.node);
-      const consts = (fn.args || []).filter(a => !(a && a.node));
+      // tensors can come in a list (torch.cat([a, b], dim=1)); older export_graph.py wrote such a list as text
+      const flat = (fn.args || []).flatMap(a => (Array.isArray(a) && a.some(x => x && x.node) ? a : [a]));
+      const tensorArgs = flat.filter(a => a && a.node).map(a => a.node);
+      const consts = flat.filter(a => !(a && a.node));
       let n = null;
-      if (fn.op === 'placeholder') n = makeNode('input', { name: fn.name, shape: fn.shape ? 'e, ' + fn.shape.slice(1).map(dim).join(', ') : 'e, ?' });
+      if (fn.op === 'placeholder') n = makeNode('input', { name: fn.name, shape: fn.shape ? 'e, ' + fn.shape.slice(1).map((v, i, a) => (a.length >= 3 && i > 0 ? String(v) : dim(v))).join(', ') : 'e, ?' }); // an image's height and width stay numbers
       else if (fn.op === 'output') { tensorArgs.forEach((src, i) => { const o = makeNode('output', { name: tensorArgs.length > 1 ? 'out' + i : 'out' }); g.nodes.push(o); g.edges.push({ id: uid('e'), from: idOf.get(src), to: o.id, port: 0 }); }); continue; }
       else if (fn.op === 'call_module') {
         const m = fn.module || {}; const attr = fn.target.split('.').pop();
@@ -3697,12 +3710,29 @@ const NN = (() => {
         else if (NORMS[m.type]) n = makeNode('norm', { kind: m.type, dim: dim(m.dim), groups: m.num_groups || 8, name: attr });
         else if (m.type === 'Dropout') n = makeNode('dropout', { p: m.p ?? 0.1, name: attr });
         else if (ACTM[m.type]) n = makeNode('act', { fn: ACTM[m.type], dim: String(m.dim ?? -1) });
+        else if ((m.type === 'Conv2d' || m.type === 'ConvTranspose2d') && m.in_channels != null && (m.groups || 1) === 1 && typeof m.padding === 'number')
+          n = makeNode('conv', { in: dim(m.in_channels), out: dim(m.out_channels), k: String(m.kernel_size), stride: String(m.stride), pad: String(m.padding), bias: !!m.bias, transposed: m.type === 'ConvTranspose2d', name: attr });
+        else if ((m.type === 'MaxPool2d' || m.type === 'AvgPool2d') && m.kernel_size != null)
+          n = makeNode('pool', { kind: m.type === 'AvgPool2d' ? 'avg' : 'max', k: String(m.kernel_size), stride: m.stride != null && m.stride !== m.kernel_size ? String(m.stride) : '', pad: String(m.padding || 0) });
+        else if (m.type === 'AdaptiveAvgPool2d' && m.output_size != null) n = makeNode('pool', { kind: 'adaptive', size: String(m.output_size) });
+        else if (m.type === 'Flatten') n = makeNode('reshape', { pattern: '', sizes: '', _steps: [{ op: 'flatten', a: m.start_dim ?? 1, b: m.end_dim != null && m.end_dim !== -1 ? m.end_dim : null }] });
+        else if (m.type === 'Embedding' && m.num_embeddings != null) n = makeNode('embed', { num: dim(m.num_embeddings), dim: dim(m.embedding_dim), name: attr });
         else { n = makeNode('func', { init: m.repr || `nn.${m.type}()`, n: Math.max(1, tensorArgs.length), name: attr }); warnings.push(`${m.type} kept as a custom module.`); }
       } else if (fn.op === 'call_function' || fn.op === 'call_method') {
         const t = fn.target;
         if (BIN[t]) n = tensorArgs.length === 2 ? makeNode('binop', { op: BIN[t] }) : makeNode('binop', { op: BIN[t], const: String(consts[0]) });
         else if (FN[t] || (fn.op === 'call_method' && ['sigmoid', 'relu', 'tanh', 'softmax'].includes(t))) n = makeNode('act', { fn: FN[t] || t, dim: String((fn.kwargs && fn.kwargs.dim) ?? -1) });
-        else { n = makeNode('func', { fn: fn.op === 'call_method' ? '.' + t : t, extra: consts.map(String).join(', '), n: Math.max(1, tensorArgs.length) }); warnings.push(`${t} kept as a custom op.`); }
+        else if ((t === 'torch.cat' || t === 'torch.concat') && tensorArgs.length > 1) n = makeNode('func', { fn: 'torch.cat', extra: 'dim=' + ((fn.kwargs && fn.kwargs.dim) ?? (consts.find(v => Number.isInteger(v)) ?? 0)), n: tensorArgs.length });
+        else if (POOLF[t] && tensorArgs.length === 1) {
+          // sizes may come as (2, 2): square ones are kept as one number, as the module path does
+          const kw = fn.kwargs || {}, one = v => (Array.isArray(v) ? (v.length ? v[0] : null) : v), a = (i, k) => one(k in kw ? kw[k] : consts[i]);
+          if (POOLF[t] === 'adaptive') n = makeNode('pool', { kind: 'adaptive', size: String(a(0, 'output_size') ?? 1) });
+          else { const k = a(0, 'kernel_size'), st = a(1, 'stride'); n = makeNode('pool', { kind: POOLF[t], k: String(k), stride: st != null && st !== k ? String(st) : '', pad: String(a(2, 'padding') || 0) }); }
+        } else if ((t === 'flatten' || t === 'torch.flatten') && tensorArgs.length === 1 && consts.every(v => Number.isInteger(v))) {
+          const kw = fn.kwargs || {}, a0 = kw.start_dim ?? consts[0] ?? (t === 'flatten' ? 0 : 0), b0 = kw.end_dim ?? consts[1];
+          n = makeNode('reshape', { pattern: '', sizes: '', _steps: [{ op: 'flatten', a: a0, b: b0 != null && b0 !== -1 ? b0 : null }] });
+        }
+        else { n = makeNode('func', { fn: fn.op === 'call_method' ? '.' + t : t, extra: consts.map(pyLit).join(', '), n: Math.max(1, tensorArgs.length) }); warnings.push(`${t} kept as a custom op.`); }
       } else continue;
       g.nodes.push(n); idOf.set(fn.name, n.id);
       tensorArgs.forEach((src, port) => { if (idOf.has(src)) g.edges.push({ id: uid('e'), from: idOf.get(src), to: n.id, port }); });
@@ -3711,6 +3741,15 @@ const NN = (() => {
         groups.get(fn.group.path).nodes.push(n.id);
       }
     }
+    // as for code: flatten steps become reshape patterns, sizes that must agree are linked, groups become blocks
+    if (g.nodes.some(n => n.type === 'reshape' && n.params._steps)) {
+      const { shapes } = inferShapes(g), ix2 = index(g);
+      for (const n of g.nodes) if (n.type === 'reshape' && n.params._steps) {
+        const x = shapes.get((ix2.ins.get(n.id) || [])[0]); const r = x ? stepsToPattern(n.params._steps, x) : null;
+        if (r) { n.params.pattern = r.pattern; n.params.sizes = r.sizes; delete n.params._steps; }
+      }
+    }
+    linkSizes(g);
     groupsToBlocks(g);
     autoLayout(g);
     return { graph: g, warnings: [...new Set(warnings)] };
@@ -4009,7 +4048,35 @@ const NN = (() => {
     return neu;
   }
 
-  return { carryDiagram, lowerReshapes, reshapeSteps, reshapeStepCode, reshapeShape, reshapeAxisSource, stepsToPattern, reshapeDescribe, reshapePlan, stepsShape, parseSizes, HELPER_OPS, indexInputRange, FREEZABLE, helperDoc, srcKey, splitKey, blockOutputs, blockClassCode, LOSSES, lossParts, lossPlan, weightShape, tieOwner, blockParams, blockInputs, expandBlocks, instantiateBlock, presetResidualMLPBlocks, NORMS, linkSizes, syncWidths, mergeIntoSource, uid, BATCH, DEFAULTS, ACTS, INITS, initCode, makeNode, inCount, isCircle, index, topo, evalDim, parseShape, inferShapes, paramCount, propagateWidth, generate, importPython, importFx, autoLayout, nodeSize, nodeLabel, presetResidualMLP, parse, identsIn };
+
+  // ── saved graphs: what comes back from browser storage (or a pasted graph) is checked before it is drawn ──
+  // Anything that can't be drawn is dropped or repaired rather than stopping the app: nodes need an id, a known
+  // type and params (missing ones get the type's defaults), positions are numbers, wires join nodes that exist,
+  // block uses name a block that exists. Returns the repaired graph, or null when there is nothing usable.
+  function sanitizeGraph(g, depth = 0, known = null) {
+    if (!g || typeof g !== 'object' || !Array.isArray(g.nodes) || depth > 8) return null;
+    // block uses anywhere (also inside blocks) name blocks kept in the model's own g.blocks
+    if (!known) { known = new Set(); const walk = (x, d) => { if (!x || typeof x !== 'object' || d > 8) return; for (const [id, b] of Object.entries(x.blocks && typeof x.blocks === 'object' ? x.blocks : {})) { known.add(id); if (b) walk(b.graph, d + 1); } }; walk(g, 0); }
+    const obj = v => (v && typeof v === 'object' && !Array.isArray(v) ? v : {}), fin = v => (Number.isFinite(+v) && v !== null && v !== '' ? +v : 0);
+    const out = Object.assign({}, g, { name: typeof g.name === 'string' && g.name ? g.name : 'Model', symbols: obj(g.symbols) });
+    out.blocks = {};
+    for (const [id, b] of Object.entries(obj(g.blocks))) {
+      const bg = b && sanitizeGraph(b.graph, depth + 1, known); if (!bg) continue;
+      out.blocks[id] = Object.assign({}, b, { id, name: typeof b.name === 'string' && b.name ? b.name : 'Block', graph: bg, labels: obj(b.labels) });
+    }
+    if (!Object.keys(out.blocks).length && !g.blocks) delete out.blocks;
+    const seen = new Set();
+    out.nodes = g.nodes.filter(n => n && typeof n === 'object' && typeof n.id === 'string' && !seen.has(n.id) && typeof n.type === 'string' && Object.prototype.hasOwnProperty.call(DEFAULTS, n.type) && seen.add(n.id))
+      .map(n => { const q = Object.assign({}, n, { x: fin(n.x), y: fin(n.y), params: Object.assign(JSON.parse(JSON.stringify(DEFAULTS[n.type])), obj(n.params)) }); if (q.type === 'block') q.params.args = obj(q.params.args); return q; })
+      .filter(n => n.type !== 'block' || known.has(n.params.block) || n.params.lib || n.params.libName); // (a library block's own nested uses are joined up later)
+    const ids = new Set(out.nodes.map(n => n.id));
+    out.edges = (Array.isArray(g.edges) ? g.edges : []).filter(e => e && ids.has(e.from) && ids.has(e.to) && Number.isInteger(+e.port))
+      .map(e => Object.assign({}, e, { id: typeof e.id === 'string' ? e.id : uid('e'), port: +e.port }));
+    out.groups = (Array.isArray(g.groups) ? g.groups : []).filter(gr => gr && Array.isArray(gr.nodes)).map(gr => Object.assign({}, gr, { nodes: gr.nodes.filter(id => ids.has(id)) }));
+    return out;
+  }
+
+  return { sanitizeGraph, carryDiagram, lowerReshapes, reshapeSteps, reshapeStepCode, reshapeShape, reshapeAxisSource, stepsToPattern, reshapeDescribe, reshapePlan, stepsShape, parseSizes, HELPER_OPS, indexInputRange, FREEZABLE, helperDoc, srcKey, splitKey, blockOutputs, blockClassCode, LOSSES, lossParts, lossPlan, weightShape, tieOwner, blockParams, blockInputs, expandBlocks, instantiateBlock, presetResidualMLPBlocks, NORMS, linkSizes, syncWidths, mergeIntoSource, uid, BATCH, DEFAULTS, ACTS, INITS, initCode, makeNode, inCount, isCircle, index, topo, evalDim, parseShape, inferShapes, paramCount, propagateWidth, generate, importPython, importFx, autoLayout, nodeSize, nodeLabel, presetResidualMLP, parse, identsIn };
 })();
 if (typeof module !== 'undefined') module.exports = NN;
 
@@ -4412,7 +4479,9 @@ const NNVar = (() => {
       const A = ins[0];
       const isLoopDelay = n.type === 'delay' && typeof loopDelays !== 'undefined' && loopDelays.has(id);
       const takesPositions = n.type === 'func' && (p.fn === 'take_positions');
-      if (n.type !== 'input' && n.type !== 'embed' && !isLoopDelay && ins.some((v, j) => !v || (v.k === 'idx' && !(takesPositions && j === 1)))) {
+      // Qwen2.5-VL's 3-D rotary positions are worked out from the token ids (and the image grid); they only steer rotations
+      const makesPositions = n.type === 'func' && p.fn === 'mrope_positions', ropeAt = n.type === 'rope';
+      if (n.type !== 'input' && n.type !== 'embed' && !isLoopDelay && !makesPositions && ins.some((v, j) => !v || (v.k === 'idx' && !(takesPositions && j === 1) && !(ropeAt && j === 1)))) {
         if (ins.some(v => v && v.k === 'idx')) return { error: 'Token indices can only go into an Embedding.', node: id };
         return { error: 'A layer has an unconnected input.', node: id };
       }
@@ -4569,7 +4638,8 @@ const NNVar = (() => {
           break;
         case 'scale': { const Dl = A.shape ? A.shape[A.shape.length - 1] : 1, k = 1 / Math.sqrt(Dl); out = mapX(A, x => x * k); tape.set(id, { k }); break; }
         case 'rope': {
-          if (p.mode === 'axial' || p.mode === 'mrope') return unsupported(n, 'rotary embeddings at given positions');
+          // rotary embeddings at given positions (2-D axial, Qwen's 3-D mrope): a rotation of each pair whatever the
+          // angles, so the variances come out as for positions 0, 1, 2 … (the tables below)
           if (A.k !== 'f') return unsupported(n, 'rotary embeddings outside the features');
           const r = ropeTables(A, +p.base || 10000), X = new Float32Array(A.X.length);
           for (let t = 0; t < A.T; t++) for (let s = 0; s < NS; s++) {
@@ -4620,6 +4690,7 @@ const NNVar = (() => {
           break;
         }
         case 'func': {
+          if (makesPositions) { out = { k: 'idx', positions: true, ids: new Int32Array(0) }; break; }
           const fn = String(p.init || p.fn || ''), base = fn.replace(/\(.*$/, '').replace(/^.*\./, '').toLowerCase();
           // flattening an image: each flattened coordinate is one channel at one pixel
           // positions picked from a sequence (I-JEPA's masks): K of its T, spread over it (which ones doesn't matter
@@ -5711,9 +5782,17 @@ function restore(json) {
 // which version of an example a tab was opened from, and whether it has been edited since: an untouched tab of an
 // example that has changed is brought up to date when the app starts
 const libSigOf = src => { let h = 5381; const t = String(src || ''); for (let i = 0; i < t.length; i++) h = ((h * 33) ^ t.charCodeAt(i)) >>> 0; return h.toString(36); };
-const docEdited = d => !!(d.edited || ((d.id === S.cur ? S.undo : d.undo) || []).length > (d.baseUndo || 0));
+const docEdited = d => !!(d.edited || ((d.id === S.cur ? S.undo : d.undo) || []).length !== (d.baseUndo || 0)); // (also undoing past an automatic update: the old copy)
+let saveWarned = false;
 function save() {
-  try { localStorage.setItem(STORE, JSON.stringify({ v: 2, docs: S.docs.map(d => (d.id === S.cur ? S.root : d.root)), from: S.docs.map(d => d.fromLib || null), sig: S.docs.map(d => d.libSig || null), ed: S.docs.map(docEdited), cur: Math.max(0, S.docs.findIndex(d => d.id === S.cur)) })); } catch {}
+  if (savedOff) return; // leaving data that couldn't be opened (or copied) untouched this visit
+  // an example tab with no edits is kept as a reference to the example (it reopens as the example)
+  const docOf = d => { const r = d.id === S.cur ? S.root : d.root; return d.fromLib && !docEdited(d) && !r.libHost && d.libSig && S.library.some(x => x.file === d.fromLib && x.kind === 'network' && x.type === 'json') ? { libRef: d.fromLib } : r; };
+  try { localStorage.setItem(STORE, JSON.stringify({ v: 2, docs: S.docs.map(docOf), from: S.docs.map(d => d.fromLib || null), sig: S.docs.map(d => d.libSig || null), ed: S.docs.map(docEdited), cur: Math.max(0, S.docs.findIndex(d => d.id === S.cur)) })); saveWarned = false; }
+  catch (e) {
+    // full (or blocked) browser storage: editing goes on, but the open tabs won't be there next time
+    if (!saveWarned) { saveWarned = true; setTimeout(() => toast("This browser's storage for Torch Canvas is full, so your open tabs won't be kept when you close the page. Save your model to a file (Ctrl+S, or Export), or close tabs you don't need."), 0); }
+  }
 }
 function load() { try { const s = localStorage.getItem(STORE); if (s) { const g = JSON.parse(s); if (g && Array.isArray(g.nodes)) return g; } } catch {} return null; }
 function clearSel() { S.sel.nodes.clear(); S.sel.edges.clear(); S.sel.group = null; }
@@ -8601,7 +8680,45 @@ const clone = o => JSON.parse(JSON.stringify(o));
 const labelStr = o => Object.entries(o || {}).map(([k, v]) => `${k}=${v}`).join(', ');
 // (a nested use's local block id differs between networks; it is compared by its library file instead)
 const libKey = b => JSON.stringify([b.graph.nodes, b.graph.edges, b.graph.groups || [], b.graph.symbols || {}, b.labels || {}], (k, v) => (k === 'block' && typeof v === 'string' ? undefined : v));
-let libOverrides = {}; try { libOverrides = JSON.parse(localStorage.getItem(LIBSTORE) || '{}') || {}; } catch {}
+// If the last start stopped part-way while opening what was saved in this browser (the saved tabs and library edits),
+// that saved data is set aside under torchcanvas.backup.<time>.* and the app starts fresh. The flag covers only reading
+// and opening the saved data (from here to the first tab shown), and a start in progress in another tab (a few seconds
+// old) is left alone. If the copy can't be made (storage full), the saved data stays where it is, untouched: this run
+// neither reads nor overwrites it.
+const BOOT = 'torchcanvas.booting';
+let bootRecovered = null, savedOff = false;
+try {
+  const b = +localStorage.getItem(BOOT) || 0;
+  if (b && Date.now() - b > 8000) {
+    const stamp = new Date(b).toISOString().slice(0, 19).replace(/[-:]/g, '').replace('T', '-');
+    // keep one earlier backup at most, so repeated recoveries don't fill the storage
+    const olds = Object.keys(localStorage).filter(k => k.startsWith('torchcanvas.backup.')).sort();
+    const keepStamp = olds.length ? olds[olds.length - 1].split('.')[2] : null;
+    for (const k of olds) if (k.split('.')[2] !== keepStamp) localStorage.removeItem(k);
+    let copied = true;
+    for (const k of [STORE, 'torchcanvas.libblocks.v1']) {
+      const v = localStorage.getItem(k); if (v == null) continue;
+      try { localStorage.setItem(`torchcanvas.backup.${stamp}.${k.split('.')[1]}`, v); localStorage.removeItem(k); } catch { copied = false; }
+    }
+    if (copied) bootRecovered = stamp; else savedOff = true;
+    localStorage.removeItem(BOOT);
+  }
+  if (!savedOff && !localStorage.getItem(BOOT)) localStorage.setItem(BOOT, String(Date.now()));
+} catch {}
+const bootDone = () => { try { if (!savedOff) localStorage.removeItem(BOOT); } catch {} };
+// library edits are written here (not while the saved data is being left untouched)
+const storeLib = () => { if (savedOff) return; try { localStorage.setItem(LIBSTORE, JSON.stringify(libOverrides)); } catch {} };
+let libOverrides = {}; try { libOverrides = savedOff ? {} : JSON.parse(localStorage.getItem(LIBSTORE) || '{}') || {}; } catch {}
+// library edits saved in this browser: each is checked like a saved tab; ones that can't be used are dropped
+if (!libOverrides || typeof libOverrides !== 'object' || Array.isArray(libOverrides)) libOverrides = {};
+for (const [f, o] of Object.entries(libOverrides)) {
+  if (!o || typeof o !== 'object') { delete libOverrides[f]; continue; }
+  if (o.deleted) { if (typeof o.name !== 'string') delete libOverrides[f]; continue; }
+  const g = NN.sanitizeGraph(o.graph);
+  if (!g || typeof o.name !== 'string' || !o.name) { delete libOverrides[f]; continue; }
+  o.graph = g; if (!o.labels || typeof o.labels !== 'object') o.labels = {};
+  if (o.entry && typeof o.entry !== 'object') delete o.entry;
+}
 function parseLibBlock(entry) {
   let g;
   if (entry.type === 'json') { const j = JSON.parse(entry.source); g = j.graph || j; }
@@ -8715,7 +8832,7 @@ function persistLib(file) {
   const L = S.libBlocks[file]; if (!L) return;
   const e = L.entry;
   libOverrides[file] = { name: L.name, graph: L.graph, labels: L.labels, entry: { title: e.title, description: e.description, type: e.type, labels: labelStr(L.labels) } };
-  try { localStorage.setItem(LIBSTORE, JSON.stringify(libOverrides)); } catch {}
+  storeLib();
   if (S.libServer) { clearTimeout(libSaveT[file]); libSaveT[file] = setTimeout(() => writeLibFile(file), 600); }
 }
 function libFileText(L) {
@@ -8735,7 +8852,7 @@ async function writeLibFile(file, quiet) {
     const r = await fetch('examples/' + file, { method: 'PUT', body: text, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
     if (!r.ok) throw new Error(r.status);
     L.entry.source = text; delete libOverrides[file];
-    try { localStorage.setItem(LIBSTORE, JSON.stringify(libOverrides)); } catch {}
+    storeLib();
     if (!quiet && !S.libSavedOnce) { S.libSavedOnce = true; toast(`Saved ${L.name} to examples/${file}. Every network that uses it gets the change.`); }
     return true;
   } catch { if (!S.libSaveWarned) { S.libSaveWarned = true; toast(`Couldn't write examples/${file}; the change is kept in this browser.`); } return false; }
@@ -8810,7 +8927,7 @@ async function deleteLibraryBlock(file) {
   delete S.libBlocks[file];
   S.library = S.library.filter(x => x.file !== file);
   libOverrides[file] = { deleted: true, name: L.name };
-  try { localStorage.setItem(LIBSTORE, JSON.stringify(libOverrides)); } catch {}
+  storeLib();
   let wrote = '';
   if (S.libServer) {
     try { const r = await fetch('examples/' + file, { method: 'DELETE' }); if (r.ok) wrote = ` and examples/${file}`; } catch {}
@@ -9612,23 +9729,29 @@ function changed() {
   NN.syncWidths(S.g); syncBlockUses(); pushLinked(); render(); renderCode(); renderInspector(); renderBlocks(); renderBlockBar(); renderTabs(); save(); renderFileBar(); saveLayout(); varMarkStale();
 }
 let saved = null;
-try { const raw = localStorage.getItem(STORE); if (raw) saved = JSON.parse(raw); } catch {}
-const fromOf = new Map();
-if (saved && saved.v === 2 && Array.isArray(saved.docs) && Array.isArray(saved.from)) saved.docs.forEach((g, i) => { if (g && saved.from[i]) fromOf.set(g, saved.from[i]); });
-let roots = saved && saved.v === 2 && Array.isArray(saved.docs) ? saved.docs.filter(g => g && Array.isArray(g.nodes)) : saved && Array.isArray(saved.nodes) ? [saved] : [];
+try { const raw = savedOff ? null : localStorage.getItem(STORE); if (raw) saved = JSON.parse(raw); } catch {}
+if (!saved || typeof saved !== 'object') saved = null;
+// each saved tab: its graph (checked and repaired by NN.sanitizeGraph, or dropped), and the example it came from.
+// An untouched example tab is saved as just a reference to the example ({ libRef }), which keeps storage small.
+const savedAt = (k, i) => (saved && Array.isArray(saved[k]) ? saved[k][i] : undefined);
+const libGraph = file => { const e = S.library.find(x => x.file === file && x.kind === 'network' && x.type === 'json'); if (!e) return null; try { const j = JSON.parse(e.source); return j.graph || j; } catch { return null; } };
+let restored = (saved && saved.v === 2 && Array.isArray(saved.docs) ? saved.docs.map((g, i) => ({ g, i })) : saved && Array.isArray(saved.nodes) ? [{ g: saved, i: -1 }] : [])
+  .map(({ g, i }) => ({ i, from: typeof savedAt('from', i) === 'string' ? savedAt('from', i) : null, ref: !!(g && typeof g.libRef === 'string'), g: NN.sanitizeGraph(g && typeof g.libRef === 'string' ? libGraph(g.libRef) : g) }))
+  .filter(r => r.g);
 // an old saved example drawn with hidden groups is replaced by the current example
-roots = roots.map(g => (g.groups && g.groups.some(x => x.cls === 'GatedBlock' || x.cls === 'GatedHead') ? NN.presetResidualMLP() : g));
-if (!roots.length) roots = [NN.presetResidualMLP()];
-for (const g of roots) for (const n of g.nodes) { if ('tone' in n.params) delete n.params.tone; if (['Down projection', 'Output projection', 'Final norm'].includes(n.params.title)) n.params.title = ''; }
-roots.forEach(r => syncLinked(r));
-S.docs = roots.map(r => ({ id: NN.uid('d'), root: r, file: null, undo: [], redo: [], tabs: [], views: {}, fromLib: fromOf.get(r) || null }));
+for (const r of restored) if (r.g.groups.some(x => x.cls === 'GatedBlock' || x.cls === 'GatedHead')) r.g = NN.presetResidualMLP();
+if (!restored.length) restored = [{ i: -1, from: null, g: NN.presetResidualMLP() }];
+for (const { g } of restored) for (const n of g.nodes) { if ('tone' in n.params) delete n.params.tone; if (['Down projection', 'Output projection', 'Final norm'].includes(n.params.title)) n.params.title = ''; }
+restored.forEach(r => syncLinked(r.g));
+S.docs = restored.map(r => ({ id: NN.uid('d'), root: r.g, file: null, undo: [], redo: [], tabs: [], views: {}, fromLib: r.from, _i: r.i, _i0: r.i, _ref: r.ref }));
 // tabs of examples that have changed since they were opened: untouched ones (or ones saved before edits were tracked)
 // get the current version, with Undo bringing back the copy that was open; edited ones are left as they are
 {
-  const sigs = (saved && saved.sig) || [], eds = (saved && saved.ed) || [], updated = [], kept = [];
-  S.docs.forEach((d, i) => {
+  const updated = [], kept = [];
+  S.docs.forEach(d => {
+    const i = d._i, ref = d._ref; delete d._i; delete d._ref;
     const entry = d.fromLib && S.library.find(x => x.file === d.fromLib && x.kind === 'network' && x.type === 'json'); if (!entry) return;
-    const now = libSigOf(entry.source); d.libSig = sigs[i] || null; d.edited = eds[i] === true;
+    const now = libSigOf(entry.source); d.libSig = ref ? now : savedAt('sig', i) || null; d.edited = savedAt('ed', i) === true;
     if (d.libSig === now) return;
     if (d.edited) { kept.push(entry.title); return; }
     let g; try { const j = JSON.parse(entry.source); g = j.graph || j; } catch { return; }
@@ -9639,7 +9762,9 @@ S.docs = roots.map(r => ({ id: NN.uid('d'), root: r, file: null, undo: [], redo:
   else if (kept.length) setTimeout(() => toast(`The ${kept.join(', ')} example has changed since you opened it; your edited tab is unchanged. Open / import opens the current version.`), 600);
 }
 S.cur = null;
-activateDoc(S.docs[Math.min(saved && saved.cur || 0, S.docs.length - 1)].id);
+{ const at = S.docs.findIndex(d => d._i0 === (saved && saved.cur)); activateDoc(S.docs[at >= 0 ? at : 0].id); } // (cur counts the saved tabs, some of which may have been dropped)
+S.docs.forEach(d => delete d._i0);
+bootDone();
 renderProject();
 (function openFromLink() {
   let want = null; try { want = new URLSearchParams(location.search).get('open'); } catch {}
@@ -9658,6 +9783,8 @@ renderProject();
 idb.get('last').then(r => { if (r && (r.dir || r.file)) { S.remembered = r; if (!S.dir) renderProject(); } }).catch(() => {});
 requestAnimationFrame(fit);
 window.addEventListener('resize', () => render());
+if (savedOff) setTimeout(() => toast("Torch Canvas couldn't open what it had saved in this browser last time, and the storage is too full to keep a copy, so it was left as it is and this visit starts fresh without saving. Clear some of this site's storage to go back to saving."), 400);
+if (bootRecovered) setTimeout(() => toast(`Torch Canvas couldn't open what it had saved in this browser last time, so it started fresh. The saved tabs were set aside in this browser's storage as torchcanvas.backup.${bootRecovered}.`), 400);
 // for the routing checks in tools/ (read-only access to the open graph and the router)
 window.__tc = { S, route, drawFrom, box, keyOf, byId, switchTo, openLibrary, openLibraryBlock, findLibEntry, render, renderInspector, selectionChanged, fit, sizeOf };
 })();

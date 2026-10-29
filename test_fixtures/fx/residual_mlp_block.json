@@ -1,0 +1,632 @@
+{
+ "name": "ResidualMLP",
+ "nodes": [
+  {
+   "name": "x",
+   "op": "placeholder",
+   "target": "x",
+   "kwargs": {},
+   "args": [],
+   "shape": [
+    8,
+    784
+   ]
+  },
+  {
+   "name": "down",
+   "op": "call_module",
+   "target": "down",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "x"
+    }
+   ],
+   "module": {
+    "type": "Linear",
+    "repr": "nn.Linear(in_features=784, out_features=256, bias=False)",
+    "in_features": 784,
+    "out_features": 256,
+    "bias": false
+   }
+  },
+  {
+   "name": "blocks_0_norm",
+   "op": "call_module",
+   "target": "blocks.0.norm",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "down"
+    }
+   ],
+   "module": {
+    "type": "RMSNorm",
+    "repr": "nn.RMSNorm((256,), eps=None, elementwise_affine=True)",
+    "dim": 256
+   },
+   "group": {
+    "path": "blocks.0",
+    "cls": "GatedBlock"
+   }
+  },
+  {
+   "name": "blocks_0_w",
+   "op": "call_module",
+   "target": "blocks.0.w",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "blocks_0_norm"
+    }
+   ],
+   "module": {
+    "type": "Linear",
+    "repr": "nn.Linear(in_features=256, out_features=512, bias=False)",
+    "in_features": 256,
+    "out_features": 512,
+    "bias": false
+   },
+   "group": {
+    "path": "blocks.0",
+    "cls": "GatedBlock"
+   }
+  },
+  {
+   "name": "sigmoid",
+   "op": "call_function",
+   "target": "torch.sigmoid",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "blocks_0_w"
+    }
+   ],
+   "group": {
+    "path": "blocks.0",
+    "cls": "GatedBlock"
+   }
+  },
+  {
+   "name": "mul",
+   "op": "call_function",
+   "target": "operator.mul",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "sigmoid"
+    },
+    {
+     "node": "blocks_0_w"
+    }
+   ],
+   "group": {
+    "path": "blocks.0",
+    "cls": "GatedBlock"
+   }
+  },
+  {
+   "name": "blocks_0_v",
+   "op": "call_module",
+   "target": "blocks.0.v",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "blocks_0_norm"
+    }
+   ],
+   "module": {
+    "type": "Linear",
+    "repr": "nn.Linear(in_features=256, out_features=512, bias=False)",
+    "in_features": 256,
+    "out_features": 512,
+    "bias": false
+   },
+   "group": {
+    "path": "blocks.0",
+    "cls": "GatedBlock"
+   }
+  },
+  {
+   "name": "mul_1",
+   "op": "call_function",
+   "target": "operator.mul",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "mul"
+    },
+    {
+     "node": "blocks_0_v"
+    }
+   ],
+   "group": {
+    "path": "blocks.0",
+    "cls": "GatedBlock"
+   }
+  },
+  {
+   "name": "blocks_0_w_out",
+   "op": "call_module",
+   "target": "blocks.0.w_out",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "mul_1"
+    }
+   ],
+   "module": {
+    "type": "Linear",
+    "repr": "nn.Linear(in_features=512, out_features=256, bias=False)",
+    "in_features": 512,
+    "out_features": 256,
+    "bias": false
+   },
+   "group": {
+    "path": "blocks.0",
+    "cls": "GatedBlock"
+   }
+  },
+  {
+   "name": "add",
+   "op": "call_function",
+   "target": "operator.add",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "down"
+    },
+    {
+     "node": "blocks_0_w_out"
+    }
+   ],
+   "group": {
+    "path": "blocks.0",
+    "cls": "GatedBlock"
+   }
+  },
+  {
+   "name": "blocks_1_norm",
+   "op": "call_module",
+   "target": "blocks.1.norm",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "add"
+    }
+   ],
+   "module": {
+    "type": "RMSNorm",
+    "repr": "nn.RMSNorm((256,), eps=None, elementwise_affine=True)",
+    "dim": 256
+   },
+   "group": {
+    "path": "blocks.1",
+    "cls": "GatedBlock"
+   }
+  },
+  {
+   "name": "blocks_1_w",
+   "op": "call_module",
+   "target": "blocks.1.w",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "blocks_1_norm"
+    }
+   ],
+   "module": {
+    "type": "Linear",
+    "repr": "nn.Linear(in_features=256, out_features=512, bias=False)",
+    "in_features": 256,
+    "out_features": 512,
+    "bias": false
+   },
+   "group": {
+    "path": "blocks.1",
+    "cls": "GatedBlock"
+   }
+  },
+  {
+   "name": "sigmoid_1",
+   "op": "call_function",
+   "target": "torch.sigmoid",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "blocks_1_w"
+    }
+   ],
+   "group": {
+    "path": "blocks.1",
+    "cls": "GatedBlock"
+   }
+  },
+  {
+   "name": "mul_2",
+   "op": "call_function",
+   "target": "operator.mul",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "sigmoid_1"
+    },
+    {
+     "node": "blocks_1_w"
+    }
+   ],
+   "group": {
+    "path": "blocks.1",
+    "cls": "GatedBlock"
+   }
+  },
+  {
+   "name": "blocks_1_v",
+   "op": "call_module",
+   "target": "blocks.1.v",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "blocks_1_norm"
+    }
+   ],
+   "module": {
+    "type": "Linear",
+    "repr": "nn.Linear(in_features=256, out_features=512, bias=False)",
+    "in_features": 256,
+    "out_features": 512,
+    "bias": false
+   },
+   "group": {
+    "path": "blocks.1",
+    "cls": "GatedBlock"
+   }
+  },
+  {
+   "name": "mul_3",
+   "op": "call_function",
+   "target": "operator.mul",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "mul_2"
+    },
+    {
+     "node": "blocks_1_v"
+    }
+   ],
+   "group": {
+    "path": "blocks.1",
+    "cls": "GatedBlock"
+   }
+  },
+  {
+   "name": "blocks_1_w_out",
+   "op": "call_module",
+   "target": "blocks.1.w_out",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "mul_3"
+    }
+   ],
+   "module": {
+    "type": "Linear",
+    "repr": "nn.Linear(in_features=512, out_features=256, bias=False)",
+    "in_features": 512,
+    "out_features": 256,
+    "bias": false
+   },
+   "group": {
+    "path": "blocks.1",
+    "cls": "GatedBlock"
+   }
+  },
+  {
+   "name": "add_1",
+   "op": "call_function",
+   "target": "operator.add",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "add"
+    },
+    {
+     "node": "blocks_1_w_out"
+    }
+   ],
+   "group": {
+    "path": "blocks.1",
+    "cls": "GatedBlock"
+   }
+  },
+  {
+   "name": "blocks_2_norm",
+   "op": "call_module",
+   "target": "blocks.2.norm",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "add_1"
+    }
+   ],
+   "module": {
+    "type": "RMSNorm",
+    "repr": "nn.RMSNorm((256,), eps=None, elementwise_affine=True)",
+    "dim": 256
+   },
+   "group": {
+    "path": "blocks.2",
+    "cls": "GatedBlock"
+   }
+  },
+  {
+   "name": "blocks_2_w",
+   "op": "call_module",
+   "target": "blocks.2.w",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "blocks_2_norm"
+    }
+   ],
+   "module": {
+    "type": "Linear",
+    "repr": "nn.Linear(in_features=256, out_features=512, bias=False)",
+    "in_features": 256,
+    "out_features": 512,
+    "bias": false
+   },
+   "group": {
+    "path": "blocks.2",
+    "cls": "GatedBlock"
+   }
+  },
+  {
+   "name": "sigmoid_2",
+   "op": "call_function",
+   "target": "torch.sigmoid",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "blocks_2_w"
+    }
+   ],
+   "group": {
+    "path": "blocks.2",
+    "cls": "GatedBlock"
+   }
+  },
+  {
+   "name": "mul_4",
+   "op": "call_function",
+   "target": "operator.mul",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "sigmoid_2"
+    },
+    {
+     "node": "blocks_2_w"
+    }
+   ],
+   "group": {
+    "path": "blocks.2",
+    "cls": "GatedBlock"
+   }
+  },
+  {
+   "name": "blocks_2_v",
+   "op": "call_module",
+   "target": "blocks.2.v",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "blocks_2_norm"
+    }
+   ],
+   "module": {
+    "type": "Linear",
+    "repr": "nn.Linear(in_features=256, out_features=512, bias=False)",
+    "in_features": 256,
+    "out_features": 512,
+    "bias": false
+   },
+   "group": {
+    "path": "blocks.2",
+    "cls": "GatedBlock"
+   }
+  },
+  {
+   "name": "mul_5",
+   "op": "call_function",
+   "target": "operator.mul",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "mul_4"
+    },
+    {
+     "node": "blocks_2_v"
+    }
+   ],
+   "group": {
+    "path": "blocks.2",
+    "cls": "GatedBlock"
+   }
+  },
+  {
+   "name": "blocks_2_w_out",
+   "op": "call_module",
+   "target": "blocks.2.w_out",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "mul_5"
+    }
+   ],
+   "module": {
+    "type": "Linear",
+    "repr": "nn.Linear(in_features=512, out_features=256, bias=False)",
+    "in_features": 512,
+    "out_features": 256,
+    "bias": false
+   },
+   "group": {
+    "path": "blocks.2",
+    "cls": "GatedBlock"
+   }
+  },
+  {
+   "name": "add_2",
+   "op": "call_function",
+   "target": "operator.add",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "add_1"
+    },
+    {
+     "node": "blocks_2_w_out"
+    }
+   ],
+   "group": {
+    "path": "blocks.2",
+    "cls": "GatedBlock"
+   }
+  },
+  {
+   "name": "final_norm",
+   "op": "call_module",
+   "target": "final_norm",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "add_2"
+    }
+   ],
+   "module": {
+    "type": "RMSNorm",
+    "repr": "nn.RMSNorm((256,), eps=None, elementwise_affine=True)",
+    "dim": 256
+   }
+  },
+  {
+   "name": "head_w",
+   "op": "call_module",
+   "target": "head_w",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "final_norm"
+    }
+   ],
+   "module": {
+    "type": "Linear",
+    "repr": "nn.Linear(in_features=256, out_features=256, bias=False)",
+    "in_features": 256,
+    "out_features": 256,
+    "bias": false
+   }
+  },
+  {
+   "name": "sigmoid_3",
+   "op": "call_function",
+   "target": "torch.sigmoid",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "head_w"
+    }
+   ]
+  },
+  {
+   "name": "mul_6",
+   "op": "call_function",
+   "target": "operator.mul",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "sigmoid_3"
+    },
+    {
+     "node": "head_w"
+    }
+   ]
+  },
+  {
+   "name": "head_v",
+   "op": "call_module",
+   "target": "head_v",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "final_norm"
+    }
+   ],
+   "module": {
+    "type": "Linear",
+    "repr": "nn.Linear(in_features=256, out_features=256, bias=False)",
+    "in_features": 256,
+    "out_features": 256,
+    "bias": false
+   }
+  },
+  {
+   "name": "mul_7",
+   "op": "call_function",
+   "target": "operator.mul",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "mul_6"
+    },
+    {
+     "node": "head_v"
+    }
+   ]
+  },
+  {
+   "name": "out_proj",
+   "op": "call_module",
+   "target": "out_proj",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "mul_7"
+    }
+   ],
+   "module": {
+    "type": "Linear",
+    "repr": "nn.Linear(in_features=256, out_features=10, bias=False)",
+    "in_features": 256,
+    "out_features": 10,
+    "bias": false
+   }
+  },
+  {
+   "name": "softmax",
+   "op": "call_function",
+   "target": "torch.softmax",
+   "kwargs": {
+    "dim": -1
+   },
+   "args": [
+    {
+     "node": "out_proj"
+    }
+   ]
+  },
+  {
+   "name": "output",
+   "op": "output",
+   "target": "output",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "softmax"
+    }
+   ]
+  }
+ ]
+}

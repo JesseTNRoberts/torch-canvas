@@ -264,4 +264,26 @@ for (const [f, want] of [['23_residual_cnn_gap.json', 57098], ['24_residual_cnn_
     if (!d || overlap || k.nodes.filter(n => n !== d).some(n => !c.nodes.some(m => m.type === n.type && m.x === n.x))) { console.error('code edit: an added layer should get room of its own in the same column'); process.exit(1); }
   }
   console.log('code edits OK');
+  // export_graph.py (torch.fx) output, saved from the examples: it reads back with the same parameter count, with
+  // convolutions, pools, flatten and torch.cat as real layers, and the code it writes reads back to the same network
+  {
+    const want = { residual_mlp_block: 1515008, prenorm_residual_mlp: 2308362, basic_cnn: 421642, vae_mnist: 652824, unet: 31037698, residual_cnn_gap: 57098 };
+    for (const [f, n0] of Object.entries(want)) {
+      const r = NN.importFx(fs.readFileSync(__dirname + '/test_fixtures/fx/' + f + '.json', 'utf8')), g = r.graph;
+      const fl = NN.expandBlocks(g).flat; let n = 0; for (const z of fl.nodes) n += NN.paramCount(z, fl.symbols) || 0;
+      if (n !== n0) { console.error(`fx import of ${f}: ${n} parameters, expected ${n0}`); process.exit(1); }
+      if (r.warnings.some(w => /Conv2d|pool|flatten|gelu/i.test(w))) { console.error(`fx import of ${f} kept a layer it knows as a custom op: ${r.warnings.join('; ')}`); process.exit(1); }
+      // its code reads back to the same network (written the same way from then on)
+      const code = NN.generate(g).code, g2 = NN.importPython(code).graph, code2 = NN.generate(g2).code;
+      const f2 = NN.expandBlocks(g2).flat; let n2 = 0; for (const z of f2.nodes) n2 += NN.paramCount(z, f2.symbols) || 0;
+      if (/return None/.test(code) || n2 !== n0 || NN.generate(NN.importPython(code2).graph).code !== code2) { console.error(`fx import of ${f}: its code doesn't read back to the same network`); process.exit(1); }
+    }
+  }
+  console.log('fx imports OK');
+  // damaged code (lines lost, text cut short, junk typed in) is refused with a message, never a crash or a hang
+  {
+    const fails = require('./tools/fuzz_import.js')(400, 7, () => {});
+    if (fails.length) { console.error('reading damaged code went wrong:\n' + fails.slice(0, 3).join('\n\n')); process.exit(1); }
+  }
+  console.log('damaged code OK');
 }
