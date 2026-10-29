@@ -1,0 +1,70 @@
+# Checks every pull request (and every push to main) three ways:
+#   app:      the Node tests (round trips, losses, exports, code edits, fx import, damaged code) and that index.html
+#             was rebuilt from the sources it contains
+#   pytorch:  the code written for every example runs in real PyTorch (CPU): parameter counts, output shapes, and
+#             for the small models train.py (2 steps, a resume from the checkpoint, and a bf16 run)
+#   browser:  the built app in headless Chromium: every example opens and plots, damaged saved data, text from
+#             pasted code, a full browser storage
+name: Checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: '17 6 * * 1'  # Mondays: catches a new PyTorch or browser release breaking something, even without changes here
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - run: npm test
+      - name: index.html is built from these sources
+        run: |
+          npm run build
+          git diff --quiet -- index.html || { echo "::error::index.html is out of date: run npm run build and commit it"; exit 1; }
+      - name: More damaged code (longer fuzz run)
+        run: node tools/fuzz_import.js 3000 ${{ github.run_number }}
+
+  pytorch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - run: node tools/export_examples.js out
+      - run: python tools/check_examples.py out --train
+
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: pip install playwright && python -m playwright install --with-deps chromium
+      - run: npm run build
+      - run: python tools/check_browser.py

@@ -423,7 +423,7 @@ const NN = (() => {
           const m = String(p.extra || '').match(/dim\s*=\s*(-?\d+)/);
           const fn = String(p.fn || '');
           const ex = String(p.extra || '').trim(), x0 = inS[0], ax = k => (k < 0 ? x0.length + k : k), par = d => (/^[A-Za-z_]\w*$|^\d+$/.test(d) ? d : `(${d})`);
-          if (HELPER_OPS[fn]) { out = HELPER_OPS[fn].shape(inS, sym); break; }
+          if (HELPER_OPS[fn]) { try { out = HELPER_OPS[fn].shape(inS, sym); } catch { out = x0; } break; } // (called with too few inputs: as an unknown op)
           // x.unsqueeze(k) / x.squeeze(k): a size-1 dimension in or out
           if (/(^|\.)unsqueeze$/.test(fn) && /^-?\d+$/.test(ex)) { const k = +ex < 0 ? x0.length + 1 + +ex : +ex; out = x0.slice(0, k).concat('1', x0.slice(k)); break; }
           if (/(^|\.)(sum|mean|amax|prod)$/.test(fn) && /^-?\d+$/.test(ex) && inS.length === 1) { const k = ax(+ex); out = x0.slice(0, k).concat(x0.slice(k + 1)); break; }
@@ -2227,7 +2227,8 @@ const NN = (() => {
 
   function parse(src) {
     const T = tokenize(src); let k = 0;
-    const peek = (o = 0) => T[k + o], next = () => T[k++];
+    const EOF = T[T.length - 1]; // looking past the end sees the end-of-file token; reading past it is an error
+    const peek = (o = 0) => T[k + o] || EOF, next = () => { if (k >= T.length) throw new Error('The code stops part-way through a statement.'); return T[k++]; };
     const is = (t, v) => peek().t === t && (v === undefined || peek().v === v);
     const isOp = v => is('op', v), isKw = v => is('name', v);
     const expect = (t, v) => { if (!is(t, v)) throw new SyntaxError(`Line ${peek().line}: expected ${v || t}, found ${peek().v ?? peek().t}`); return next(); };
@@ -2456,6 +2457,7 @@ const NN = (() => {
     };
     let curGroup = null, seqInput = false;
     const addNode = (type, params, inputs) => {
+      if (inputs.some(t => !isT(t))) throw new Error(`A ${type === 'func' ? 'function' : type} is given something that isn't a tensor${params && params.name ? ` (self.${params.name})` : ''}: a name that isn't defined yet, or code that stops part-way.`);
       const n = makeNode(type, params);
       g.nodes.push(n);
       inputs.forEach((t, port) => g.edges.push({ id: uid('e'), from: t.t, to: n.id, port }));
@@ -2587,7 +2589,12 @@ const NN = (() => {
       if (prev && prev.type === 'reshape' && Array.isArray(prev.params._steps) && !g.edges.some(z => z.from === prev.id)) { prev.params._steps.push(step); return { t: prev.id }; }
       return addNode('reshape', { pattern: '', sizes: '', _steps: [step] }, [self]);
     }
+    let callDepth = 0;
     function call(e, env) {
+      if (++callDepth > 400) throw new Error('The code calls itself without end (a function or module that calls itself).');
+      try { return call0(e, env); } finally { callDepth--; }
+    }
+    function call0(e, env) {
       const fv = ev(e.fn, env);
       const A = e.args.map(a => (a.k === 'star' ? ev(a.v, env) : ev(a, env)));
       const KW = Object.fromEntries(Object.entries(e.kw).map(([k2, v]) => [k2, ev(v, env)]));
@@ -3118,14 +3125,18 @@ const NN = (() => {
     const warnings = [], idOf = new Map(), groups = new Map();
     const dimSyms = new Map();
     const dim = v => { if (typeof v !== 'number') return String(v); if (!dimSyms.has(v)) { let nm = 'd' + v; g.symbols[nm] = v; dimSyms.set(v, nm); } return dimSyms.get(v); };
-    const FN = { 'torch.sigmoid': 'sigmoid', 'torch.tanh': 'tanh', 'torch.relu': 'relu', 'torch.nn.functional.silu': 'silu', 'torch.nn.functional.relu': 'relu', 'torch.nn.functional.gelu': 'gelu', 'torch.nn.functional.softmax': 'softmax', 'torch.softmax': 'softmax', 'torch.nn.functional.sigmoid': 'sigmoid' };
+    const FN = { 'torch._C._nn.gelu': 'gelu', 'torch.sigmoid': 'sigmoid', 'torch.tanh': 'tanh', 'torch.relu': 'relu', 'torch.nn.functional.silu': 'silu', 'torch.nn.functional.relu': 'relu', 'torch.nn.functional.gelu': 'gelu', 'torch.nn.functional.softmax': 'softmax', 'torch.softmax': 'softmax', 'torch.nn.functional.sigmoid': 'sigmoid' };
     const BIN = { 'operator.add': '+', 'operator.mul': '*', 'operator.sub': '-', 'operator.truediv': '/', 'operator.matmul': '@', 'torch.add': '+', 'torch.mul': '*' };
     const ACTM = { SiLU: 'silu', ReLU: 'relu', GELU: 'gelu', Sigmoid: 'sigmoid', Tanh: 'tanh', Softmax: 'softmax' };
+    const pyLit = v => (Array.isArray(v) ? `(${v.map(pyLit).join(', ')}${v.length === 1 ? ',' : ''})` : v === null ? 'None' : v === true ? 'True' : v === false ? 'False' : String(v)); // (3, -1) as Python writes it
+    const POOLF = { 'torch.nn.functional.max_pool2d': 'max', 'torch.nn.functional.avg_pool2d': 'avg', 'torch.nn.functional.adaptive_avg_pool2d': 'adaptive', 'torch.max_pool2d': 'max', 'torch._C._nn.avg_pool2d': 'avg', 'torch._C._nn.adaptive_avg_pool2d': 'adaptive' };
     for (const fn of data.nodes) {
-      const tensorArgs = (fn.args || []).filter(a => a && a.node).map(a => a.node);
-      const consts = (fn.args || []).filter(a => !(a && a.node));
+      // tensors can come in a list (torch.cat([a, b], dim=1)); older export_graph.py wrote such a list as text
+      const flat = (fn.args || []).flatMap(a => (Array.isArray(a) && a.some(x => x && x.node) ? a : [a]));
+      const tensorArgs = flat.filter(a => a && a.node).map(a => a.node);
+      const consts = flat.filter(a => !(a && a.node));
       let n = null;
-      if (fn.op === 'placeholder') n = makeNode('input', { name: fn.name, shape: fn.shape ? 'e, ' + fn.shape.slice(1).map(dim).join(', ') : 'e, ?' });
+      if (fn.op === 'placeholder') n = makeNode('input', { name: fn.name, shape: fn.shape ? 'e, ' + fn.shape.slice(1).map((v, i, a) => (a.length >= 3 && i > 0 ? String(v) : dim(v))).join(', ') : 'e, ?' }); // an image's height and width stay numbers
       else if (fn.op === 'output') { tensorArgs.forEach((src, i) => { const o = makeNode('output', { name: tensorArgs.length > 1 ? 'out' + i : 'out' }); g.nodes.push(o); g.edges.push({ id: uid('e'), from: idOf.get(src), to: o.id, port: 0 }); }); continue; }
       else if (fn.op === 'call_module') {
         const m = fn.module || {}; const attr = fn.target.split('.').pop();
@@ -3133,12 +3144,28 @@ const NN = (() => {
         else if (NORMS[m.type]) n = makeNode('norm', { kind: m.type, dim: dim(m.dim), groups: m.num_groups || 8, name: attr });
         else if (m.type === 'Dropout') n = makeNode('dropout', { p: m.p ?? 0.1, name: attr });
         else if (ACTM[m.type]) n = makeNode('act', { fn: ACTM[m.type], dim: String(m.dim ?? -1) });
+        else if ((m.type === 'Conv2d' || m.type === 'ConvTranspose2d') && m.in_channels != null && (m.groups || 1) === 1 && typeof m.padding === 'number')
+          n = makeNode('conv', { in: dim(m.in_channels), out: dim(m.out_channels), k: String(m.kernel_size), stride: String(m.stride), pad: String(m.padding), bias: !!m.bias, transposed: m.type === 'ConvTranspose2d', name: attr });
+        else if ((m.type === 'MaxPool2d' || m.type === 'AvgPool2d') && m.kernel_size != null)
+          n = makeNode('pool', { kind: m.type === 'AvgPool2d' ? 'avg' : 'max', k: String(m.kernel_size), stride: m.stride != null && m.stride !== m.kernel_size ? String(m.stride) : '', pad: String(m.padding || 0) });
+        else if (m.type === 'AdaptiveAvgPool2d' && m.output_size != null) n = makeNode('pool', { kind: 'adaptive', size: String(m.output_size) });
+        else if (m.type === 'Flatten') n = makeNode('reshape', { pattern: '', sizes: '', _steps: [{ op: 'flatten', a: m.start_dim ?? 1, b: m.end_dim != null && m.end_dim !== -1 ? m.end_dim : null }] });
+        else if (m.type === 'Embedding' && m.num_embeddings != null) n = makeNode('embed', { num: dim(m.num_embeddings), dim: dim(m.embedding_dim), name: attr });
         else { n = makeNode('func', { init: m.repr || `nn.${m.type}()`, n: Math.max(1, tensorArgs.length), name: attr }); warnings.push(`${m.type} kept as a custom module.`); }
       } else if (fn.op === 'call_function' || fn.op === 'call_method') {
         const t = fn.target;
         if (BIN[t]) n = tensorArgs.length === 2 ? makeNode('binop', { op: BIN[t] }) : makeNode('binop', { op: BIN[t], const: String(consts[0]) });
         else if (FN[t] || (fn.op === 'call_method' && ['sigmoid', 'relu', 'tanh', 'softmax'].includes(t))) n = makeNode('act', { fn: FN[t] || t, dim: String((fn.kwargs && fn.kwargs.dim) ?? -1) });
-        else { n = makeNode('func', { fn: fn.op === 'call_method' ? '.' + t : t, extra: consts.map(String).join(', '), n: Math.max(1, tensorArgs.length) }); warnings.push(`${t} kept as a custom op.`); }
+        else if ((t === 'torch.cat' || t === 'torch.concat') && tensorArgs.length > 1) n = makeNode('func', { fn: 'torch.cat', extra: 'dim=' + ((fn.kwargs && fn.kwargs.dim) ?? (consts.find(v => Number.isInteger(v)) ?? 0)), n: tensorArgs.length });
+        else if (POOLF[t] && tensorArgs.length === 1) {
+          const kw = fn.kwargs || {}, a = (i, k) => (k in kw ? kw[k] : consts[i]);
+          if (POOLF[t] === 'adaptive') n = makeNode('pool', { kind: 'adaptive', size: String(a(0, 'output_size') ?? 1) });
+          else { const k = a(0, 'kernel_size'), st = a(1, 'stride'); n = makeNode('pool', { kind: POOLF[t], k: String(k), stride: st != null && st !== k && !(Array.isArray(st) && !st.length) ? String(st) : '', pad: String(a(2, 'padding') || 0) }); }
+        } else if ((t === 'flatten' || t === 'torch.flatten') && tensorArgs.length === 1 && consts.every(v => Number.isInteger(v))) {
+          const kw = fn.kwargs || {}, a0 = kw.start_dim ?? consts[0] ?? (t === 'flatten' ? 0 : 0), b0 = kw.end_dim ?? consts[1];
+          n = makeNode('reshape', { pattern: '', sizes: '', _steps: [{ op: 'flatten', a: a0, b: b0 != null && b0 !== -1 ? b0 : null }] });
+        }
+        else { n = makeNode('func', { fn: fn.op === 'call_method' ? '.' + t : t, extra: consts.map(pyLit).join(', '), n: Math.max(1, tensorArgs.length) }); warnings.push(`${t} kept as a custom op.`); }
       } else continue;
       g.nodes.push(n); idOf.set(fn.name, n.id);
       tensorArgs.forEach((src, port) => { if (idOf.has(src)) g.edges.push({ id: uid('e'), from: idOf.get(src), to: n.id, port }); });
@@ -3147,6 +3174,15 @@ const NN = (() => {
         groups.get(fn.group.path).nodes.push(n.id);
       }
     }
+    // as for code: flatten steps become reshape patterns, sizes that must agree are linked, groups become blocks
+    if (g.nodes.some(n => n.type === 'reshape' && n.params._steps)) {
+      const { shapes } = inferShapes(g), ix2 = index(g);
+      for (const n of g.nodes) if (n.type === 'reshape' && n.params._steps) {
+        const x = shapes.get((ix2.ins.get(n.id) || [])[0]); const r = x ? stepsToPattern(n.params._steps, x) : null;
+        if (r) { n.params.pattern = r.pattern; n.params.sizes = r.sizes; delete n.params._steps; }
+      }
+    }
+    linkSizes(g);
     groupsToBlocks(g);
     autoLayout(g);
     return { graph: g, warnings: [...new Set(warnings)] };
@@ -3445,6 +3481,34 @@ const NN = (() => {
     return neu;
   }
 
-  return { carryDiagram, lowerReshapes, reshapeSteps, reshapeStepCode, reshapeShape, reshapeAxisSource, stepsToPattern, reshapeDescribe, reshapePlan, stepsShape, parseSizes, HELPER_OPS, indexInputRange, FREEZABLE, helperDoc, srcKey, splitKey, blockOutputs, blockClassCode, LOSSES, lossParts, lossPlan, weightShape, tieOwner, blockParams, blockInputs, expandBlocks, instantiateBlock, presetResidualMLPBlocks, NORMS, linkSizes, syncWidths, mergeIntoSource, uid, BATCH, DEFAULTS, ACTS, INITS, initCode, makeNode, inCount, isCircle, index, topo, evalDim, parseShape, inferShapes, paramCount, propagateWidth, generate, importPython, importFx, autoLayout, nodeSize, nodeLabel, presetResidualMLP, parse, identsIn };
+
+  // ── saved graphs: what comes back from browser storage (or a pasted graph) is checked before it is drawn ──
+  // Anything that can't be drawn is dropped or repaired rather than stopping the app: nodes need an id, a known
+  // type and params (missing ones get the type's defaults), positions are numbers, wires join nodes that exist,
+  // block uses name a block that exists. Returns the repaired graph, or null when there is nothing usable.
+  function sanitizeGraph(g, depth = 0, known = null) {
+    if (!g || typeof g !== 'object' || !Array.isArray(g.nodes) || depth > 8) return null;
+    // block uses anywhere (also inside blocks) name blocks kept in the model's own g.blocks
+    if (!known) { known = new Set(); const walk = (x, d) => { if (!x || typeof x !== 'object' || d > 8) return; for (const [id, b] of Object.entries(x.blocks && typeof x.blocks === 'object' ? x.blocks : {})) { known.add(id); if (b) walk(b.graph, d + 1); } }; walk(g, 0); }
+    const obj = v => (v && typeof v === 'object' && !Array.isArray(v) ? v : {}), fin = v => (Number.isFinite(+v) && v !== null && v !== '' ? +v : 0);
+    const out = Object.assign({}, g, { name: typeof g.name === 'string' && g.name ? g.name : 'Model', symbols: obj(g.symbols) });
+    out.blocks = {};
+    for (const [id, b] of Object.entries(obj(g.blocks))) {
+      const bg = b && sanitizeGraph(b.graph, depth + 1, known); if (!bg) continue;
+      out.blocks[id] = Object.assign({}, b, { id, name: typeof b.name === 'string' && b.name ? b.name : 'Block', graph: bg, labels: obj(b.labels) });
+    }
+    if (!Object.keys(out.blocks).length && !g.blocks) delete out.blocks;
+    const seen = new Set();
+    out.nodes = g.nodes.filter(n => n && typeof n === 'object' && typeof n.id === 'string' && !seen.has(n.id) && DEFAULTS[n.type] && seen.add(n.id))
+      .map(n => Object.assign({}, n, { x: fin(n.x), y: fin(n.y), params: Object.assign(JSON.parse(JSON.stringify(DEFAULTS[n.type])), obj(n.params)) }))
+      .filter(n => n.type !== 'block' || known.has(n.params.block) || n.params.lib || n.params.libName); // (a library block's own nested uses are joined up later)
+    const ids = new Set(out.nodes.map(n => n.id));
+    out.edges = (Array.isArray(g.edges) ? g.edges : []).filter(e => e && ids.has(e.from) && ids.has(e.to) && Number.isInteger(+e.port))
+      .map(e => Object.assign({}, e, { id: typeof e.id === 'string' ? e.id : uid('e'), port: +e.port }));
+    out.groups = (Array.isArray(g.groups) ? g.groups : []).filter(gr => gr && Array.isArray(gr.nodes)).map(gr => Object.assign({}, gr, { nodes: gr.nodes.filter(id => ids.has(id)) }));
+    return out;
+  }
+
+  return { sanitizeGraph, carryDiagram, lowerReshapes, reshapeSteps, reshapeStepCode, reshapeShape, reshapeAxisSource, stepsToPattern, reshapeDescribe, reshapePlan, stepsShape, parseSizes, HELPER_OPS, indexInputRange, FREEZABLE, helperDoc, srcKey, splitKey, blockOutputs, blockClassCode, LOSSES, lossParts, lossPlan, weightShape, tieOwner, blockParams, blockInputs, expandBlocks, instantiateBlock, presetResidualMLPBlocks, NORMS, linkSizes, syncWidths, mergeIntoSource, uid, BATCH, DEFAULTS, ACTS, INITS, initCode, makeNode, inCount, isCircle, index, topo, evalDim, parseShape, inferShapes, paramCount, propagateWidth, generate, importPython, importFx, autoLayout, nodeSize, nodeLabel, presetResidualMLP, parse, identsIn };
 })();
 if (typeof module !== 'undefined') module.exports = NN;

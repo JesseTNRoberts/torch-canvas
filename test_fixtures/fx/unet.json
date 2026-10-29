@@ -1,0 +1,1465 @@
+{
+ "name": "UNet",
+ "nodes": [
+  {
+   "name": "x",
+   "op": "placeholder",
+   "target": "x",
+   "kwargs": {},
+   "args": [],
+   "shape": [
+    8,
+    3,
+    256,
+    256
+   ]
+  },
+  {
+   "name": "inc_conv1",
+   "op": "call_module",
+   "target": "inc.conv1",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "x"
+    }
+   ],
+   "module": {
+    "type": "Conv2d",
+    "repr": "nn.Conv2d(3, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)",
+    "in_channels": 3,
+    "out_channels": 64,
+    "kernel_size": 3,
+    "stride": 1,
+    "padding": 1,
+    "bias": false,
+    "groups": 1
+   },
+   "group": {
+    "path": "inc",
+    "cls": "DoubleConv"
+   }
+  },
+  {
+   "name": "inc_bn1",
+   "op": "call_module",
+   "target": "inc.bn1",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "inc_conv1"
+    }
+   ],
+   "module": {
+    "type": "BatchNorm2d",
+    "repr": "nn.BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, bias=True, track_running_stats=True)",
+    "dim": 64
+   },
+   "group": {
+    "path": "inc",
+    "cls": "DoubleConv"
+   }
+  },
+  {
+   "name": "relu",
+   "op": "call_function",
+   "target": "torch.nn.functional.relu",
+   "kwargs": {
+    "inplace": false
+   },
+   "args": [
+    {
+     "node": "inc_bn1"
+    }
+   ],
+   "group": {
+    "path": "inc",
+    "cls": "DoubleConv"
+   }
+  },
+  {
+   "name": "inc_conv2",
+   "op": "call_module",
+   "target": "inc.conv2",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "relu"
+    }
+   ],
+   "module": {
+    "type": "Conv2d",
+    "repr": "nn.Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)",
+    "in_channels": 64,
+    "out_channels": 64,
+    "kernel_size": 3,
+    "stride": 1,
+    "padding": 1,
+    "bias": false,
+    "groups": 1
+   },
+   "group": {
+    "path": "inc",
+    "cls": "DoubleConv"
+   }
+  },
+  {
+   "name": "inc_bn2",
+   "op": "call_module",
+   "target": "inc.bn2",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "inc_conv2"
+    }
+   ],
+   "module": {
+    "type": "BatchNorm2d",
+    "repr": "nn.BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, bias=True, track_running_stats=True)",
+    "dim": 64
+   },
+   "group": {
+    "path": "inc",
+    "cls": "DoubleConv"
+   }
+  },
+  {
+   "name": "relu_1",
+   "op": "call_function",
+   "target": "torch.nn.functional.relu",
+   "kwargs": {
+    "inplace": false
+   },
+   "args": [
+    {
+     "node": "inc_bn2"
+    }
+   ],
+   "group": {
+    "path": "inc",
+    "cls": "DoubleConv"
+   }
+  },
+  {
+   "name": "max_pool2d",
+   "op": "call_function",
+   "target": "torch.nn.functional.max_pool2d",
+   "kwargs": {
+    "stride": null,
+    "padding": 0,
+    "dilation": 1,
+    "ceil_mode": false,
+    "return_indices": false
+   },
+   "args": [
+    {
+     "node": "relu_1"
+    },
+    2
+   ],
+   "group": {
+    "path": "down1",
+    "cls": "Down"
+   }
+  },
+  {
+   "name": "down1_conv_conv1",
+   "op": "call_module",
+   "target": "down1.conv.conv1",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "max_pool2d"
+    }
+   ],
+   "module": {
+    "type": "Conv2d",
+    "repr": "nn.Conv2d(64, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)",
+    "in_channels": 64,
+    "out_channels": 128,
+    "kernel_size": 3,
+    "stride": 1,
+    "padding": 1,
+    "bias": false,
+    "groups": 1
+   },
+   "group": {
+    "path": "down1",
+    "cls": "Down"
+   }
+  },
+  {
+   "name": "down1_conv_bn1",
+   "op": "call_module",
+   "target": "down1.conv.bn1",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "down1_conv_conv1"
+    }
+   ],
+   "module": {
+    "type": "BatchNorm2d",
+    "repr": "nn.BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, bias=True, track_running_stats=True)",
+    "dim": 128
+   },
+   "group": {
+    "path": "down1",
+    "cls": "Down"
+   }
+  },
+  {
+   "name": "relu_2",
+   "op": "call_function",
+   "target": "torch.nn.functional.relu",
+   "kwargs": {
+    "inplace": false
+   },
+   "args": [
+    {
+     "node": "down1_conv_bn1"
+    }
+   ],
+   "group": {
+    "path": "down1",
+    "cls": "Down"
+   }
+  },
+  {
+   "name": "down1_conv_conv2",
+   "op": "call_module",
+   "target": "down1.conv.conv2",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "relu_2"
+    }
+   ],
+   "module": {
+    "type": "Conv2d",
+    "repr": "nn.Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)",
+    "in_channels": 128,
+    "out_channels": 128,
+    "kernel_size": 3,
+    "stride": 1,
+    "padding": 1,
+    "bias": false,
+    "groups": 1
+   },
+   "group": {
+    "path": "down1",
+    "cls": "Down"
+   }
+  },
+  {
+   "name": "down1_conv_bn2",
+   "op": "call_module",
+   "target": "down1.conv.bn2",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "down1_conv_conv2"
+    }
+   ],
+   "module": {
+    "type": "BatchNorm2d",
+    "repr": "nn.BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, bias=True, track_running_stats=True)",
+    "dim": 128
+   },
+   "group": {
+    "path": "down1",
+    "cls": "Down"
+   }
+  },
+  {
+   "name": "relu_3",
+   "op": "call_function",
+   "target": "torch.nn.functional.relu",
+   "kwargs": {
+    "inplace": false
+   },
+   "args": [
+    {
+     "node": "down1_conv_bn2"
+    }
+   ],
+   "group": {
+    "path": "down1",
+    "cls": "Down"
+   }
+  },
+  {
+   "name": "max_pool2d_1",
+   "op": "call_function",
+   "target": "torch.nn.functional.max_pool2d",
+   "kwargs": {
+    "stride": null,
+    "padding": 0,
+    "dilation": 1,
+    "ceil_mode": false,
+    "return_indices": false
+   },
+   "args": [
+    {
+     "node": "relu_3"
+    },
+    2
+   ],
+   "group": {
+    "path": "down2",
+    "cls": "Down"
+   }
+  },
+  {
+   "name": "down2_conv_conv1",
+   "op": "call_module",
+   "target": "down2.conv.conv1",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "max_pool2d_1"
+    }
+   ],
+   "module": {
+    "type": "Conv2d",
+    "repr": "nn.Conv2d(128, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)",
+    "in_channels": 128,
+    "out_channels": 256,
+    "kernel_size": 3,
+    "stride": 1,
+    "padding": 1,
+    "bias": false,
+    "groups": 1
+   },
+   "group": {
+    "path": "down2",
+    "cls": "Down"
+   }
+  },
+  {
+   "name": "down2_conv_bn1",
+   "op": "call_module",
+   "target": "down2.conv.bn1",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "down2_conv_conv1"
+    }
+   ],
+   "module": {
+    "type": "BatchNorm2d",
+    "repr": "nn.BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, bias=True, track_running_stats=True)",
+    "dim": 256
+   },
+   "group": {
+    "path": "down2",
+    "cls": "Down"
+   }
+  },
+  {
+   "name": "relu_4",
+   "op": "call_function",
+   "target": "torch.nn.functional.relu",
+   "kwargs": {
+    "inplace": false
+   },
+   "args": [
+    {
+     "node": "down2_conv_bn1"
+    }
+   ],
+   "group": {
+    "path": "down2",
+    "cls": "Down"
+   }
+  },
+  {
+   "name": "down2_conv_conv2",
+   "op": "call_module",
+   "target": "down2.conv.conv2",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "relu_4"
+    }
+   ],
+   "module": {
+    "type": "Conv2d",
+    "repr": "nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)",
+    "in_channels": 256,
+    "out_channels": 256,
+    "kernel_size": 3,
+    "stride": 1,
+    "padding": 1,
+    "bias": false,
+    "groups": 1
+   },
+   "group": {
+    "path": "down2",
+    "cls": "Down"
+   }
+  },
+  {
+   "name": "down2_conv_bn2",
+   "op": "call_module",
+   "target": "down2.conv.bn2",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "down2_conv_conv2"
+    }
+   ],
+   "module": {
+    "type": "BatchNorm2d",
+    "repr": "nn.BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, bias=True, track_running_stats=True)",
+    "dim": 256
+   },
+   "group": {
+    "path": "down2",
+    "cls": "Down"
+   }
+  },
+  {
+   "name": "relu_5",
+   "op": "call_function",
+   "target": "torch.nn.functional.relu",
+   "kwargs": {
+    "inplace": false
+   },
+   "args": [
+    {
+     "node": "down2_conv_bn2"
+    }
+   ],
+   "group": {
+    "path": "down2",
+    "cls": "Down"
+   }
+  },
+  {
+   "name": "max_pool2d_2",
+   "op": "call_function",
+   "target": "torch.nn.functional.max_pool2d",
+   "kwargs": {
+    "stride": null,
+    "padding": 0,
+    "dilation": 1,
+    "ceil_mode": false,
+    "return_indices": false
+   },
+   "args": [
+    {
+     "node": "relu_5"
+    },
+    2
+   ],
+   "group": {
+    "path": "down3",
+    "cls": "Down"
+   }
+  },
+  {
+   "name": "down3_conv_conv1",
+   "op": "call_module",
+   "target": "down3.conv.conv1",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "max_pool2d_2"
+    }
+   ],
+   "module": {
+    "type": "Conv2d",
+    "repr": "nn.Conv2d(256, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)",
+    "in_channels": 256,
+    "out_channels": 512,
+    "kernel_size": 3,
+    "stride": 1,
+    "padding": 1,
+    "bias": false,
+    "groups": 1
+   },
+   "group": {
+    "path": "down3",
+    "cls": "Down"
+   }
+  },
+  {
+   "name": "down3_conv_bn1",
+   "op": "call_module",
+   "target": "down3.conv.bn1",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "down3_conv_conv1"
+    }
+   ],
+   "module": {
+    "type": "BatchNorm2d",
+    "repr": "nn.BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, bias=True, track_running_stats=True)",
+    "dim": 512
+   },
+   "group": {
+    "path": "down3",
+    "cls": "Down"
+   }
+  },
+  {
+   "name": "relu_6",
+   "op": "call_function",
+   "target": "torch.nn.functional.relu",
+   "kwargs": {
+    "inplace": false
+   },
+   "args": [
+    {
+     "node": "down3_conv_bn1"
+    }
+   ],
+   "group": {
+    "path": "down3",
+    "cls": "Down"
+   }
+  },
+  {
+   "name": "down3_conv_conv2",
+   "op": "call_module",
+   "target": "down3.conv.conv2",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "relu_6"
+    }
+   ],
+   "module": {
+    "type": "Conv2d",
+    "repr": "nn.Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)",
+    "in_channels": 512,
+    "out_channels": 512,
+    "kernel_size": 3,
+    "stride": 1,
+    "padding": 1,
+    "bias": false,
+    "groups": 1
+   },
+   "group": {
+    "path": "down3",
+    "cls": "Down"
+   }
+  },
+  {
+   "name": "down3_conv_bn2",
+   "op": "call_module",
+   "target": "down3.conv.bn2",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "down3_conv_conv2"
+    }
+   ],
+   "module": {
+    "type": "BatchNorm2d",
+    "repr": "nn.BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, bias=True, track_running_stats=True)",
+    "dim": 512
+   },
+   "group": {
+    "path": "down3",
+    "cls": "Down"
+   }
+  },
+  {
+   "name": "relu_7",
+   "op": "call_function",
+   "target": "torch.nn.functional.relu",
+   "kwargs": {
+    "inplace": false
+   },
+   "args": [
+    {
+     "node": "down3_conv_bn2"
+    }
+   ],
+   "group": {
+    "path": "down3",
+    "cls": "Down"
+   }
+  },
+  {
+   "name": "max_pool2d_3",
+   "op": "call_function",
+   "target": "torch.nn.functional.max_pool2d",
+   "kwargs": {
+    "stride": null,
+    "padding": 0,
+    "dilation": 1,
+    "ceil_mode": false,
+    "return_indices": false
+   },
+   "args": [
+    {
+     "node": "relu_7"
+    },
+    2
+   ],
+   "group": {
+    "path": "down4",
+    "cls": "Down"
+   }
+  },
+  {
+   "name": "down4_conv_conv1",
+   "op": "call_module",
+   "target": "down4.conv.conv1",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "max_pool2d_3"
+    }
+   ],
+   "module": {
+    "type": "Conv2d",
+    "repr": "nn.Conv2d(512, 1024, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)",
+    "in_channels": 512,
+    "out_channels": 1024,
+    "kernel_size": 3,
+    "stride": 1,
+    "padding": 1,
+    "bias": false,
+    "groups": 1
+   },
+   "group": {
+    "path": "down4",
+    "cls": "Down"
+   }
+  },
+  {
+   "name": "down4_conv_bn1",
+   "op": "call_module",
+   "target": "down4.conv.bn1",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "down4_conv_conv1"
+    }
+   ],
+   "module": {
+    "type": "BatchNorm2d",
+    "repr": "nn.BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, bias=True, track_running_stats=True)",
+    "dim": 1024
+   },
+   "group": {
+    "path": "down4",
+    "cls": "Down"
+   }
+  },
+  {
+   "name": "relu_8",
+   "op": "call_function",
+   "target": "torch.nn.functional.relu",
+   "kwargs": {
+    "inplace": false
+   },
+   "args": [
+    {
+     "node": "down4_conv_bn1"
+    }
+   ],
+   "group": {
+    "path": "down4",
+    "cls": "Down"
+   }
+  },
+  {
+   "name": "down4_conv_conv2",
+   "op": "call_module",
+   "target": "down4.conv.conv2",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "relu_8"
+    }
+   ],
+   "module": {
+    "type": "Conv2d",
+    "repr": "nn.Conv2d(1024, 1024, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)",
+    "in_channels": 1024,
+    "out_channels": 1024,
+    "kernel_size": 3,
+    "stride": 1,
+    "padding": 1,
+    "bias": false,
+    "groups": 1
+   },
+   "group": {
+    "path": "down4",
+    "cls": "Down"
+   }
+  },
+  {
+   "name": "down4_conv_bn2",
+   "op": "call_module",
+   "target": "down4.conv.bn2",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "down4_conv_conv2"
+    }
+   ],
+   "module": {
+    "type": "BatchNorm2d",
+    "repr": "nn.BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, bias=True, track_running_stats=True)",
+    "dim": 1024
+   },
+   "group": {
+    "path": "down4",
+    "cls": "Down"
+   }
+  },
+  {
+   "name": "relu_9",
+   "op": "call_function",
+   "target": "torch.nn.functional.relu",
+   "kwargs": {
+    "inplace": false
+   },
+   "args": [
+    {
+     "node": "down4_conv_bn2"
+    }
+   ],
+   "group": {
+    "path": "down4",
+    "cls": "Down"
+   }
+  },
+  {
+   "name": "up1_up",
+   "op": "call_module",
+   "target": "up1.up",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "relu_9"
+    }
+   ],
+   "module": {
+    "type": "ConvTranspose2d",
+    "repr": "nn.ConvTranspose2d(1024, 512, kernel_size=(2, 2), stride=(2, 2))",
+    "in_channels": 1024,
+    "out_channels": 512,
+    "kernel_size": 2,
+    "stride": 2,
+    "padding": 0,
+    "bias": true,
+    "groups": 1
+   },
+   "group": {
+    "path": "up1",
+    "cls": "Up"
+   }
+  },
+  {
+   "name": "cat",
+   "op": "call_function",
+   "target": "torch.cat",
+   "kwargs": {
+    "dim": 1
+   },
+   "args": [
+    [
+     {
+      "node": "relu_7"
+     },
+     {
+      "node": "up1_up"
+     }
+    ]
+   ],
+   "group": {
+    "path": "up1",
+    "cls": "Up"
+   }
+  },
+  {
+   "name": "up1_conv_conv1",
+   "op": "call_module",
+   "target": "up1.conv.conv1",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "cat"
+    }
+   ],
+   "module": {
+    "type": "Conv2d",
+    "repr": "nn.Conv2d(1024, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)",
+    "in_channels": 1024,
+    "out_channels": 512,
+    "kernel_size": 3,
+    "stride": 1,
+    "padding": 1,
+    "bias": false,
+    "groups": 1
+   },
+   "group": {
+    "path": "up1",
+    "cls": "Up"
+   }
+  },
+  {
+   "name": "up1_conv_bn1",
+   "op": "call_module",
+   "target": "up1.conv.bn1",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "up1_conv_conv1"
+    }
+   ],
+   "module": {
+    "type": "BatchNorm2d",
+    "repr": "nn.BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, bias=True, track_running_stats=True)",
+    "dim": 512
+   },
+   "group": {
+    "path": "up1",
+    "cls": "Up"
+   }
+  },
+  {
+   "name": "relu_10",
+   "op": "call_function",
+   "target": "torch.nn.functional.relu",
+   "kwargs": {
+    "inplace": false
+   },
+   "args": [
+    {
+     "node": "up1_conv_bn1"
+    }
+   ],
+   "group": {
+    "path": "up1",
+    "cls": "Up"
+   }
+  },
+  {
+   "name": "up1_conv_conv2",
+   "op": "call_module",
+   "target": "up1.conv.conv2",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "relu_10"
+    }
+   ],
+   "module": {
+    "type": "Conv2d",
+    "repr": "nn.Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)",
+    "in_channels": 512,
+    "out_channels": 512,
+    "kernel_size": 3,
+    "stride": 1,
+    "padding": 1,
+    "bias": false,
+    "groups": 1
+   },
+   "group": {
+    "path": "up1",
+    "cls": "Up"
+   }
+  },
+  {
+   "name": "up1_conv_bn2",
+   "op": "call_module",
+   "target": "up1.conv.bn2",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "up1_conv_conv2"
+    }
+   ],
+   "module": {
+    "type": "BatchNorm2d",
+    "repr": "nn.BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, bias=True, track_running_stats=True)",
+    "dim": 512
+   },
+   "group": {
+    "path": "up1",
+    "cls": "Up"
+   }
+  },
+  {
+   "name": "relu_11",
+   "op": "call_function",
+   "target": "torch.nn.functional.relu",
+   "kwargs": {
+    "inplace": false
+   },
+   "args": [
+    {
+     "node": "up1_conv_bn2"
+    }
+   ],
+   "group": {
+    "path": "up1",
+    "cls": "Up"
+   }
+  },
+  {
+   "name": "up2_up",
+   "op": "call_module",
+   "target": "up2.up",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "relu_11"
+    }
+   ],
+   "module": {
+    "type": "ConvTranspose2d",
+    "repr": "nn.ConvTranspose2d(512, 256, kernel_size=(2, 2), stride=(2, 2))",
+    "in_channels": 512,
+    "out_channels": 256,
+    "kernel_size": 2,
+    "stride": 2,
+    "padding": 0,
+    "bias": true,
+    "groups": 1
+   },
+   "group": {
+    "path": "up2",
+    "cls": "Up"
+   }
+  },
+  {
+   "name": "cat_1",
+   "op": "call_function",
+   "target": "torch.cat",
+   "kwargs": {
+    "dim": 1
+   },
+   "args": [
+    [
+     {
+      "node": "relu_5"
+     },
+     {
+      "node": "up2_up"
+     }
+    ]
+   ],
+   "group": {
+    "path": "up2",
+    "cls": "Up"
+   }
+  },
+  {
+   "name": "up2_conv_conv1",
+   "op": "call_module",
+   "target": "up2.conv.conv1",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "cat_1"
+    }
+   ],
+   "module": {
+    "type": "Conv2d",
+    "repr": "nn.Conv2d(512, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)",
+    "in_channels": 512,
+    "out_channels": 256,
+    "kernel_size": 3,
+    "stride": 1,
+    "padding": 1,
+    "bias": false,
+    "groups": 1
+   },
+   "group": {
+    "path": "up2",
+    "cls": "Up"
+   }
+  },
+  {
+   "name": "up2_conv_bn1",
+   "op": "call_module",
+   "target": "up2.conv.bn1",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "up2_conv_conv1"
+    }
+   ],
+   "module": {
+    "type": "BatchNorm2d",
+    "repr": "nn.BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, bias=True, track_running_stats=True)",
+    "dim": 256
+   },
+   "group": {
+    "path": "up2",
+    "cls": "Up"
+   }
+  },
+  {
+   "name": "relu_12",
+   "op": "call_function",
+   "target": "torch.nn.functional.relu",
+   "kwargs": {
+    "inplace": false
+   },
+   "args": [
+    {
+     "node": "up2_conv_bn1"
+    }
+   ],
+   "group": {
+    "path": "up2",
+    "cls": "Up"
+   }
+  },
+  {
+   "name": "up2_conv_conv2",
+   "op": "call_module",
+   "target": "up2.conv.conv2",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "relu_12"
+    }
+   ],
+   "module": {
+    "type": "Conv2d",
+    "repr": "nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)",
+    "in_channels": 256,
+    "out_channels": 256,
+    "kernel_size": 3,
+    "stride": 1,
+    "padding": 1,
+    "bias": false,
+    "groups": 1
+   },
+   "group": {
+    "path": "up2",
+    "cls": "Up"
+   }
+  },
+  {
+   "name": "up2_conv_bn2",
+   "op": "call_module",
+   "target": "up2.conv.bn2",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "up2_conv_conv2"
+    }
+   ],
+   "module": {
+    "type": "BatchNorm2d",
+    "repr": "nn.BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, bias=True, track_running_stats=True)",
+    "dim": 256
+   },
+   "group": {
+    "path": "up2",
+    "cls": "Up"
+   }
+  },
+  {
+   "name": "relu_13",
+   "op": "call_function",
+   "target": "torch.nn.functional.relu",
+   "kwargs": {
+    "inplace": false
+   },
+   "args": [
+    {
+     "node": "up2_conv_bn2"
+    }
+   ],
+   "group": {
+    "path": "up2",
+    "cls": "Up"
+   }
+  },
+  {
+   "name": "up3_up",
+   "op": "call_module",
+   "target": "up3.up",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "relu_13"
+    }
+   ],
+   "module": {
+    "type": "ConvTranspose2d",
+    "repr": "nn.ConvTranspose2d(256, 128, kernel_size=(2, 2), stride=(2, 2))",
+    "in_channels": 256,
+    "out_channels": 128,
+    "kernel_size": 2,
+    "stride": 2,
+    "padding": 0,
+    "bias": true,
+    "groups": 1
+   },
+   "group": {
+    "path": "up3",
+    "cls": "Up"
+   }
+  },
+  {
+   "name": "cat_2",
+   "op": "call_function",
+   "target": "torch.cat",
+   "kwargs": {
+    "dim": 1
+   },
+   "args": [
+    [
+     {
+      "node": "relu_3"
+     },
+     {
+      "node": "up3_up"
+     }
+    ]
+   ],
+   "group": {
+    "path": "up3",
+    "cls": "Up"
+   }
+  },
+  {
+   "name": "up3_conv_conv1",
+   "op": "call_module",
+   "target": "up3.conv.conv1",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "cat_2"
+    }
+   ],
+   "module": {
+    "type": "Conv2d",
+    "repr": "nn.Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)",
+    "in_channels": 256,
+    "out_channels": 128,
+    "kernel_size": 3,
+    "stride": 1,
+    "padding": 1,
+    "bias": false,
+    "groups": 1
+   },
+   "group": {
+    "path": "up3",
+    "cls": "Up"
+   }
+  },
+  {
+   "name": "up3_conv_bn1",
+   "op": "call_module",
+   "target": "up3.conv.bn1",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "up3_conv_conv1"
+    }
+   ],
+   "module": {
+    "type": "BatchNorm2d",
+    "repr": "nn.BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, bias=True, track_running_stats=True)",
+    "dim": 128
+   },
+   "group": {
+    "path": "up3",
+    "cls": "Up"
+   }
+  },
+  {
+   "name": "relu_14",
+   "op": "call_function",
+   "target": "torch.nn.functional.relu",
+   "kwargs": {
+    "inplace": false
+   },
+   "args": [
+    {
+     "node": "up3_conv_bn1"
+    }
+   ],
+   "group": {
+    "path": "up3",
+    "cls": "Up"
+   }
+  },
+  {
+   "name": "up3_conv_conv2",
+   "op": "call_module",
+   "target": "up3.conv.conv2",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "relu_14"
+    }
+   ],
+   "module": {
+    "type": "Conv2d",
+    "repr": "nn.Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)",
+    "in_channels": 128,
+    "out_channels": 128,
+    "kernel_size": 3,
+    "stride": 1,
+    "padding": 1,
+    "bias": false,
+    "groups": 1
+   },
+   "group": {
+    "path": "up3",
+    "cls": "Up"
+   }
+  },
+  {
+   "name": "up3_conv_bn2",
+   "op": "call_module",
+   "target": "up3.conv.bn2",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "up3_conv_conv2"
+    }
+   ],
+   "module": {
+    "type": "BatchNorm2d",
+    "repr": "nn.BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, bias=True, track_running_stats=True)",
+    "dim": 128
+   },
+   "group": {
+    "path": "up3",
+    "cls": "Up"
+   }
+  },
+  {
+   "name": "relu_15",
+   "op": "call_function",
+   "target": "torch.nn.functional.relu",
+   "kwargs": {
+    "inplace": false
+   },
+   "args": [
+    {
+     "node": "up3_conv_bn2"
+    }
+   ],
+   "group": {
+    "path": "up3",
+    "cls": "Up"
+   }
+  },
+  {
+   "name": "up4_up",
+   "op": "call_module",
+   "target": "up4.up",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "relu_15"
+    }
+   ],
+   "module": {
+    "type": "ConvTranspose2d",
+    "repr": "nn.ConvTranspose2d(128, 64, kernel_size=(2, 2), stride=(2, 2))",
+    "in_channels": 128,
+    "out_channels": 64,
+    "kernel_size": 2,
+    "stride": 2,
+    "padding": 0,
+    "bias": true,
+    "groups": 1
+   },
+   "group": {
+    "path": "up4",
+    "cls": "Up"
+   }
+  },
+  {
+   "name": "cat_3",
+   "op": "call_function",
+   "target": "torch.cat",
+   "kwargs": {
+    "dim": 1
+   },
+   "args": [
+    [
+     {
+      "node": "relu_1"
+     },
+     {
+      "node": "up4_up"
+     }
+    ]
+   ],
+   "group": {
+    "path": "up4",
+    "cls": "Up"
+   }
+  },
+  {
+   "name": "up4_conv_conv1",
+   "op": "call_module",
+   "target": "up4.conv.conv1",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "cat_3"
+    }
+   ],
+   "module": {
+    "type": "Conv2d",
+    "repr": "nn.Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)",
+    "in_channels": 128,
+    "out_channels": 64,
+    "kernel_size": 3,
+    "stride": 1,
+    "padding": 1,
+    "bias": false,
+    "groups": 1
+   },
+   "group": {
+    "path": "up4",
+    "cls": "Up"
+   }
+  },
+  {
+   "name": "up4_conv_bn1",
+   "op": "call_module",
+   "target": "up4.conv.bn1",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "up4_conv_conv1"
+    }
+   ],
+   "module": {
+    "type": "BatchNorm2d",
+    "repr": "nn.BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, bias=True, track_running_stats=True)",
+    "dim": 64
+   },
+   "group": {
+    "path": "up4",
+    "cls": "Up"
+   }
+  },
+  {
+   "name": "relu_16",
+   "op": "call_function",
+   "target": "torch.nn.functional.relu",
+   "kwargs": {
+    "inplace": false
+   },
+   "args": [
+    {
+     "node": "up4_conv_bn1"
+    }
+   ],
+   "group": {
+    "path": "up4",
+    "cls": "Up"
+   }
+  },
+  {
+   "name": "up4_conv_conv2",
+   "op": "call_module",
+   "target": "up4.conv.conv2",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "relu_16"
+    }
+   ],
+   "module": {
+    "type": "Conv2d",
+    "repr": "nn.Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)",
+    "in_channels": 64,
+    "out_channels": 64,
+    "kernel_size": 3,
+    "stride": 1,
+    "padding": 1,
+    "bias": false,
+    "groups": 1
+   },
+   "group": {
+    "path": "up4",
+    "cls": "Up"
+   }
+  },
+  {
+   "name": "up4_conv_bn2",
+   "op": "call_module",
+   "target": "up4.conv.bn2",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "up4_conv_conv2"
+    }
+   ],
+   "module": {
+    "type": "BatchNorm2d",
+    "repr": "nn.BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, bias=True, track_running_stats=True)",
+    "dim": 64
+   },
+   "group": {
+    "path": "up4",
+    "cls": "Up"
+   }
+  },
+  {
+   "name": "relu_17",
+   "op": "call_function",
+   "target": "torch.nn.functional.relu",
+   "kwargs": {
+    "inplace": false
+   },
+   "args": [
+    {
+     "node": "up4_conv_bn2"
+    }
+   ],
+   "group": {
+    "path": "up4",
+    "cls": "Up"
+   }
+  },
+  {
+   "name": "outc",
+   "op": "call_module",
+   "target": "outc",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "relu_17"
+    }
+   ],
+   "module": {
+    "type": "Conv2d",
+    "repr": "nn.Conv2d(64, 2, kernel_size=(1, 1), stride=(1, 1))",
+    "in_channels": 64,
+    "out_channels": 2,
+    "kernel_size": 1,
+    "stride": 1,
+    "padding": 0,
+    "bias": true,
+    "groups": 1
+   }
+  },
+  {
+   "name": "output",
+   "op": "output",
+   "target": "output",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "outc"
+    }
+   ]
+  }
+ ]
+}

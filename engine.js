@@ -397,7 +397,9 @@ const NNVar = (() => {
       const A = ins[0];
       const isLoopDelay = n.type === 'delay' && typeof loopDelays !== 'undefined' && loopDelays.has(id);
       const takesPositions = n.type === 'func' && (p.fn === 'take_positions');
-      if (n.type !== 'input' && n.type !== 'embed' && !isLoopDelay && ins.some((v, j) => !v || (v.k === 'idx' && !(takesPositions && j === 1)))) {
+      // Qwen2.5-VL's 3-D rotary positions are worked out from the token ids (and the image grid); they only steer rotations
+      const makesPositions = n.type === 'func' && p.fn === 'mrope_positions', ropeAt = n.type === 'rope';
+      if (n.type !== 'input' && n.type !== 'embed' && !isLoopDelay && !makesPositions && ins.some((v, j) => !v || (v.k === 'idx' && !(takesPositions && j === 1) && !(ropeAt && j === 1)))) {
         if (ins.some(v => v && v.k === 'idx')) return { error: 'Token indices can only go into an Embedding.', node: id };
         return { error: 'A layer has an unconnected input.', node: id };
       }
@@ -554,7 +556,8 @@ const NNVar = (() => {
           break;
         case 'scale': { const Dl = A.shape ? A.shape[A.shape.length - 1] : 1, k = 1 / Math.sqrt(Dl); out = mapX(A, x => x * k); tape.set(id, { k }); break; }
         case 'rope': {
-          if (p.mode === 'axial' || p.mode === 'mrope') return unsupported(n, 'rotary embeddings at given positions');
+          // rotary embeddings at given positions (2-D axial, Qwen's 3-D mrope): a rotation of each pair whatever the
+          // angles, so the variances come out as for positions 0, 1, 2 … (the tables below)
           if (A.k !== 'f') return unsupported(n, 'rotary embeddings outside the features');
           const r = ropeTables(A, +p.base || 10000), X = new Float32Array(A.X.length);
           for (let t = 0; t < A.T; t++) for (let s = 0; s < NS; s++) {
@@ -605,6 +608,7 @@ const NNVar = (() => {
           break;
         }
         case 'func': {
+          if (makesPositions) { out = { k: 'idx', positions: true, ids: new Int32Array(0) }; break; }
           const fn = String(p.init || p.fn || ''), base = fn.replace(/\(.*$/, '').replace(/^.*\./, '').toLowerCase();
           // flattening an image: each flattened coordinate is one channel at one pixel
           // positions picked from a sequence (I-JEPA's masks): K of its T, spread over it (which ones doesn't matter

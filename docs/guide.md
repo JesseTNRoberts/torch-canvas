@@ -141,7 +141,7 @@ This uses Chrome's File System Access API, so it works in the local version (`np
 
 The examples in the menu are grouped by category (MLPs, Convolutional networks, Transformers, and so on); click a category to open or close it, and the category of the model you're looking at starts open. Each model has a category too: the selector next to its name in the top bar shows it, and you can pick another one or make a new one with **New category…**. A model without one is listed under **Other**, which is also where your own models go by default. The category is saved with the model, as a `# category: …` line at the top of the `.py` file.
 
-Open tabs are kept in your browser between visits. A tab opened from an example remembers which version of the example it came from: if the example has changed since and you haven't edited the tab, it is brought up to date when the app starts (Undo brings back the copy that was open); a tab you have edited is left as it is, and Open / import opens the current version alongside it.
+Open tabs are kept in your browser between visits. An example tab you haven't edited is kept as a reference to the example, so it always opens as the current version. A tab you have edited is kept as it is, even if the example has changed since (Open / import opens the current version alongside it). If the browser's storage for the page is full, a message says your tabs won't be kept; save your model to a file instead. If what was saved can't be opened, the app starts fresh and keeps the old data in the browser's storage as `torchcanvas.backup.<time>`.
 
 ## Editing the code
 
@@ -155,4 +155,4 @@ If the diagram changes while you're editing (an untouched editor simply follows 
 
 Paste an `nn.Module` anywhere on the page (Ctrl+V), or use Open / import → Paste code. The reader follows `nn.Linear`, `nn.LayerNorm`/`nn.RMSNorm`, activations, `nn.Dropout`, `nn.Sequential`, `nn.ModuleList` (including list comprehensions), `for` loops over module lists, custom submodules, and elementwise math. Other calls are kept as custom ops so the code still regenerates.
 
-For models the reader can't follow, run `export_graph.py` (torch.fx) next to your model and paste the JSON it writes.
+For models the reader can't follow, run `export_graph.py` (torch.fx) next to your model and paste the JSON it writes: `from export_graph import export; export(model, torch.randn(8, 784))`, or `export(model, (src, tgt))` for several inputs. Linear, convolution, pooling, norm, embedding, flatten and `torch.cat` come in as real layers. torch.fx can't trace code that loops over a tensor's size (an RNN written step by step) or computes with sizes (`x.size(1)` used as a number); those parts come in as custom ops with notes in the code panel. Blocks are grouped by class, so different uses of one class that relate their sizes differently (ResNet's first downsampling block vs the later ones) can come in sized like the first.

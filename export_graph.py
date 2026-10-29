@@ -1,5 +1,6 @@
 # export_graph.py: dump an nn.Module as JSON for Torch Canvas
 # usage:  from export_graph import export; export(model, torch.randn(8, 784))
+#         several inputs: export(model, (src, tgt))
 import json, operator
 import torch
 import torch.fx as fx
@@ -41,13 +42,27 @@ def _arg(a):
         return {"node": a.name}
     if isinstance(a, (int, float, bool, str)) or a is None:
         return a
+    if isinstance(a, (tuple, list)):  # torch.cat([a, b]), sizes (2, 3)
+        return [_arg(x) for x in a]
     return repr(a)
 
 
 def _module_info(m):
     info = {"type": type(m).__name__, "repr": "nn." + repr(m)}
+    first = lambda v: v[0] if isinstance(v, (tuple, list)) else v
     if isinstance(m, torch.nn.Linear):
         info.update(in_features=m.in_features, out_features=m.out_features, bias=m.bias is not None)
+    elif isinstance(m, (torch.nn.Conv2d, torch.nn.ConvTranspose2d)):
+        info.update(in_channels=m.in_channels, out_channels=m.out_channels, kernel_size=first(m.kernel_size), stride=first(m.stride),
+                    padding=first(m.padding) if not isinstance(m.padding, str) else m.padding, bias=m.bias is not None, groups=m.groups)
+    elif isinstance(m, (torch.nn.MaxPool2d, torch.nn.AvgPool2d)):
+        info.update(kernel_size=first(m.kernel_size), stride=first(m.stride) if m.stride is not None else None, padding=first(m.padding))
+    elif isinstance(m, torch.nn.AdaptiveAvgPool2d):
+        info.update(output_size=first(m.output_size))
+    elif isinstance(m, torch.nn.Flatten):
+        info.update(start_dim=m.start_dim, end_dim=m.end_dim)
+    elif isinstance(m, torch.nn.Embedding):
+        info.update(num_embeddings=m.num_embeddings, embedding_dim=m.embedding_dim)
     elif hasattr(m, "normalized_shape"):
         info["dim"] = list(m.normalized_shape)[-1]
     elif hasattr(m, "num_features"):
@@ -67,7 +82,7 @@ def export(model, example=None, path="graph.json"):
     gm = fx.GraphModule(model, graph)
     if example is not None:
         from torch.fx.passes.shape_prop import ShapeProp
-        ShapeProp(gm).propagate(example)
+        ShapeProp(gm).propagate(*(example if isinstance(example, (tuple, list)) else (example,)))
     nodes = []
     for n in gm.graph.nodes:
         rec = {"name": n.name, "op": n.op, "target": _target_name(n.target),

@@ -1,0 +1,211 @@
+{
+ "name": "VAE",
+ "nodes": [
+  {
+   "name": "x",
+   "op": "placeholder",
+   "target": "x",
+   "kwargs": {},
+   "args": [],
+   "shape": [
+    8,
+    784
+   ]
+  },
+  {
+   "name": "fc1",
+   "op": "call_module",
+   "target": "fc1",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "x"
+    }
+   ],
+   "module": {
+    "type": "Linear",
+    "repr": "nn.Linear(in_features=784, out_features=400, bias=True)",
+    "in_features": 784,
+    "out_features": 400,
+    "bias": true
+   }
+  },
+  {
+   "name": "relu",
+   "op": "call_function",
+   "target": "torch.nn.functional.relu",
+   "kwargs": {
+    "inplace": false
+   },
+   "args": [
+    {
+     "node": "fc1"
+    }
+   ]
+  },
+  {
+   "name": "fc21",
+   "op": "call_module",
+   "target": "fc21",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "relu"
+    }
+   ],
+   "module": {
+    "type": "Linear",
+    "repr": "nn.Linear(in_features=400, out_features=20, bias=True)",
+    "in_features": 400,
+    "out_features": 20,
+    "bias": true
+   }
+  },
+  {
+   "name": "fc22",
+   "op": "call_module",
+   "target": "fc22",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "relu"
+    }
+   ],
+   "module": {
+    "type": "Linear",
+    "repr": "nn.Linear(in_features=400, out_features=20, bias=True)",
+    "in_features": 400,
+    "out_features": 20,
+    "bias": true
+   }
+  },
+  {
+   "name": "mul",
+   "op": "call_function",
+   "target": "operator.mul",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "fc22"
+    },
+    0.5
+   ]
+  },
+  {
+   "name": "exp",
+   "op": "call_function",
+   "target": "torch.exp",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "mul"
+    }
+   ]
+  },
+  {
+   "name": "randn_like",
+   "op": "call_function",
+   "target": "torch.randn_like",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "exp"
+    }
+   ]
+  },
+  {
+   "name": "mul_1",
+   "op": "call_function",
+   "target": "operator.mul",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "randn_like"
+    },
+    {
+     "node": "exp"
+    }
+   ]
+  },
+  {
+   "name": "add",
+   "op": "call_function",
+   "target": "operator.add",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "fc21"
+    },
+    {
+     "node": "mul_1"
+    }
+   ]
+  },
+  {
+   "name": "fc3",
+   "op": "call_module",
+   "target": "fc3",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "add"
+    }
+   ],
+   "module": {
+    "type": "Linear",
+    "repr": "nn.Linear(in_features=20, out_features=400, bias=True)",
+    "in_features": 20,
+    "out_features": 400,
+    "bias": true
+   }
+  },
+  {
+   "name": "relu_1",
+   "op": "call_function",
+   "target": "torch.nn.functional.relu",
+   "kwargs": {
+    "inplace": false
+   },
+   "args": [
+    {
+     "node": "fc3"
+    }
+   ]
+  },
+  {
+   "name": "fc4",
+   "op": "call_module",
+   "target": "fc4",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "relu_1"
+    }
+   ],
+   "module": {
+    "type": "Linear",
+    "repr": "nn.Linear(in_features=400, out_features=784, bias=True)",
+    "in_features": 400,
+    "out_features": 784,
+    "bias": true
+   }
+  },
+  {
+   "name": "output",
+   "op": "output",
+   "target": "output",
+   "kwargs": {},
+   "args": [
+    {
+     "node": "fc4"
+    },
+    {
+     "node": "fc21"
+    },
+    {
+     "node": "fc22"
+    }
+   ]
+  }
+ ]
+}
