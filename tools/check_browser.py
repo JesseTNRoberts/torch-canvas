@@ -26,8 +26,9 @@ def check(cond, what):
 
 def new_page(browser, storage=None):
     ctx = browser.new_context(viewport={'width': 1600, 'height': 1000})
-    if storage is not None:  # what an earlier visit left in localStorage
-        ctx.add_init_script('(() => { if (sessionStorage.getItem("seeded")) return; sessionStorage.setItem("seeded", "1"); localStorage.clear(); '
+    if storage is not None:  # what an earlier visit left in localStorage (seeded once: a reload keeps what the app saved;
+        # window.name marks it, as the page's own storage can't be relied on this early on a reload)
+        ctx.add_init_script('(() => { if (location.protocol !== "file:" || window.name === "seeded") return; window.name = "seeded"; localStorage.clear(); '
                             + ''.join(f'localStorage.setItem({k!r}, {v!r});' for k, v in storage.items()) + '})()')
     pg = ctx.new_page()
     errs = []
@@ -43,7 +44,7 @@ with sync_playwright() as p:
     browser = p.chromium.launch(**({'executable_path': exe} if exe else {}))
 
     # ── every example ──
-    ctx, pg, errs = new_page(browser, {})
+    ctx, pg, errs = new_page(browser)
     check(not errs, 'starts without errors' + (f': {errs}' if errs else ''))
     entries = pg.evaluate("() => window.__tc.S.library.map(e => ({ file: e.file, kind: e.kind, title: e.title }))")
     check(len(entries) > 40, f'{len(entries)} examples and blocks in the library')
@@ -93,6 +94,11 @@ with sync_playwright() as p:
         try:
             ctx, pg, errs = new_page(browser, storage)
             started = pg.evaluate("() => window.__tc.S.g.nodes.length >= 0 && !!document.querySelector('svg')")
+            # what could be saved was: the repaired tab is open (seeding took effect)
+            if STORE in storage and '"name":"M"' in storage[STORE] and what != 'block use of a missing block':
+                name = pg.evaluate("() => window.__tc.S.root.name")
+                if name != 'M':
+                    errs.append(f'the repaired tab M was not reopened (showing {name})')
         except Exception as ex:
             started = False
             errs.append(str(ex).splitlines()[0])
@@ -101,7 +107,7 @@ with sync_playwright() as p:
             ctx.close()
 
     # ── tabs come back after a reload: an untouched example (kept as a reference) and an edited model ──
-    ctx, pg, errs = new_page(browser, {})
+    ctx, pg, errs = new_page(browser)
     pg.evaluate("() => { const t = window.__tc; t.S.sel.nodes.clear(); t.S.sel.nodes.add(t.S.g.nodes[1].id); t.selectionChanged(); }")
     pg.keyboard.press('Delete'); pg.wait_for_timeout(200)
     edited = pg.evaluate("() => [window.__tc.S.root.name, window.__tc.S.g.nodes.length]")
@@ -124,8 +130,32 @@ with sync_playwright() as p:
           f'recovers from a start that stopped part-way (toast: "{msg[:80]}")')
     ctx.close()
 
+    # ── …and when the storage is too full to copy it, the saved data is left exactly as it was ──
+    ctx = browser.new_context(viewport={'width': 1600, 'height': 1000})
+    saved_doc = '{"v":2,"docs":[{"name":"Kept","symbols":{},"nodes":[],"edges":[]}],"from":[null],"pad":"' + 'x' * 200000 + '"}'
+    ctx.add_init_script('(() => { if (location.protocol !== "file:" || window.name === "seeded") return; window.name = "seeded"; localStorage.clear(); '
+                        f'localStorage.setItem("torchcanvas.graph.v1", {saved_doc!r}); localStorage.setItem("torchcanvas.booting", "{old}"); '
+                        'let i = 0; for (let size = 1 << 20; size >= 1; size >>= 1) { const s = "x".repeat(size); try { for (;;) localStorage.setItem("filler" + i++, s); } catch (e) {} } })()')
+    pg = ctx.new_page(); errs = []
+    pg.on('pageerror', lambda e: errs.append(str(e)))
+    pg.goto(URL); pg.wait_for_function('() => window.__tc && window.__tc.S.g'); pg.wait_for_timeout(700)
+    same = pg.evaluate("(s) => localStorage.getItem('torchcanvas.graph.v1') === s", saved_doc)
+    pg.evaluate("() => { const t = window.__tc; t.S.sel.nodes.clear(); t.S.sel.nodes.add(t.S.g.nodes[1].id); t.selectionChanged(); }")
+    pg.keyboard.press('Delete'); pg.wait_for_timeout(300)
+    still = pg.evaluate("(s) => localStorage.getItem('torchcanvas.graph.v1') === s", saved_doc)
+    msg = pg.evaluate("() => document.querySelector('#toast').textContent")
+    check(same and still and not errs, 'leaves saved data it can neither open nor copy untouched, even after edits' + (f' {errs}' if errs else ''))
+    ctx.close()
+
+    # ── the tab that was showing comes back, even when an earlier saved tab is dropped ──
+    good = lambda nm: '{"name":"%s","symbols":{"e":8},"nodes":[{"id":"a","type":"input","x":0,"y":0,"params":{"name":"x","shape":"e, 4"}}],"edges":[],"groups":[]}' % nm
+    ctx, pg, errs = new_page(browser, {STORE: '{"v":2,"docs":[{"nodes":"broken"},%s,%s],"from":[null,null,null],"cur":2}' % (good('First'), good('Second'))})
+    cur = pg.evaluate("() => window.__tc.S.root.name")
+    check(cur == 'Second' and not errs, f'reopens the tab that was showing ({cur})')
+    ctx.close()
+
     # ── text from code is text ──
-    ctx, pg, errs = new_page(browser, {})
+    ctx, pg, errs = new_page(browser)
     evil = '<img src=x onerror=window.__pwned=1>'
     code = f'''# category: {evil}
 import torch
@@ -156,7 +186,7 @@ class Evil(nn.Module):
     ctx.close()
 
     # ── full storage ──
-    ctx, pg, errs = new_page(browser, {})
+    ctx, pg, errs = new_page(browser)
     pg.evaluate("""() => { let i = 0; for (let size = 1 << 20; size >= 1; size >>= 1) { const s = 'x'.repeat(size); try { for (;;) localStorage.setItem('filler' + i++, s); } catch (e) {} } }""")
     # an example tab is kept as a reference until it is edited; editing a big one needs room the storage hasn't got
     pg.evaluate("async () => { const t = window.__tc; await t.openLibrary(t.S.library.find(e => e.file === 'networks/21_transformer_base.json')); }")

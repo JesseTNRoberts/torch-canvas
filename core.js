@@ -671,7 +671,9 @@ const NN = (() => {
     return RR.map(it => (it.n && from.has(it.n) ? from.get(it.n) : -1));
   }
   // PyTorch steps read from code → a pattern, naming the axes after their sizes (e for the batch)
-  function stepsToPattern(steps, x) {
+  // steps that don't fit the shape (an axis past the end, from damaged code) give null, as other misfits do
+  function stepsToPattern(steps, x) { try { return stepsToPattern0(steps, x); } catch { return null; } }
+  function stepsToPattern0(steps, x) {
     const used = new Set(), pool = 'abcdfgijklmnopqrsuvwxyz';
     const pick = (...cands) => { for (const c of cands) if (c && /^[a-z]$/.test(c) && !used.has(c)) { used.add(c); return c; } for (const c of pool) if (!used.has(c)) { used.add(c); return c; } return 'z' + used.size; };
     const sym = d => { const s = String(d); return /^[A-Za-z_]\w*$/.test(s) ? s : null; };
@@ -2591,7 +2593,7 @@ const NN = (() => {
     }
     let callDepth = 0;
     function call(e, env) {
-      if (++callDepth > 400) throw new Error('The code calls itself without end (a function or module that calls itself).');
+      if (++callDepth > 150) throw new Error('The code calls itself without end (a function or module that calls itself).');
       try { return call0(e, env); } finally { callDepth--; }
     }
     function call0(e, env) {
@@ -3158,9 +3160,10 @@ const NN = (() => {
         else if (FN[t] || (fn.op === 'call_method' && ['sigmoid', 'relu', 'tanh', 'softmax'].includes(t))) n = makeNode('act', { fn: FN[t] || t, dim: String((fn.kwargs && fn.kwargs.dim) ?? -1) });
         else if ((t === 'torch.cat' || t === 'torch.concat') && tensorArgs.length > 1) n = makeNode('func', { fn: 'torch.cat', extra: 'dim=' + ((fn.kwargs && fn.kwargs.dim) ?? (consts.find(v => Number.isInteger(v)) ?? 0)), n: tensorArgs.length });
         else if (POOLF[t] && tensorArgs.length === 1) {
-          const kw = fn.kwargs || {}, a = (i, k) => (k in kw ? kw[k] : consts[i]);
+          // sizes may come as (2, 2): square ones are kept as one number, as the module path does
+          const kw = fn.kwargs || {}, one = v => (Array.isArray(v) ? (v.length ? v[0] : null) : v), a = (i, k) => one(k in kw ? kw[k] : consts[i]);
           if (POOLF[t] === 'adaptive') n = makeNode('pool', { kind: 'adaptive', size: String(a(0, 'output_size') ?? 1) });
-          else { const k = a(0, 'kernel_size'), st = a(1, 'stride'); n = makeNode('pool', { kind: POOLF[t], k: String(k), stride: st != null && st !== k && !(Array.isArray(st) && !st.length) ? String(st) : '', pad: String(a(2, 'padding') || 0) }); }
+          else { const k = a(0, 'kernel_size'), st = a(1, 'stride'); n = makeNode('pool', { kind: POOLF[t], k: String(k), stride: st != null && st !== k ? String(st) : '', pad: String(a(2, 'padding') || 0) }); }
         } else if ((t === 'flatten' || t === 'torch.flatten') && tensorArgs.length === 1 && consts.every(v => Number.isInteger(v))) {
           const kw = fn.kwargs || {}, a0 = kw.start_dim ?? consts[0] ?? (t === 'flatten' ? 0 : 0), b0 = kw.end_dim ?? consts[1];
           n = makeNode('reshape', { pattern: '', sizes: '', _steps: [{ op: 'flatten', a: a0, b: b0 != null && b0 !== -1 ? b0 : null }] });
@@ -3499,8 +3502,8 @@ const NN = (() => {
     }
     if (!Object.keys(out.blocks).length && !g.blocks) delete out.blocks;
     const seen = new Set();
-    out.nodes = g.nodes.filter(n => n && typeof n === 'object' && typeof n.id === 'string' && !seen.has(n.id) && DEFAULTS[n.type] && seen.add(n.id))
-      .map(n => Object.assign({}, n, { x: fin(n.x), y: fin(n.y), params: Object.assign(JSON.parse(JSON.stringify(DEFAULTS[n.type])), obj(n.params)) }))
+    out.nodes = g.nodes.filter(n => n && typeof n === 'object' && typeof n.id === 'string' && !seen.has(n.id) && typeof n.type === 'string' && Object.prototype.hasOwnProperty.call(DEFAULTS, n.type) && seen.add(n.id))
+      .map(n => { const q = Object.assign({}, n, { x: fin(n.x), y: fin(n.y), params: Object.assign(JSON.parse(JSON.stringify(DEFAULTS[n.type])), obj(n.params)) }); if (q.type === 'block') q.params.args = obj(q.params.args); return q; })
       .filter(n => n.type !== 'block' || known.has(n.params.block) || n.params.lib || n.params.libName); // (a library block's own nested uses are joined up later)
     const ids = new Set(out.nodes.map(n => n.id));
     out.edges = (Array.isArray(g.edges) ? g.edges : []).filter(e => e && ids.has(e.from) && ids.has(e.to) && Number.isInteger(+e.port))
