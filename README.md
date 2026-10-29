@@ -39,3 +39,5 @@ Open `index.html` in a browser, or run a local server:
 ## License
 
 MIT, © 2026 Jesse Roberts. See [LICENSE](LICENSE).
+
+Torch Canvas is an independent project, not affiliated with or endorsed by the PyTorch Foundation. PyTorch is a trademark of the Linux Foundation.
