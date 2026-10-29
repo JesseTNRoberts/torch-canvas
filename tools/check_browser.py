@@ -204,4 +204,6 @@ class Evil(nn.Module):
 print(f'\n{len(fails)} failure(s)')
 for f in fails:
     print(' -', f)
+    if os.environ.get('GITHUB_ACTIONS'):  # an annotation on the run's summary page
+        print('::error title=browser check::' + f.replace('%', '%25').replace('\n', '%0A')[:900])
 sys.exit(1 if fails else 0)

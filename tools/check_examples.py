@@ -15,6 +15,7 @@
 import contextlib, gc, io, json, os, re, shutil, subprocess, sys, tempfile, time, traceback
 import torch
 
+TRAIN_TIMEOUT = 300  # seconds for one tiny train.py run (they take seconds)
 SMALL = 40_000_000  # bigger models (or activations) would need too much memory on a CI runner
 out = sys.argv[1] if len(sys.argv) > 1 and not sys.argv[1].startswith('--') else None
 if not out:
@@ -61,7 +62,7 @@ for e in manifest:
             shapes = [l.strip() for l in lines if l.strip().startswith('torch.Size')]
             if shapes != expected:
                 raise AssertionError(f'output shapes {shapes}, the code says {expected}')
-            print(f'ok   {name}/{f}{" (meta)" if meta else ""}')
+            print(f'ok   {name}/{f}{" (meta)" if meta else ""}', flush=True)
         except NotImplementedError as ex:
             # a forward pass that reads values (Qwen2.5-VL's image grid) can't run on meta: check the build alone
             if not meta or 'meta' not in str(ex):
@@ -91,15 +92,26 @@ for e in manifest:
                 src = src.replace('RESUME = None', 'RESUME = "ckpt/last.pt"', 1)
             open(os.path.join(wd, 'run.py'), 'w').write(src)
             tag = f'{name}/{script}{" (resume)" if resume else ""}'
-            r = subprocess.run([sys.executable, 'run.py'], cwd=wd, capture_output=True, text=True, timeout=900)
+            t1 = time.time()
+            try:
+                r = subprocess.run([sys.executable, 'run.py'], cwd=wd, capture_output=True, text=True, timeout=TRAIN_TIMEOUT)
+            except subprocess.TimeoutExpired as ex:  # a hang is a failure of its own, reported like the others
+                out_, err_ = (ex.stdout or b''), (ex.stderr or b'')
+                out_ = out_.decode(errors='replace') if isinstance(out_, bytes) else out_
+                err_ = err_.decode(errors='replace') if isinstance(err_, bytes) else err_
+                fails.append(f'{tag}: still running after {TRAIN_TIMEOUT}s; last output: {(out_.strip().splitlines() or ["none"])[-1][:200]}')
+                print(f'FAIL {tag}: timed out\n{out_[-800:]}\n{err_[-800:]}', flush=True)
+                continue
             if r.returncode != 0 or (resume and 'resumed from' not in r.stdout):
                 fails.append(f'{tag}: ' + (r.stderr.strip().splitlines() or ['no "resumed from" in its output'])[-1])
                 print(f'FAIL {tag}\n{r.stderr[-1500:]}')
             else:
-                print(f'ok   {tag}')
+                print(f'ok   {tag} ({time.time() - t1:.0f}s)', flush=True)
         shutil.rmtree(wd, ignore_errors=True)
 
 print(f'\n{len(fails)} failure(s) in {time.time() - t0:.0f}s')
 for f in fails:
     print(' -', f)
+    if os.environ.get('GITHUB_ACTIONS'):  # an annotation: shows on the run's summary page, no log needed
+        print('::error title=' + f.split(':')[0].replace(',', ' ') + '::' + f.replace('%', '%25').replace('\n', '%0A')[:900])
 sys.exit(1 if fails else 0)
