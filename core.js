@@ -3380,7 +3380,7 @@ const NN = (() => {
   // the graph it replaces, node by node; size names come back too ("768" in literal code is d again, and changing
   // every 768 that was d changes d). Nodes are paired by kind and name in code order. layout(g) is the caller's
   // auto layout, used to place the nodes the code added next to their neighbours.
-  const DIAGRAM_ONLY = ['title', 'note', 'tone', 'split', 'tie_x', 'demo', 'lib'];
+  const DIAGRAM_ONLY = ['title', 'note', 'tone', 'split', 'tie_x', 'demo', 'lib', 'from_use', 'from_path'];
   function carryDiagram(old, neu, layout, sz = nodeSize) {
     const clone = x => JSON.parse(JSON.stringify(x));
     const lines = g => { const m = new Map(); try { const r = generate(g, { shapeComments: false, literalDims: false }); for (const [k, ls] of r.lineMap) if (ls.length) m.set(k, Math.min(...ls)); } catch {} return m; };
@@ -3521,13 +3521,13 @@ const NN = (() => {
   // Layers keep their nicknames and notes; their code names get the use's name in front (block1.conv1 → block1_conv1),
   // a frozen block's layers are frozen, and the layers of a block that follows another (EMA) follow its layers.
   function explodeBlocks(g0, o = {}) {
-    const few = o.few ?? 3, clone = x => JSON.parse(JSON.stringify(x)), sz = o.sz || nodeSize;
+    const few = o.few ?? 3, clone = x => JSON.parse(JSON.stringify(x)), sz = o.sz || nodeSize, open = o.open || {};
     const g = clone(g0); delete g.libHost; delete g.libBlock;
     const kept = new Set(); // blocks with many copies: one drawn out already, the rest stay
     // a use × k becomes a use of one copy (returned, to be drawn out) chained before the use × (k − 1)
     const splitFirst = n => {
       const k = Math.max(1, Math.floor(+n.params.repeat || 1)); if (k === 1) return n.id;
-      const first = clone(n); first.id = uid('n'); first.params.repeat = 1; first.params.name = n.params.name ? n.params.name + '_0' : '';
+      const first = clone(n); first.id = uid('n'); first.params.repeat = 1; first.params.name = n.params.name ? n.params.name + '_0' : ''; first.params.split_of = n.params.name || '';
       // the first copy takes the use's place; the rest go just above it
       const h = sz(n).h + 40, top = n.y - sz(n).h / 2; // a row inserted above it, for the rest
       for (const m of g.nodes) if (m.y < top) m.y -= h;
@@ -3547,6 +3547,10 @@ const NN = (() => {
       const only = new Set();
       for (const n of uses.slice().sort((a, b) => (at.get(a.id) ?? 0) - (at.get(b.id) ?? 0))) {
         const b = n.params.block;
+        // a view's choice for this use, by its code name: drawn out (every copy) or kept as a block
+        const choice = open[n.params.name || ''];
+        if (choice === true) { only.add(n.id); continue; }
+        if (choice === false) continue;
         if (kept.has(b)) continue;
         if (copies[b] <= few) { only.add(n.id); continue; }
         // many copies: draw out this one copy and keep the rest as blocks
@@ -3568,14 +3572,18 @@ const NN = (() => {
         }
       }
       if (!only.size) break;
-      const at0 = new Map([...only].map(id => { const n = g.nodes.find(m => m.id === id); return [id, { x: n.x, y: n.y, s: sz(n) }]; }));
+      const at0 = new Map([...only].map(id => { const n = g.nodes.find(m => m.id === id); return [id, { x: n.x, y: n.y, s: sz(n), use: n.params.split_of || n.params.name || '', path: Array.isArray(n.params.from_path) ? n.params.from_path : [] }]; }));
       const { flat } = expandBlocks(g, { only });
       // the drawn-out uses' groups go: their layers become the model's own, named after the use
       const drawn = flat.groups.filter(gr => gr.blk && only.has(String(gr.id).split('#')[0]));
       const byId = new Map(flat.nodes.map(n => [n.id, n]));
       for (const gr of drawn) {
+        const use = (at0.get(String(gr.id).split('#')[0]) || {}).use || gr.attr;
         for (const id of gr.nodes) {
           const n = byId.get(id); if (!n) continue;
+          n.params.from_use = use; // the use it was drawn out of (to fold it back)
+          // every drawn-out copy it lies in, outermost first, as use:Block (the drawing shades each one)
+          n.params.from_path = [...((at0.get(String(gr.id).split('#')[0]) || {}).path || []), `${gr.attr}:${gr.cls}`]; // (each copy of a repeated use its own: h_0, h_1 …)
           if (n.params.name) n.params.name = `${gr.attr}_${n.params.name}`;
           else if (n.type === 'block') n.params.name = gr.attr + '_' + (g.blocks[n.params.block] ? g.blocks[n.params.block].name.toLowerCase() : 'block');
           if (gr.frozen && FREEZABLE.has(n.type)) n.params.frozen = true;
@@ -3622,7 +3630,7 @@ const NN = (() => {
     const idMap = new Map(g.nodes.map(n => [n.id, uid('n')]));
     for (const n of g.nodes) { n.id = idMap.get(n.id); for (const f of ['tie', 'follows']) if (n.params[f] && idMap.has(n.params[f])) n.params[f] = idMap.get(n.params[f]); }
     g.edges = g.edges.filter(e => idMap.has(e.from) && idMap.has(e.to)).map(e => { const c = Object.assign({}, e, { id: uid('e'), from: idMap.get(e.from), to: idMap.get(e.to) }); delete c.route; delete c.lbl; return c; });
-    for (const n of g.nodes) delete n.params.tie_x; // (lanes of the old drawing)
+    for (const n of g.nodes) { delete n.params.tie_x; if (n.type === 'block' && n.params.split_of !== undefined) { n.params.from_use = n.params.from_use || n.params.split_of; delete n.params.split_of; } } // (tie lanes belong to the old drawing)
     for (const gr of g.groups || []) gr.nodes = gr.nodes.map(id => idMap.get(id)).filter(Boolean);
     return g;
   }
@@ -3737,7 +3745,7 @@ const NN = (() => {
     const hd = new Map(); const hdep = id => { if (hd.has(id)) return hd.get(id); hd.set(id, 0); let m = 0; for (const p of P(id)) if (tail.has(p)) m = Math.max(m, hdep(p) + 1); hd.set(id, m); return m; };
     for (const id of tail) hdep(id);
     const hrows = []; for (const [id, k] of hd) (hrows[k] = hrows[k] || []).push(id);
-    const hrowW = r => r.reduce((t, id) => t + W(byId.get(id)), 0) + (r.length - 1) * GAPX;
+    const HGAP = 56, hrowW = r => r.reduce((t, id) => t + W(byId.get(id)), 0) + (r.length - 1) * HGAP; // (an output arrow's point needs room)
     const hw = Math.max(0, ...hrows.filter(Boolean).map(hrowW)), hx = Math.round(Math.max(lastX + 40, X - 30) + hw / 2); // right of the last column
     let y = TOP, prevH = 26;
     for (const r of hrows) {
@@ -3745,7 +3753,7 @@ const NN = (() => {
       const h = Math.max(...r.map(id => H(byId.get(id)))); y += prevH / 2 + 40 + h / 2; prevH = h;
       const bary = id => { const ps = P(id).filter(p => pos.has(p)); return ps.length ? ps.reduce((t, p) => t + pos.get(p)[0], 0) / ps.length : hx; };
       r.sort((a, b) => bary(a) - bary(b));
-      let x = hx - hrowW(r) / 2; for (const id of r) { const nd = byId.get(id); pos.set(id, [Math.round(x + capW(nd) + sz(nd).w / 2), Math.round(y)]); x += W(nd) + GAPX; }
+      let x = hx - hrowW(r) / 2; for (const id of r) { const nd = byId.get(id); pos.set(id, [Math.round(x + capW(nd) + sz(nd).w / 2), Math.round(y)]); x += W(nd) + HGAP; }
     }
     // anything else (a second output, a loss's other input) to the right of the head
     let ox = hx + 160;
@@ -3755,6 +3763,31 @@ const NN = (() => {
     return true;
   }
 
-  return { streamLayout, explodeBlocks, sanitizeGraph, carryDiagram, lowerReshapes, reshapeSteps, reshapeStepCode, reshapeShape, reshapeAxisSource, stepsToPattern, reshapeDescribe, reshapePlan, stepsShape, parseSizes, HELPER_OPS, indexInputRange, FREEZABLE, helperDoc, srcKey, splitKey, blockOutputs, blockClassCode, LOSSES, lossParts, lossPlan, weightShape, tieOwner, blockParams, blockInputs, expandBlocks, instantiateBlock, presetResidualMLPBlocks, NORMS, linkSizes, syncWidths, mergeIntoSource, uid, BATCH, DEFAULTS, ACTS, INITS, initCode, makeNode, inCount, isCircle, index, topo, evalDim, parseShape, inferShapes, paramCount, propagateWidth, generate, importPython, importFx, autoLayout, nodeSize, nodeLabel, presetResidualMLP, parse, identsIn };
+
+  // ── views: a model's saved arrangements ──
+  // A view's positions are keyed by what a layer is in the code, so they survive re-deriving the drawing and edits to
+  // the code: a named layer by its name (type|name), anything else by its kind and what it does, counted in the
+  // order the code computes it (type|fn|k). Returns Map id → key.
+  function viewKeys(g) {
+    const { order } = topo(g, index(g)), pos = new Map(order.map((id, i) => [id, i])), keys = new Map(), count = {};
+    const ns = g.nodes.slice().sort((a, b) => (pos.get(a.id) ?? 1e9) - (pos.get(b.id) ?? 1e9));
+    for (const n of ns) {
+      const p = n.params, what = p.name ? 'n:' + p.name : (p.fn || p.op || p.kind || p.pattern || '') + (n.type === 'block' ? ':' + ((g.blocks && g.blocks[p.block] && g.blocks[p.block].name) || '') : '');
+      const base = `${n.type}|${what}`;
+      if (p.name && n.type !== 'input' && n.type !== 'output') { keys.set(n.id, base); continue; }
+      count[base] = (count[base] || 0) + 1; keys.set(n.id, base + '|' + count[base]);
+    }
+    return keys;
+  }
+  // positions of g by view key; and the reverse: put the view's positions back on g's layers that have one
+  function viewPositions(g) { const k = viewKeys(g), out = {}; for (const n of g.nodes) out[k.get(n.id)] = [Math.round(n.x), Math.round(n.y)]; return out; }
+  function applyViewPositions(g, positions) {
+    if (!positions) return 0; const k = viewKeys(g); let hit = 0;
+    for (const n of g.nodes) { const p = positions[k.get(n.id)]; if (Array.isArray(p) && Number.isFinite(+p[0]) && Number.isFinite(+p[1])) { n.x = +p[0]; n.y = +p[1]; hit++; } }
+    if (hit) for (const e of g.edges) delete e.route;
+    return hit;
+  }
+
+  return { viewKeys, viewPositions, applyViewPositions, streamLayout, explodeBlocks, sanitizeGraph, carryDiagram, lowerReshapes, reshapeSteps, reshapeStepCode, reshapeShape, reshapeAxisSource, stepsToPattern, reshapeDescribe, reshapePlan, stepsShape, parseSizes, HELPER_OPS, indexInputRange, FREEZABLE, helperDoc, srcKey, splitKey, blockOutputs, blockClassCode, LOSSES, lossParts, lossPlan, weightShape, tieOwner, blockParams, blockInputs, expandBlocks, instantiateBlock, presetResidualMLPBlocks, NORMS, linkSizes, syncWidths, mergeIntoSource, uid, BATCH, DEFAULTS, ACTS, INITS, initCode, makeNode, inCount, isCircle, index, topo, evalDim, parseShape, inferShapes, paramCount, propagateWidth, generate, importPython, importFx, autoLayout, nodeSize, nodeLabel, presetResidualMLP, parse, identsIn };
 })();
 if (typeof module !== 'undefined') module.exports = NN;
