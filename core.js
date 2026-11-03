@@ -3788,6 +3788,95 @@ const NN = (() => {
     return hit;
   }
 
-  return { viewKeys, viewPositions, applyViewPositions, streamLayout, explodeBlocks, sanitizeGraph, carryDiagram, lowerReshapes, reshapeSteps, reshapeStepCode, reshapeShape, reshapeAxisSource, stepsToPattern, reshapeDescribe, reshapePlan, stepsShape, parseSizes, HELPER_OPS, indexInputRange, FREEZABLE, helperDoc, srcKey, splitKey, blockOutputs, blockClassCode, LOSSES, lossParts, lossPlan, weightShape, tieOwner, blockParams, blockInputs, expandBlocks, instantiateBlock, presetResidualMLPBlocks, NORMS, linkSizes, syncWidths, mergeIntoSource, uid, BATCH, DEFAULTS, ACTS, INITS, initCode, makeNode, inCount, isCircle, index, topo, evalDim, parseShape, inferShapes, paramCount, propagateWidth, generate, importPython, importFx, autoLayout, nodeSize, nodeLabel, presetResidualMLP, parse, identsIn };
+
+  // ── the naive exploded drawing of a chain of residual blocks ──
+  // When a model's blocks (drawn-out copies and the blocks kept whole) are residual blocks following one another in a
+  // single chain, the
+  // drawing is laid out in the residual format: each drawn-out copy keeps its block's own drawing exactly (only moved),
+  // with its top row on the stream's line; the copies and the kept blocks go left to right along that line; what comes
+  // before the first block (inputs, embeddings: the stem) keeps the model's own drawing, moved to the left so that it
+  // ends where the first block's input was; what comes after the last (the head) keeps the model's own drawing too,
+  // to the right; anything else a block needs (a mask, positions) goes under the first block that uses it. Returns
+  // false, changing nothing, when the blocks don't form one chain (then the model's own drawing, with room made, is the
+  // better start). Works on a graph from explodeBlocks (its layers carry from_path). sz(node) → { w, h }.
+  function chainLayout(g, sz = nodeSize) {
+    const ix = index(g), byId = new Map(g.nodes.map(n => [n.id, n]));
+    const unitOf = n => (Array.isArray(n.params.from_path) && n.params.from_path.length ? 'u:' + n.params.from_path[0] : 'n:' + n.id);
+    const units = new Map(); for (const n of g.nodes) { const k = unitOf(n); if (!units.has(k)) units.set(k, []); units.get(k).push(n); }
+    // the graph of units (a drawn-out copy, or one layer)
+    const uin = new Map([...units.keys()].map(k => [k, new Set()]));
+    for (const e of g.edges) { const a = byId.get(splitKey(e.from)[0]), b = byId.get(e.to); if (!a || !b) continue; const ka = unitOf(a), kb = unitOf(b); if (ka !== kb) uin.get(kb).add(ka); }
+    const memo = new Map(), anc = k => { if (memo.has(k)) return memo.get(k); const s2 = new Set(); memo.set(k, s2); for (const p of uin.get(k)) { s2.add(p); anc(p).forEach(a => s2.add(a)); } return s2; };
+    const big = [...units.keys()].filter(k => k.startsWith('u:') || byId.get(k.slice(2)).type === 'block');
+    if (big.length < 2 || !big.some(k => k.startsWith('u:'))) return false;
+    // residual blocks: each drawn-out copy adds what comes in to what it computes (a + fed from outside the copy)
+    // (both inputs of the + trace back to the same thing coming in: directly, or through a projection shortcut)
+    const residual = k => {
+      const memo2 = new Map(), ext = id => { // what comes into the copy that this layer depends on
+        if (memo2.has(id)) return memo2.get(id); const out = new Set(); memo2.set(id, out);
+        for (const s2 of ix.ins.get(id) || []) { if (!s2) continue; const src = splitKey(s2)[0], sn = byId.get(src); if (!sn) continue; if (unitOf(sn) !== k) out.add(src); else ext(src).forEach(x => out.add(x)); }
+        return out;
+      };
+      const srcSet = s2 => { const src = splitKey(s2)[0], sn = byId.get(src); return sn && unitOf(sn) !== k ? new Set([src]) : ext(src); };
+      return units.get(k).some(n => { if (n.type !== 'binop' || n.params.op !== '+') return false; const ins = (ix.ins.get(n.id) || []).filter(Boolean); if (ins.length !== 2) return false; const a2 = srcSet(ins[0]), b2 = srcSet(ins[1]); return [...a2].some(x => b2.has(x)); });
+    };
+    if (big.some(k => k.startsWith('u:') && !residual(k))) return false;
+    // one chain: every two blocks are one after the other
+    big.sort((a, b) => anc(a).size - anc(b).size);
+    for (let i = 1; i < big.length; i++) if (!anc(big[i]).has(big[i - 1])) return false;
+    const first = big[0], last = big[big.length - 1], bigSet = new Set(big);
+    const desc = (k, of) => anc(k).has(of);
+    const stem = [], head = [], mid = new Map(), side = [];
+    for (const k of units.keys()) {
+      if (bigSet.has(k)) continue;
+      if (desc(k, last)) { head.push(k); continue; }
+      // used only by the head (a loss's target): with the head
+      const users = [...units.keys()].filter(u2 => uin.get(u2).has(k));
+      if (users.length && users.every(u2 => desc(u2, last) && !bigSet.has(u2))) { head.push(k); continue; }
+      const i = big.findIndex((b2, j) => j < big.length - 1 && desc(k, b2) && anc(big[j + 1]).has(k));
+      if (i >= 0) { if (!mid.has(i)) mid.set(i, []); mid.get(i).push(k); continue; }
+      if (anc(first).has(k) && ![...big.slice(1)].some(b2 => [...uin.get(b2)].includes(k) && !anc(first).has(k))) stem.push(k); else side.push(k);
+    }
+    const nodesOf = ks => ks.flatMap(k => units.get(k));
+    const bbox = ns => { let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity, top = Infinity; for (const n of ns) { const q = sz(n); x0 = Math.min(x0, n.x - q.w / 2); x1 = Math.max(x1, n.x + q.w / 2); y0 = Math.min(y0, n.y - q.h / 2); y1 = Math.max(y1, n.y + q.h / 2); top = Math.min(top, n.y); } return { x0, x1, y0, y1, top }; };
+    const shift = (ns, dx, dy) => { for (const n of ns) { n.x += dx; n.y += dy; if (n.params.split && typeof n.params.split === 'object') { n.params.split.x += dx; n.params.split.y += dy; } } };
+    const TOP = 100, GAP = 90;
+    // the chain, left to right: blocks, with what sits between them on the stream's line
+    const seq = []; big.forEach((k, i) => { seq.push(k); for (const m of mid.get(i) || []) seq.push(m); });
+    // the stem first: it ends where the first block takes its input (bottom left of the first copy)
+    const firstNs = units.get(first), fb = bbox(firstNs), firstBottom = TOP + (fb.y1 - fb.top) - 20;
+    let cursor = 60;
+    if (stem.length) {
+      const sn = nodesOf(stem), sb = bbox(sn);
+      const feeder = sn.filter(n => (ix.outs.get(n.id) || []).some(o => unitOf(byId.get(o.to)) === first)).sort((a, b) => a.y - b.y)[0] || sn[0];
+      shift(sn, cursor - sb.x0, firstBottom - feeder.y);
+      cursor = bbox(sn).x1 + GAP;
+    }
+    const placed = [];
+    for (const k of seq) {
+      const ns = units.get(k), b = bbox(ns);
+      if (k.startsWith('u:')) shift(ns, cursor - b.x0, TOP - b.top);
+      else shift(ns, cursor - b.x0, TOP - ns[0].y); // one layer (a block kept whole, a layer between blocks): on the line
+      const nb = bbox(ns); placed.push({ k, b: nb }); cursor = nb.x1 + GAP;
+    }
+    // the head: its own drawing, its first layer on the line right of the chain
+    if (head.length) {
+      const hn = nodesOf(head), hb = bbox(hn);
+      const entry = hn.filter(n => P2(n).some(p => unitOf(p) === last)).sort((a, b) => b.y - a.y)[0] || hn[0];
+      shift(hn, cursor - hb.x0, TOP - entry.y);
+    }
+    function P2(n) { return (ix.ins.get(n.id) || []).filter(Boolean).map(k2 => byId.get(splitKey(k2)[0])).filter(Boolean); }
+    // side inputs: under the first block that uses them, left to right
+    const under = new Map();
+    for (const k of side) {
+      const user = placed.find(pl => [...uin.get(pl.k)].includes(k) || [...uin.get(pl.k)].some(u2 => anc(u2).has(k)));
+      const pl = user || placed[0], ns = units.get(k), b = bbox(ns), off = under.get(pl.k) || 0;
+      shift(ns, pl.b.x0 + off - b.x0, pl.b.y1 + 70 - b.y0); under.set(pl.k, off + (b.x1 - b.x0) + 40);
+    }
+    for (const e of g.edges) delete e.route;
+    return true;
+  }
+
+  return { chainLayout, viewKeys, viewPositions, applyViewPositions, streamLayout, explodeBlocks, sanitizeGraph, carryDiagram, lowerReshapes, reshapeSteps, reshapeStepCode, reshapeShape, reshapeAxisSource, stepsToPattern, reshapeDescribe, reshapePlan, stepsShape, parseSizes, HELPER_OPS, indexInputRange, FREEZABLE, helperDoc, srcKey, splitKey, blockOutputs, blockClassCode, LOSSES, lossParts, lossPlan, weightShape, tieOwner, blockParams, blockInputs, expandBlocks, instantiateBlock, presetResidualMLPBlocks, NORMS, linkSizes, syncWidths, mergeIntoSource, uid, BATCH, DEFAULTS, ACTS, INITS, initCode, makeNode, inCount, isCircle, index, topo, evalDim, parseShape, inferShapes, paramCount, propagateWidth, generate, importPython, importFx, autoLayout, nodeSize, nodeLabel, presetResidualMLP, parse, identsIn };
 })();
 if (typeof module !== 'undefined') module.exports = NN;
