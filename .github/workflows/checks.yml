@@ -1,7 +1,8 @@
 # Checks every pull request (and every push to main) three ways:
 #   app:      the Node tests (round trips, losses, exports, code edits, fx import, damaged code) and that index.html
 #             was rebuilt from the sources it contains
-#   pytorch:  the code written for every example runs in real PyTorch (CPU): parameter counts, output shapes, and
+#   pytorch:  the code written for every example (and its exploded drawing) runs in real PyTorch (CPU): parameter
+#             counts, output shapes, the exploded model giving the same outputs, and
 #             for the small models train.py (2 steps, a resume from the checkpoint, and a bf16 run)
 #   browser:  the built app in headless Chromium: every example opens and plots, damaged saved data, text from
 #             pasted code, a full browser storage
@@ -53,6 +54,8 @@ jobs:
       - run: pip install torch --index-url https://download.pytorch.org/whl/cpu
       - run: node tools/export_examples.js out
       - run: python -u tools/check_examples.py out --train
+      - name: Explode blocks gives the same network (outputs with the weights copied across)
+        run: python -u tools/check_explode.py out
 
   browser:
     runs-on: ubuntu-latest

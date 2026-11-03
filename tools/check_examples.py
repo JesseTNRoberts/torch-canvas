@@ -4,7 +4,8 @@
 #   node tools/export_examples.js out/ && python tools/check_examples.py out/ [--train] [--only NAME]
 #
 # For each example:
-#   model.py and model_named.py: the code panel's code (sizes as numbers, and as constructor arguments). Its own
+#   model.py and model_named.py: the code panel's code (sizes as numbers, and as constructor arguments), and
+#     model_exploded.py: the model with its blocks drawn out (Explode blocks). Its own
 #     `__main__` block runs: build the model, count parameters, run a forward pass, print the output shapes. The
 #     parameter count must be the app's, and every shape must be the one written in its "# expected" comment.
 #     Big models (over SMALL parameters) run on the meta device, which checks shapes without memory or compute.
@@ -53,7 +54,7 @@ for e in manifest:
         continue
     d = os.path.join(out, name)
     meta = e['params'] > SMALL
-    for f in ('model.py', 'model_named.py'):
+    for f in [x for x in ('model.py', 'model_named.py', 'model_exploded.py') if os.path.exists(os.path.join(d, x))]:
         try:
             lines, expected = run_main(os.path.join(d, f), meta)
             got_params = int(lines[0].split()[0])

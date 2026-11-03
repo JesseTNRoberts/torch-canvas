@@ -16,7 +16,7 @@
   --proj-bg: #fbe9ef; --proj-bd: #d998ad; --proj-ink: #8c3452;
   --func-bg: #f0eff5; --func-bd: #b8b7c8; --func-ink: #4a4958;
   --blk-bg: #f1effa; --blk-bd: #776bc6; --blk-ink: #3b3275;
-  --on-err: #ffffff; --sel: #2d6cdf; --code-bg: #fbfbfd; --kw: #7a3eb1; --str: #2f7d4f; --num: #b4541a; --com: #8f8ea0; --cls: #2153a8; --hl: #fff4c7;
+  --on-err: #ffffff; --sel: #2d6cdf; --code-bg: #fbfbfd; --xr0: rgba(116,103,212,.07); --xr1: rgba(47,138,85,.07); --xr2: rgba(200,100,26,.07); --xr3: rgba(53,80,200,.07); --kw: #7a3eb1; --str: #2f7d4f; --num: #b4541a; --com: #8f8ea0; --cls: #2153a8; --hl: #fff4c7;
   --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
@@ -28,7 +28,7 @@
   --act-bg: #33231a; --act-bd: #9b6541; --act-ink: #f3ba91; --proj-bg: #331c26; --proj-bd: #95516b; --proj-ink: #f2abc3;
   --func-bg: #24242f; --func-bd: #4b4a5c; --func-ink: #c9c8d8;
   --blk-bg: #221f38; --blk-bd: #8d84d8; --blk-ink: #d2ccff;
-  --on-err: #1b1b24; --sel: #6f9dff; --code-bg: #17171f; --kw: #c79bf2; --str: #8fd3a5; --num: #f0a674; --com: #6f6e83; --cls: #8db4ff; --hl: #3a3420; color-scheme: dark; } }
+  --on-err: #1b1b24; --sel: #6f9dff; --code-bg: #17171f; --xr0: rgba(160,150,255,.09); --xr1: rgba(120,210,150,.08); --xr2: rgba(240,166,116,.08); --xr3: rgba(141,180,255,.09); --kw: #c79bf2; --str: #8fd3a5; --num: #f0a674; --com: #6f6e83; --cls: #8db4ff; --hl: #3a3420; color-scheme: dark; } }
 :root[data-theme="dark"] {
   --bg: #14141b; --panel: #1b1b24; --panel2: #1f1f29; --ink: #e8e7f3; --muted: #a09fb2; --faint: #6d6c80; --line: #2d2d3a; --grid: #2a2a37;
   --stream: #a197f0; --stream-bg: #26233f; --bwd: #f0a35e; --scaled: #7f95ff; --edge: #7d7c90; --err: #ff6b6b; --err-bg: #3a1d20; --ok: #62c48a;
@@ -37,7 +37,7 @@
   --act-bg: #33231a; --act-bd: #9b6541; --act-ink: #f3ba91; --proj-bg: #331c26; --proj-bd: #95516b; --proj-ink: #f2abc3;
   --func-bg: #24242f; --func-bd: #4b4a5c; --func-ink: #c9c8d8;
   --blk-bg: #221f38; --blk-bd: #8d84d8; --blk-ink: #d2ccff;
-  --on-err: #1b1b24; --sel: #6f9dff; --code-bg: #17171f; --kw: #c79bf2; --str: #8fd3a5; --num: #f0a674; --com: #6f6e83; --cls: #8db4ff; --hl: #3a3420; color-scheme: dark; }
+  --on-err: #1b1b24; --sel: #6f9dff; --code-bg: #17171f; --xr0: rgba(160,150,255,.09); --xr1: rgba(120,210,150,.08); --xr2: rgba(240,166,116,.08); --xr3: rgba(141,180,255,.09); --kw: #c79bf2; --str: #8fd3a5; --num: #f0a674; --com: #6f6e83; --cls: #8db4ff; --hl: #3a3420; color-scheme: dark; }
 
 html, body { height: 100%; }
 body { background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 13px; }
@@ -273,6 +273,10 @@ kbd { font-family: var(--mono); font-size: 10.5px; border: 1px solid var(--line)
 .gbox.sel { stroke: var(--sel); stroke-width: 1.6; }
 .gbox.bad { stroke: var(--err); }
 .glabel { font-family: var(--sans); font-size: 12px; fill: var(--muted); cursor: grab; }
+/* exploded drawings: shades behind drawn-out copies (view annotation only) */
+.xregion rect { stroke: none; pointer-events: none; }
+.xregion text { font-family: var(--sans); font-size: 11px; fill: var(--muted); opacity: .85; pointer-events: none; }
+.xregion.xr0 rect { fill: var(--xr0); } .xregion.xr1 rect { fill: var(--xr1); } .xregion.xr2 rect { fill: var(--xr2); } .xregion.xr3 rect { fill: var(--xr3); }
 .glabel:hover { fill: var(--ink); }
 .marquee { fill: color-mix(in srgb, var(--sel) 10%, transparent); stroke: var(--sel); stroke-dasharray: 4 3; }
 .tmp-edge { fill: none; stroke: var(--sel); stroke-width: 1.6; stroke-dasharray: 5 4; pointer-events: none; }
@@ -504,7 +508,7 @@ details summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
       <div class="drawer" id="drawer" hidden><div class="drawer-hd"><span style="flex:1">Details</span><button class="btn" id="drawerClose" aria-label="Close details">×</button></div><div class="insp" id="insp"></div></div>
       <div class="empty-msg" id="emptyMsg" hidden>Empty canvas. Click <b>New model</b> for a starter network,<br>or click any layer in the list on the left to add it.</div>
       <div class="var-float" id="varFloat" hidden role="dialog" aria-label="Init variance"><div class="var-fhead"><b>Init variance</b><span class="var-stale" id="varStale" hidden>The model changed since this plot.</span><span class="spacer"></span><button class="btn" id="varRe">Replot</button><button class="x" id="varClose" aria-label="Close">×</button></div><div class="var-pane" id="varPane"></div></div>
-      <div class="canvas-ctl"><button class="btn" id="zVar" title="Plot the expected forward and backward variance at each Linear and Conv2d right after init">Plot variance</button><button class="btn" id="zSizes" aria-pressed="false" title="Show the tensor size on every branch">Show sizes</button><button class="btn" id="zSvg" title="Save the diagram exactly as shown (with the size labels where you placed them) as an SVG">Export SVG</button><button class="btn" id="zOut" aria-label="Zoom out">−</button><button class="btn" id="zFit">Fit</button><button class="btn" id="zIn" aria-label="Zoom in">+</button></div>
+      <div class="canvas-ctl"><button class="btn" id="zVar" title="Plot the expected forward and backward variance at each Linear and Conv2d right after init">Plot variance</button><button class="btn" id="zSizes" aria-pressed="false" title="Show the tensor size on every branch">Show sizes</button><button class="btn" id="zView" aria-haspopup="menu" title="Saved views of this model: arrangements, and exploded drawings with the blocks drawn out">Views ▾</button><button class="btn" id="zSvg" title="Save the diagram exactly as shown (with the size labels where you placed them) as an SVG">Export SVG</button><button class="btn" id="zOut" aria-label="Zoom out">−</button><button class="btn" id="zFit">Fit</button><button class="btn" id="zIn" aria-label="Zoom in">+</button></div>
     </div>
 
     <div class="right">
@@ -1312,7 +1316,23 @@ function render() {
     gh += `<rect class="gbox${sel ? ' sel' : ''}${ginfo.get(gr.id) ? '' : ' bad'}" x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="10"/>`;
     gh += `<text class="glabel" data-glabel="${gr.id}" x="${b.x + b.w / 2}" y="${b.y + b.h - 7}" text-anchor="middle">${esc(gr.label || gr.attr)}</text>`;
   }
-  $('#gGroups').innerHTML = ''; // reusable blocks are not shown for now
+  // an exploded drawing: a soft shade behind each drawn-out copy of a block (a note on the view, not part of the model),
+  // outermost first, with the block's name in a corner
+  let rh = '';
+  const regions = new Map();
+  for (const n of S.g.nodes) for (const [i, k] of (Array.isArray(n.params.from_path) ? n.params.from_path : []).entries()) {
+    if (!regions.has(k)) regions.set(k, { depth: i, ids: [] }); regions.get(k).ids.push(n.id);
+  }
+  const hue = k => { let h = 0; for (const c of k) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h % 4; };
+  for (const [k, r] of [...regions].sort((a, b) => a[1].depth - b[1].depth)) {
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const id of r.ids) { const n = byId(id); if (!n) continue; const b = box(n); x0 = Math.min(x0, b.x); y0 = Math.min(y0, b.y); x1 = Math.max(x1, b.x + b.w); y1 = Math.max(y1, b.y + b.h); }
+    if (!Number.isFinite(x0)) continue;
+    const pad = 22 - Math.min(r.depth, 2) * 6, [use, cls] = k.split(':');
+    rh += `<g class="xregion xr${hue(k)}"><rect x="${x0 - pad}" y="${y0 - pad - 14}" width="${x1 - x0 + 2 * pad}" height="${y1 - y0 + 2 * pad + 14}" rx="14"/>`
+      + `<text x="${x0 - pad + 10}" y="${y0 - pad + 2}">${esc(cls || '')}${use ? ' · ' + esc(use) : ''}</text></g>`;
+  }
+  $('#gGroups').innerHTML = rh; // (reusable blocks themselves are drawn as block nodes, not boxes)
   // edges
   let eh = '';
   const routes = new Map(); for (const e of S.g.edges) { const r = route(e); if (r) routes.set(e.id, r); }
@@ -1572,6 +1592,7 @@ function renderCode() {
     }
   }
   S.gen = r;
+  renderViewMenuHint();
   // another open model: edits in progress stay with the model they were made in
   if (S.codeEdit && S.codeEdit.doc !== S.cur) {
     const ta = $('#codeTa'), d = docById(S.codeEdit.doc);
@@ -2748,10 +2769,18 @@ function nodeMenu(x, y, clickedId) {
   }
   if (ids.length && !ids.every(id => byId(id) && ['input', 'output', 'loss'].includes(byId(id).type))) h += item('saveblock', 'Save selection as block', 'A library block with as many inputs and outputs as the selection has');
   h += item('dup', ids.length > 1 ? 'Duplicate layers' : one && one.type === 'block' ? 'Duplicate block' : 'Duplicate layer') + item('inspect', 'Show details', one && one.type === 'block' ? 'Double-click opens the inside' : 'Or double-click · Enter') + item('del', 'Delete', '', '', 'danger');
+  if (R().derived && one) { // an exploded drawing: draw out a block, or fold one back
+    const parts = [];
+    if (one.type === 'block' && one.params.name) parts.push(item('drawout', `Draw out ${one.params.name}`, 'Every copy, in this drawing'));
+    if (one.params.from_use) parts.push(item('fold:' + one.params.from_use, `Fold ${one.params.from_use} back into a block`));
+    if (parts.length) h += '<hr>' + parts.join('');
+  }
   openCtx(x, y, h, el => {
     el.addEventListener('click', e => {
       const b = e.target.closest('[data-act]'); if (!b) return;
       const act = b.dataset.act;
+      if (act === 'drawout') { closeCtx(); return rederive({ [one.params.name]: true }); }
+      if (act.startsWith('fold:')) { closeCtx(); return rederive({ [act.slice(5)]: false }); }
       if (act.startsWith('tie:') || act === 'untie') {
         const own = act === 'untie' ? '' : act.slice(4), o = own && byId(own);
         commit(() => setTie(tieNode, own));
@@ -2825,11 +2854,134 @@ function groupMenu(x, y, gid) {
     });
   });
 }
+// ── views: saved arrangements of a model ──
+// R().views = { name: { kind: 'layout', positions } | { kind: 'exploded', open, layout, positions } }, positions keyed by
+// NN.viewKeys (a layer's code name, or its kind and order). A layout view rearranges the model itself. An exploded view
+// is a drawing of the model with blocks drawn out (NN.explodeBlocks; open says which uses are drawn out or kept,
+// overriding the default rule), opened as its own tab: a derived tab, R().derived = { from, fromLib, view, open,
+// code }, which can draw out or fold back blocks and save itself as a view of the model it came from.
+const viewsOf = r => (r && r.views && typeof r.views === 'object' ? r.views : {});
+const hasBlocks = r => !!(r && !r.libHost && r.nodes.some(n => n.type === 'block'));
+function sourceOf(der) {
+  if (!der) return null;
+  const cands = S.docs.filter(d => d.id !== S.cur).map(d => ({ d, r: d.id === S.cur ? S.root : d.root })).filter(x => hasBlocks(x.r));
+  return cands.find(x => der.fromLib && x.d.fromLib === der.fromLib) || cands.find(x => x.r.name === der.from) || null;
+}
+// the exploded drawing of src for a view (or the default rule), laid out: the view's positions, else the blocks'
+// own drawings in their places (or the residual stream layout, when the view says so)
+function derive(src, srcDoc, open, viewName, keepFrom) {
+  const v = viewName ? viewsOf(src)[viewName] : null;
+  const g = NN.explodeBlocks(src, { sz: sizeOf, open: open || {} });
+  g.name = (src.name || 'Model') + 'Exploded';
+  if (v && v.layout === 'stream') NN.streamLayout(g, sizeOf);
+  if (v) NN.applyViewPositions(g, v.positions);
+  // re-deriving: the layers moved by hand since the drawing was made stay where they were put
+  if (keepFrom && keepFrom.derived && keepFrom.derived.draft) {
+    const now = NN.viewPositions(keepFrom), was = keepFrom.derived.draft, moved = {};
+    for (const [k, p] of Object.entries(now)) if (!was[k] || was[k][0] !== p[0] || was[k][1] !== p[1]) moved[k] = p;
+    NN.applyViewPositions(g, moved);
+  }
+  delete g.views;
+  const ent = srcDoc && srcDoc.fromLib && S.library.find(e => e.file === srcDoc.fromLib);
+  if (src.category || (ent && ent.category)) g.category = src.category || ent.category;
+  g.derived = { from: src.name, fromLib: (srcDoc && srcDoc.fromLib) || null, view: viewName || null, open: Object.assign({}, open || {}), draft: NN.viewPositions(g) };
+  g.derived.code = NN.generate(g).code;
+  return g;
+}
+// Explode blocks: the model's exploded view if it has one called Exploded, else the default drawing, in a new tab
+function explodeModel(viewName) {
+  const root = R(); if (!hasBlocks(root)) return toast('This model has no blocks to explode.');
+  if (viewName === undefined && viewsOf(root).Exploded && viewsOf(root).Exploded.kind === 'exploded') viewName = 'Exploded';
+  const v = viewName ? viewsOf(root)[viewName] : null, srcDoc = docById(S.cur);
+  let g; try { g = derive(root, srcDoc, v && v.open, viewName); } catch (e) { return toast("Couldn't explode the blocks: " + e.message); }
+  // a tab already showing this view of this model is reused
+  const same = S.docs.find(d => { const r = d.id === S.cur ? S.root : d.root; return r.derived && r.derived.from === root.name && (r.derived.view || null) === (viewName || null); });
+  if (same) { activateDoc(same.id); commit(() => { setModel(g); clearSel(); }); fit(); }
+  else { openDoc(g); changed(); fit(); }
+  R().derived.code = NN.generate(R()).code; save(); // (as the tab has it, library links made)
+  const kept = [...new Set(g.nodes.filter(n => n.type === 'block').map(n => (g.blocks[n.params.block] || {}).name))];
+  toast(viewName ? `Opened the view ${viewName}.` : kept.length ? `Opened an exploded copy. Blocks with more than three copies show their first copy drawn out, then the rest as a block (${kept.join(', ')}). Right-click a block to draw it out, or a drawn-out layer to fold its block back.` : 'Opened an exploded copy with every block drawn out.');
+}
+// in a derived tab: draw out or fold back a use, by re-deriving from the model (what was arranged stays put)
+function rederive(change) {
+  const der = R().derived, src = sourceOf(der);
+  if (!src) return toast(`Open ${der ? der.from : 'the model'} again to change which blocks are drawn out here.`);
+  if (NN.generate(R()).code !== der.code) return toast('This tab has been edited since it was exploded, so it can no longer follow the model. Explode the model again to start over.');
+  const open = Object.assign({}, der.open, change);
+  let g; try { g = derive(src.r, src.d, open, der.view, R()); } catch (e) { return toast("Couldn't redraw: " + e.message); }
+  commit(() => { setModel(g); clearSel(); });
+  R().derived.code = NN.generate(R()).code; save();
+}
+function saveView() {
+  const root = R(), der = root.derived;
+  const target = der ? sourceOf(der) : { d: docById(S.cur), r: root };
+  if (!target) return toast(`Open ${der.from} again to save this drawing as one of its views.`);
+  const def = der ? (der.view || 'Exploded') : 'Arrangement ' + (Object.keys(viewsOf(root)).length + 1);
+  const name = (window.prompt(der ? `Save this drawing as a view of ${der.from}, named:` : 'Save this arrangement as a view, named:', def) || '').trim();
+  if (!name) return;
+  const view = der ? { kind: 'exploded', open: Object.assign({}, der.open), positions: NN.viewPositions(root) } : { kind: 'layout', positions: NN.viewPositions(root) };
+  const put = r => { r.views = Object.assign({}, viewsOf(r), { [name]: view }); };
+  if (target.d.id === S.cur) commit(() => put(root));
+  else { target.d.undo.push(JSON.stringify({ root: target.r, edit: null })); target.d.redo = []; put(target.r); target.d.edited = true; save(); }
+  if (der) { der.view = name; save(); }
+  toast(der ? `Saved as the view ${name} of ${target.r.name}${name === 'Exploded' ? ': Explode blocks opens it from now on' : ''}.` : `Saved as the view ${name}.`);
+  renderViewMenuHint();
+}
+function applyView(name) {
+  const v = viewsOf(R())[name]; if (!v) return;
+  if (v.kind === 'exploded') return explodeModel(name);
+  commit(() => NN.applyViewPositions(R(), v.positions)); fit();
+}
+function deleteView(name) { commit(() => { const vs = Object.assign({}, viewsOf(R())); delete vs[name]; R().views = vs; }); toast(`Deleted the view ${name}. Undo brings it back.`); renderViewMenuHint(); }
+function renderViewMenuHint() { const b = $('#zView'); if (b) b.textContent = (R().derived ? 'Exploded view' : Object.keys(viewsOf(R())).length ? `Views (${Object.keys(viewsOf(R())).length})` : 'Views') + ' ▾'; }
+$('#zView').onclick = e => {
+  const root = R(), der = root.derived, vs = viewsOf(root), names = Object.keys(vs), r = e.currentTarget.getBoundingClientRect();
+  let h = '';
+  if (der) {
+    const src = sourceOf(der);
+    h += `<div class="hd">Exploded from ${esc(der.from)}${der.view ? ` <span>view ${esc(der.view)}</span>` : ''}</div>`
+      + item('vsave', der.view ? `Save changes to the view ${der.view}` : `Save as a view of ${der.from}…`, src ? 'Explode blocks opens a view named Exploded' : `Open ${der.from} first`)
+      + (der.view ? item('vsaveas', 'Save as another view…') : '')
+      + (src ? item('vback', `Back to ${der.from}`) : '')
+      + `<p class="hint" style="padding:2px 10px 6px;margin:0">Right-click a block to draw it out, or a drawn-out layer to fold its block back.</p>`;
+  } else {
+    h += `<div class="hd">Views of ${esc(root.name || 'this model')}</div>`;
+    for (const n of names) h += item('vapply:' + n, n, vs[n].kind === 'exploded' ? 'Exploded drawing, in its own tab' : 'Arrangement of this model');
+    if (!names.length) h += `<p class="hint" style="padding:2px 10px 6px;margin:0">No saved views yet. Arrange the model and save it as a view, or explode its blocks and save that drawing.</p>`;
+    h += '<hr>' + item('vsave', 'Save this arrangement as a view…') + (hasBlocks(root) ? item('vexplode', 'Explode blocks', vs.Exploded ? 'Opens the view Exploded' : 'A copy with the blocks drawn out, in a new tab') : '');
+    if (names.length) h += '<hr>' + names.map(n => item('vdel:' + n, `Delete ${n}`, '', '', 'danger')).join('');
+  }
+  openCtx(r.left, r.top - 8, h, el => el.addEventListener('click', ev => {
+    const b = ev.target.closest('[data-act]'); if (!b) return; const a = b.dataset.act; closeCtx();
+    if (a === 'vsave') { if (der && der.view) saveViewAs(der.view); else saveView(); }
+    else if (a === 'vsaveas') { der.view = null; saveView(); }
+    else if (a === 'vback') { const s2 = sourceOf(der); if (s2) activateDoc(s2.d.id); }
+    else if (a === 'vexplode') explodeModel();
+    else if (a.startsWith('vapply:')) applyView(a.slice(7));
+    else if (a.startsWith('vdel:')) deleteView(a.slice(5));
+  }));
+  // the menu opens upward from the button
+  if (ctxEl) { const m = ctxEl.getBoundingClientRect(); ctxEl.style.top = Math.max(8, r.top - m.height - 6) + 'px'; }
+};
+// saving an exploded tab back over the view it came from (no name to ask for)
+function saveViewAs(name) {
+  const root = R(), der = root.derived, target = sourceOf(der);
+  if (!target) return toast(`Open ${der.from} again to save this drawing as one of its views.`);
+  const view = { kind: 'exploded', open: Object.assign({}, der.open), positions: NN.viewPositions(root) };
+  target.d.undo.push(JSON.stringify({ root: target.r, edit: null })); target.d.redo = [];
+  target.r.views = Object.assign({}, viewsOf(target.r), { [name]: view }); target.d.edited = true; save();
+  toast(`Saved the view ${name} of ${target.r.name}.`);
+}
 function canvasMenu(x, y, wpt) {
-  openCtx(x, y, (S.clip ? item('paste', 'Paste', 'Ctrl+V') : '') + item('fit', 'Fit view', 'F') + item('layout', 'Auto layout'), el => {
+  const blocks = hasBlocks(R()), stream = (() => { try { return NN.streamLayout(JSON.parse(JSON.stringify(S.g)), sizeOf); } catch { return false; } })();
+  openCtx(x, y, (S.clip ? item('paste', 'Paste', 'Ctrl+V') : '') + item('fit', 'Fit view', 'F') + item('layout', 'Auto layout', 'Flowing upward')
+    + (stream ? item('slayout', 'Residual stream layout', 'The stream along the top, sublayers in columns below') : '')
+    + (blocks ? item('explode', 'Explode blocks', viewsOf(R()).Exploded ? 'Opens the view Exploded' : 'A copy with the blocks drawn out, in a new tab') : ''), el => {
     el.addEventListener('click', e => {
       const b = e.target.closest('[data-act]'); if (!b) return; const act = b.dataset.act;
       if (act === 'paste') paste(); else if (act === 'fit') fit(); else if (act === 'layout') { commit(() => NN.autoLayout(S.g, sizeOf)); fit(); }
+      else if (act === 'slayout') { commit(() => NN.streamLayout(S.g, sizeOf)); fit(); }
+      else if (act === 'explode') explodeModel();
       closeCtx();
     });
   });
@@ -3505,7 +3657,9 @@ $('#bMore').onclick = e => {
     + (nets.length ? `<div class="hd">Example networks <span>open in a new tab</span></div>` + catGroups(nets, NET_CATS, 'net', curLib && curLib.file) : '')
     + (blks.length ? `<div class="hd">Blocks <span>open in a new tab to edit</span></div>` + catGroups(blks, BLOCK_CATS, 'blk', curLib && curLib.file) : '')
     + `<hr><div class="hd">From your computer</div>` + item('ofile', 'Open file…', 'A .py model, edited in place · Ctrl+O') + item('odir', 'Open folder…', 'Browse the models in a project') + item('paste', 'Paste code…', 'Or press Ctrl+V anywhere')
-    + '<hr>' + (curLib ? item('link', 'Copy link to this example', `Opens ${curLib.title} directly`) : '') + item('json', 'Copy graph JSON', 'Restore it later with Paste code'),
+    + '<hr>' + (curLib ? item('link', 'Copy link to this example', `Opens ${curLib.title} directly`) : '')
+    + (hasBlocks(R()) ? item('explode', 'Explode blocks', viewsOf(R()).Exploded ? 'Opens the view Exploded' : 'Open a copy with the blocks drawn out, in a new tab') : '')
+    + item('json', 'Copy graph JSON', 'Restore it later with Paste code'),
     el => { el.classList.add('ctx-open'); el.addEventListener('click', ev => {
       if (ev.target.closest('[data-close]')) return closeCtx();
       const ch = ev.target.closest('[data-cat]');
@@ -3513,7 +3667,7 @@ $('#bMore').onclick = e => {
       const b = ev.target.closest('[data-act]'); if (!b) return; closeCtx();
       const a = b.dataset.act;
       if (a.startsWith('lib:')) return openLibrary(S.library.find(x => x.file === a.slice(4)));
-      ({ link: () => copyLibLink(curLib), ofile: openFileDialog, odir: openFolder, paste: openImport, json: () => copyText(JSON.stringify(R(), null, 1), 'Graph JSON copied. Paste it into Paste code to restore.') })[a]();
+      ({ explode: () => explodeModel(), link: () => copyLibLink(curLib), ofile: openFileDialog, odir: openFolder, paste: openImport, json: () => copyText(JSON.stringify(R(), null, 1), 'Graph JSON copied. Paste it into Paste code to restore.') })[a]();
     }); });
 };
 // ── library: example networks and blocks shipped with the app (examples/ folder) ──
@@ -4222,8 +4376,16 @@ function layoutKeys(g) {
   for (const n of g.nodes) { const gr = ix.groupOf.get(n.id); const b = `${gr ? gr.attr : ''}|${n.type}|${n.params.name || n.params.fn || n.params.op || ''}`; cnt[b] = (cnt[b] || 0) + 1; keys.set(n.id, b + '|' + cnt[b]); }
   return keys;
 }
-function saveLayout() { if (!S.file) return; try { const k = layoutKeys(R()), pos = {}; for (const n of R().nodes) pos[k.get(n.id)] = [n.x, n.y]; localStorage.setItem(layoutId(), JSON.stringify(pos)); } catch {} }
+function saveLayout() {
+  if (!S.file) return;
+  try {
+    const k = layoutKeys(R()), pos = {}; for (const n of R().nodes) pos[k.get(n.id)] = [n.x, n.y]; localStorage.setItem(layoutId(), JSON.stringify(pos));
+    // a .py file can't hold the model's saved views, so they are kept with its layout
+    const vs = viewsOf(R()); if (Object.keys(vs).length) localStorage.setItem(layoutId() + '|views', JSON.stringify(vs)); else localStorage.removeItem(layoutId() + '|views');
+  } catch {}
+}
 function restoreLayout() {
+  try { const vs = JSON.parse(localStorage.getItem(layoutId() + '|views') || 'null'); if (vs && typeof vs === 'object' && !Object.keys(viewsOf(R())).length) R().views = vs; } catch {}
   try {
     const pos = JSON.parse(localStorage.getItem(layoutId()) || 'null'); if (!pos) return;
     const k = layoutKeys(R()); const hits = R().nodes.filter(n => pos[k.get(n.id)]);
@@ -4680,6 +4842,6 @@ window.addEventListener('resize', () => render());
 if (savedOff) setTimeout(() => toast("Torch Canvas couldn't open what it had saved in this browser last time, and the storage is too full to keep a copy, so it was left as it is and this visit starts fresh without saving. Clear some of this site's storage to go back to saving."), 400);
 if (bootRecovered) setTimeout(() => toast(`Torch Canvas couldn't open what it had saved in this browser last time, so it started fresh. The saved tabs were set aside in this browser's storage as torchcanvas.backup.${bootRecovered}.`), 400);
 // for the routing checks in tools/ (read-only access to the open graph and the router)
-window.__tc = { S, route, drawFrom, box, keyOf, byId, switchTo, openLibrary, openLibraryBlock, findLibEntry, render, renderInspector, selectionChanged, fit, sizeOf };
+window.__tc = { explodeModel, rederive, applyView, deleteView, S, route, drawFrom, box, keyOf, byId, switchTo, openLibrary, openLibraryBlock, findLibEntry, render, renderInspector, selectionChanged, fit, sizeOf };
 })();
 </script>
