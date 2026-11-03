@@ -2873,7 +2873,9 @@ function derive(src, srcDoc, open, viewName, keepFrom) {
   const v = viewName ? viewsOf(src)[viewName] : null;
   const g = NN.explodeBlocks(src, { sz: sizeOf, open: open || {} });
   g.name = (src.name || 'Model') + 'Exploded';
-  if (v && v.layout === 'stream') NN.streamLayout(g, sizeOf);
+  // the naive drawing: a chain of residual blocks in the residual format, each copy exactly as its block is drawn;
+  // otherwise the model's own drawing with each copy in its block's place (explodeBlocks did that)
+  if (v && v.layout === 'stream') NN.streamLayout(g, sizeOf); else NN.chainLayout(g, sizeOf);
   if (v) NN.applyViewPositions(g, v.positions);
   // re-deriving: the layers moved by hand since the drawing was made stay where they were put
   if (keepFrom && keepFrom.derived && keepFrom.derived.draft) {
