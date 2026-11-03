@@ -286,4 +286,29 @@ for (const [f, want] of [['23_residual_cnn_gap.json', 57098], ['24_residual_cnn_
     if (fails.length) { console.error('reading damaged code went wrong:\n' + fails.slice(0, 3).join('\n\n')); process.exit(1); }
   }
   console.log('damaged code OK');
+  // Explode blocks: the same network (parameters, code that reads back), every block drawn out or kept by the rule (or a
+  // view's choices), nothing overlapping; views put layers back where they were saved, by code name
+  {
+    const ex = __dirname + '/examples/networks/', cnt = g => { const fl = NN.expandBlocks(g).flat; let n = 0; for (const z of fl.nodes) n += NN.paramCount(z, fl.symbols) || 0; return n; };
+    const overlaps = g => { let c = 0; for (let i = 0; i < g.nodes.length; i++) for (let j = i + 1; j < g.nodes.length; j++) { const a = g.nodes[i], b = g.nodes[j], sa = NN.nodeSize(a), sb = NN.nodeSize(b); if (Math.abs(a.x - b.x) < (sa.w + sb.w) / 2 - 2 && Math.abs(a.y - b.y) < (sa.h + sb.h) / 2 - 2) c++; } return c; };
+    for (const f of fs.readdirSync(ex).filter(f => f.endsWith('.json'))) {
+      const g = JSON.parse(fs.readFileSync(ex + f, 'utf8')).graph; if (!g.nodes.some(n => n.type === 'block')) continue;
+      const h = NN.explodeBlocks(g), n0 = cnt(g);
+      const code = NN.generate(h).code, h2 = NN.importPython(code).graph;
+      if (cnt(h) !== n0 || cnt(h2) !== n0) { console.error(`explode ${f}: ${cnt(h)} / ${cnt(h2)} parameters, expected ${n0}`); process.exit(1); }
+      if (overlaps(h)) { console.error(`explode ${f}: ${overlaps(h)} layers overlap`); process.exit(1); }
+      const keys = NN.viewKeys(h); if (new Set(keys.values()).size !== h.nodes.length) { console.error(`explode ${f}: view keys aren't unique`); process.exit(1); }
+      // a block with more than three copies keeps the rest as a block; drawing it out (by name) leaves none of it
+      for (const b of h.nodes.filter(n => n.type === 'block' && n.params.name)) {
+        const all = NN.explodeBlocks(g, { open: { [b.params.name]: true } });
+        if (all.nodes.some(n => n.type === 'block' && n.params.name === b.params.name) || cnt(all) !== n0) { console.error(`explode ${f}: drawing out ${b.params.name} didn't`); process.exit(1); }
+        break;
+      }
+      // a saved view's positions come back on a fresh explosion, by code name
+      const v = NN.viewPositions(h), k0 = Object.keys(v)[3]; v[k0] = [12345, -678];
+      const h3 = NN.explodeBlocks(g); NN.applyViewPositions(h3, v);
+      if (!h3.nodes.some(n => n.x === 12345 && n.y === -678)) { console.error(`explode ${f}: a saved position didn't come back`); process.exit(1); }
+    }
+  }
+  console.log('explode and views OK');
 }

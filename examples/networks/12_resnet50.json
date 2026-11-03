@@ -1005,6 +1005,174 @@
     },
     "lib": "blocks/resnet_bottleneck_down.json"
    }
+  },
+  "views": {
+   "Exploded": {
+    "kind": "exploded",
+    "open": {},
+    "positions": {
+     "input|n:x|1": [
+      145,
+      648
+     ],
+     "conv|n:conv1": [
+      145,
+      567
+     ],
+     "norm|n:bn1": [
+      145,
+      486
+     ],
+     "act|relu|1": [
+      145,
+      410
+     ],
+     "pool|max|1": [
+      145,
+      334
+     ],
+     "block|n:layer1": [
+      867,
+      250
+     ],
+     "block|n:layer2_down": [
+      867,
+      344
+     ],
+     "block|n:layer2": [
+      867,
+      438
+     ],
+     "block|n:layer3_down": [
+      867,
+      532
+     ],
+     "block|n:layer3": [
+      867,
+      626
+     ],
+     "block|n:layer4_down": [
+      867,
+      720
+     ],
+     "block|n:layer4": [
+      867,
+      814
+     ],
+     "pool|adaptive|1": [
+      867,
+      896
+     ],
+     "reshape|e c h w -> e (c h w)|1": [
+      867,
+      973
+     ],
+     "linear|n:fc": [
+      867,
+      1054
+     ],
+     "output|n:logits|1": [
+      727,
+      1135
+     ],
+     "loss|cross_entropy|1": [
+      936,
+      1135
+     ],
+     "input|n:y|1": [
+      1064,
+      1135
+     ],
+     "conv|n:layer1_down_conv1": [
+      349,
+      648
+     ],
+     "norm|n:layer1_down_bn1": [
+      349,
+      579
+     ],
+     "act|relu|2": [
+      349,
+      515
+     ],
+     "conv|n:layer1_down_conv2": [
+      349,
+      446
+     ],
+     "norm|n:layer1_down_bn2": [
+      349,
+      377
+     ],
+     "act|relu|3": [
+      349,
+      313
+     ],
+     "conv|n:layer1_down_conv3": [
+      349,
+      244
+     ],
+     "norm|n:layer1_down_bn3": [
+      349,
+      175
+     ],
+     "conv|n:layer1_down_down_conv": [
+      145,
+      253
+     ],
+     "norm|n:layer1_down_down_bn": [
+      145,
+      172
+     ],
+     "binop|+|1": [
+      349,
+      100
+     ],
+     "act|relu|4": [
+      430,
+      100
+     ],
+     "conv|n:layer1_0_conv1": [
+      587,
+      648
+     ],
+     "norm|n:layer1_0_bn1": [
+      587,
+      579
+     ],
+     "act|relu|5": [
+      587,
+      515
+     ],
+     "conv|n:layer1_0_conv2": [
+      587,
+      446
+     ],
+     "norm|n:layer1_0_bn2": [
+      587,
+      377
+     ],
+     "act|relu|6": [
+      587,
+      313
+     ],
+     "conv|n:layer1_0_conv3": [
+      587,
+      244
+     ],
+     "norm|n:layer1_0_bn3": [
+      587,
+      175
+     ],
+     "binop|+|2": [
+      587,
+      100
+     ],
+     "act|relu|7": [
+      867,
+      168
+     ]
+    }
+   }
   }
  }
 }

@@ -33,7 +33,8 @@ def new_page(browser, storage=None):
     pg = ctx.new_page()
     errs = []
     pg.on('pageerror', lambda e: errs.append(str(e)))
-    pg.on('dialog', lambda d: (errs.append('dialog: ' + d.message), d.dismiss()))
+    # the only dialog the app should open is the name prompt for a saved view (answered "Exploded")
+    pg.on('dialog', lambda d: d.accept('Exploded') if d.type == 'prompt' and 'view' in d.message else (errs.append('dialog: ' + d.message), d.dismiss()))
     pg.goto(URL)
     pg.wait_for_function('() => window.__tc && window.__tc.S && window.__tc.S.g', timeout=15000)
     return ctx, pg, errs
@@ -74,6 +75,43 @@ with sync_playwright() as p:
             elif known:
                 err_shown = err_shown or f'no longer "{known}…": update VARIANCE_UNSUPPORTED'
             check(ok and len(errs) == before and not err_shown, f"{e['file']}: variance plot" + (f' {errs[before:]}' if len(errs) > before else '') + (f' says "{err_shown}"' if err_shown else ''))
+    ctx.close()
+
+    # ── Explode blocks and saved views ──
+    ctx, pg, errs = new_page(browser)
+    for f in [e['file'] for e in entries if e['kind'] == 'network']:
+        n = pg.evaluate("async (f) => { const t = window.__tc; await t.openLibrary(t.S.library.find(x => x.file === f)); return t.S.root.nodes.some(n => n.type === 'block'); }", f)
+        if not n:
+            continue
+        before = len(errs)
+        res = pg.evaluate("() => { const t = window.__tc; t.explodeModel(); return [t.S.root.name, !!t.S.root.derived, t.S.root.nodes.length, document.querySelectorAll('svg [data-node]').length, /Could not generate/.test(document.querySelector('#code').textContent)]; }")
+        check(res[1] and res[2] > 0 and res[3] > 0 and not res[4] and len(errs) == before, f'{f}: Explode blocks opens {res[0]} ({res[2]} layers)' + (f' {errs[before:]}' if len(errs) > before else ''))
+    # draw out, fold back, save as a view, reopen it where it was left
+    pg.evaluate("async () => { const t = window.__tc; await t.openLibrary(t.S.library.find(x => x.file === 'networks/07_gpt2.json')); t.explodeModel(); }")
+    kept = pg.evaluate("() => window.__tc.S.root.nodes.filter(n => n.type === 'block').map(n => n.params.name)")
+    pg.evaluate("(nm) => window.__tc.rederive({ [nm]: true })", kept[0])
+    drawn = pg.evaluate("() => window.__tc.S.root.nodes.filter(n => n.type === 'block').length")
+    pg.evaluate("(nm) => window.__tc.rederive({ [nm]: false })", kept[0])
+    folded = pg.evaluate("() => window.__tc.S.root.nodes.filter(n => n.type === 'block').length")
+    check(drawn == 0 and folded == 1, f'draw out and fold back ({kept[0]}: {drawn} blocks drawn out, then {folded} folded)')
+    pg.evaluate("(nm) => window.__tc.rederive({ [nm]: undefined })", kept[0])
+    pg.evaluate("() => { const t = window.__tc, n = t.S.g.nodes.find(n => n.type === 'linear'); n.x = 4321; n.y = -1234; t.render(); }")
+    pg.click('#zView'); pg.click('[data-act="vsave"]')
+    pg.click('#zView'); pg.click('[data-act="vback"]')
+    views = pg.evaluate("() => Object.keys(window.__tc.S.root.views || {})")
+    pg.evaluate("() => window.__tc.explodeModel()")
+    back = pg.evaluate("() => window.__tc.S.g.nodes.some(n => n.x === 4321 && n.y === -1234)")
+    pg.reload(); pg.wait_for_function('() => window.__tc && window.__tc.S.g')
+    kept_views = pg.evaluate("() => window.__tc.S.docs.map(d => (d.id === window.__tc.S.cur ? window.__tc.S.root : d.root)).some(r => r.views && r.views.Exploded)")
+    check(views == ['Exploded'] and back and kept_views and not errs, f'a saved exploded view reopens as it was saved, and is kept (views {views})' + (f' {errs}' if errs else ''))
+    # an arrangement of a model saved as a view comes back after the layers have been moved
+    pg.evaluate("async () => { const t = window.__tc; await t.openLibrary(t.S.library.find(x => x.file === 'networks/01_residual_mlp.json')); }")
+    pg.click('#zView'); pg.click('[data-act="vsave"]')
+    name = pg.evaluate("() => Object.keys(window.__tc.S.root.views || {})[0]")
+    pos0 = pg.evaluate("() => window.__tc.S.g.nodes.map(n => [n.x, n.y])")
+    pg.evaluate("() => { const t = window.__tc; t.S.g.nodes.forEach(n => { n.x += 50; }); t.render(); }")
+    pg.evaluate("(nm) => window.__tc.applyView(nm)", name)
+    check(pg.evaluate("() => window.__tc.S.g.nodes.map(n => [n.x, n.y])") == pos0 and not errs, f'an arrangement saved as a view ({name}) comes back')
     ctx.close()
 
     # ── damaged saved state ──

@@ -790,6 +790,150 @@
      "ff": "MLP width"
     }
    }
+  },
+  "views": {
+   "Exploded": {
+    "kind": "exploded",
+    "open": {},
+    "positions": {
+     "input|n:idx|1": [
+      112,
+      186
+     ],
+     "embed|n:wte": [
+      112,
+      93
+     ],
+     "embed|n:wpe": [
+      312,
+      186
+     ],
+     "binop|+|1": [
+      312,
+      100
+     ],
+     "dropout|n:drop": [
+      408,
+      100
+     ],
+     "block|n:h": [
+      1493,
+      180
+     ],
+     "norm|n:ln_f": [
+      1493,
+      262
+     ],
+     "linear|n:lm_head": [
+      1493,
+      350
+     ],
+     "output|n:logits|1": [
+      1624,
+      443
+     ],
+     "loss|cross_entropy|1": [
+      1424,
+      443
+     ],
+     "norm|n:h_0_ln_1": [
+      793,
+      954
+     ],
+     "linear|n:h_0_q_proj": [
+      655,
+      879
+     ],
+     "linear|n:h_0_k_proj": [
+      793,
+      879
+     ],
+     "linear|n:h_0_v_proj": [
+      931,
+      879
+     ],
+     "reshape|e t (h d) -> e h t d|1": [
+      602,
+      798
+     ],
+     "reshape|e t (h d) -> e h t d|2": [
+      793,
+      798
+     ],
+     "reshape|e t (h d) -> e h t d|3": [
+      984,
+      798
+     ],
+     "binop|*|1": [
+      705,
+      721
+     ],
+     "reshape|e h t d -> e h d t|1": [
+      862,
+      721
+     ],
+     "binop|@|1": [
+      793,
+      652
+     ],
+     "mask||1": [
+      793,
+      590
+     ],
+     "act|softmax|1": [
+      793,
+      526
+     ],
+     "dropout|n:h_0_attn_drop": [
+      793,
+      462
+     ],
+     "binop|@|2": [
+      793,
+      400
+     ],
+     "reshape|e h t d -> e t (h d)|1": [
+      793,
+      332
+     ],
+     "linear|n:h_0_attn_proj": [
+      793,
+      250
+     ],
+     "dropout|n:h_0_resid_drop": [
+      793,
+      175
+     ],
+     "binop|+|2": [
+      793,
+      100
+     ],
+     "norm|n:h_0_ln_2": [
+      1208,
+      475
+     ],
+     "linear|n:h_0_c_fc": [
+      1208,
+      400
+     ],
+     "act|gelu_tanh|1": [
+      1208,
+      325
+     ],
+     "linear|n:h_0_c_proj": [
+      1208,
+      250
+     ],
+     "dropout|n:h_0_mlp_drop": [
+      1208,
+      175
+     ],
+     "binop|+|3": [
+      1208,
+      100
+     ]
+    }
+   }
   }
  }
 }
