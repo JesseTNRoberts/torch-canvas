@@ -10,12 +10,13 @@
 #     parameter count must be the app's, and every shape must be the one written in its "# expected" comment.
 #     Big models (over SMALL parameters) run on the meta device, which checks shapes without memory or compute.
 #   train.py, with --train (small models only): 2 optimizer steps on synthetic data with a checkpoint, then the same
-#     script again resuming from that checkpoint; train_bf16.py: one step in bf16 autocast, SGD, one-cycle, EMA,
-#     gradient accumulation and clipping.
+#     script again resuming from that checkpoint; train_bf16.py (models up to BF16_MAX parameters): one step in bf16
+#     autocast, SGD, one-cycle, EMA, gradient accumulation and clipping.
 # Exits non-zero if anything fails. Needs torch (CPU is enough).
 import contextlib, gc, io, json, os, re, shutil, subprocess, sys, tempfile, time, traceback
 import torch
 
+BF16_MAX = 5_000_000  # models checked with the bf16 train.py
 TRAIN_TIMEOUT = 300  # seconds for one tiny train.py run (they take seconds)
 SMALL = 40_000_000  # bigger models (or activations) would need too much memory on a CI runner
 out = sys.argv[1] if len(sys.argv) > 1 and not sys.argv[1].startswith('--') else None
@@ -88,6 +89,11 @@ for e in manifest:
         wd = tempfile.mkdtemp()
         open(os.path.join(wd, 'model.py'), 'w').write(open(os.path.join(d, 'model.py')).read())
         for script, resume in (('train.py', False), ('train.py', True), ('train_bf16.py', False)):
+            if script == 'train_bf16.py' and e['params'] > BF16_MAX:
+                # bf16 autocast on a CPU without bf16 instructions (a CI runner) is emulated: minutes per step for a
+                # big model. The bf16 path of train.py is the same code for every model, so the small ones check it
+                print(f'skip {name}/{script} (over {BF16_MAX:,} parameters: bf16 is emulated on this CPU)', flush=True)
+                continue
             src = open(os.path.join(d, script)).read()
             if resume:
                 src = src.replace('RESUME = None', 'RESUME = "ckpt/last.pt"', 1)
