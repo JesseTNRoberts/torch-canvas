@@ -1141,9 +1141,10 @@ const NN = (() => {
     const { shapes } = inferShapes(g), ix = index(g);
     const flat = { name: g.name, symbols: Object.assign({}, g.symbols), nodes: [], edges: [], groups: (g.groups || []).slice(), blocks: g.blocks };
     const outOf = new Map(), counts = {};
-    for (const n of g.nodes) if (n.type !== 'block') flat.nodes.push(n);
+    const expand = n => n.type === 'block' && (!o.only || o.only.has(n.id)); // o.only: just these uses (the rest stay blocks)
+    for (const n of g.nodes) if (!expand(n)) flat.nodes.push(n);
     for (const n of g.nodes) {
-      if (n.type !== 'block') continue;
+      if (!expand(n)) continue;
       const blk = g.blocks && g.blocks[n.params.block]; if (!blk) continue;
       const outerSrc = ix.inKeys.get(n.id), inS = outerSrc.map(s => (s ? shapes.get(s) : null));
       const map = bindBlock(g, n, inS);
@@ -1180,7 +1181,7 @@ const NN = (() => {
       }
       outOf.set(n.id, producers);
     }
-    for (const e of g.edges) { if (ix.byId.get(e.to) && ix.byId.get(e.to).type === 'block') continue; const c = Object.assign({}, e); c.from = srcKey(e); delete c.out; flat.edges.push(c); }
+    for (const e of g.edges) { if (ix.byId.get(e.to) && expand(ix.byId.get(e.to))) continue; const c = Object.assign({}, e); c.from = srcKey(e); delete c.out; flat.edges.push(c); }
     // a key "use@k" becomes the layer inside the block that produces its output k (also through chained uses)
     // (a key stays "id@k" when it is output k of a block nested inside, which is still a block node)
     const resolve = f => { let i = 0; while (f && i++ < 1000) { const [id, k] = splitKey(f); if (!outOf.has(id)) return f; f = outOf.get(id)[k]; } return f || null; };
@@ -1188,7 +1189,7 @@ const NN = (() => {
     flat.edges = flat.edges.filter(e => e.from);
     for (const gr of flat.groups) if (gr.outs) { gr.outs = gr.outs.map(resolve); gr.extIn = gr.extIn.map(f => (f ? resolve(f) : null)); }
     const outsOf = new Map([...outOf].map(([id, ps]) => [id, ps.map(p => (p ? resolve(p) : null))]));
-    if (o.shallow || !flat.nodes.some(n => n.type === 'block')) return { flat, origin, outsOf };
+    if (o.shallow || o.only || !flat.nodes.some(n => n.type === 'block')) return { flat, origin, outsOf };
     // deeper levels: a layer inside a nested block belongs to the outermost use
     const d = expandBlocks(flat), org = new Map(origin);
     for (const [id, o2] of d.origin) { const o1 = origin.get(o2.use); org.set(id, o1 ? { use: o1.use, inner: o2.inner, rep: o1.rep } : o2); }
@@ -3512,6 +3513,248 @@ const NN = (() => {
     return out;
   }
 
-  return { sanitizeGraph, carryDiagram, lowerReshapes, reshapeSteps, reshapeStepCode, reshapeShape, reshapeAxisSource, stepsToPattern, reshapeDescribe, reshapePlan, stepsShape, parseSizes, HELPER_OPS, indexInputRange, FREEZABLE, helperDoc, srcKey, splitKey, blockOutputs, blockClassCode, LOSSES, lossParts, lossPlan, weightShape, tieOwner, blockParams, blockInputs, expandBlocks, instantiateBlock, presetResidualMLPBlocks, NORMS, linkSizes, syncWidths, mergeIntoSource, uid, BATCH, DEFAULTS, ACTS, INITS, initCode, makeNode, inCount, isCircle, index, topo, evalDim, parseShape, inferShapes, paramCount, propagateWidth, generate, importPython, importFx, autoLayout, nodeSize, nodeLabel, presetResidualMLP, parse, identsIn };
+
+  // ── explode: the model with its blocks drawn out, as a new graph (the model itself is left as it is) ──
+  // A block with at most `few` copies in the model (counting a repeated use × k as k) is drawn out everywhere. One with
+  // more has its first copy drawn out, so its inside can be read, and the rest stay a block after it (a use × k becomes
+  // the drawn-out copy, then the block × (k − 1)). Blocks inside drawn-out copies follow the same rule, level by level.
+  // Layers keep their nicknames and notes; their code names get the use's name in front (block1.conv1 → block1_conv1),
+  // a frozen block's layers are frozen, and the layers of a block that follows another (EMA) follow its layers.
+  function explodeBlocks(g0, o = {}) {
+    const few = o.few ?? 3, clone = x => JSON.parse(JSON.stringify(x)), sz = o.sz || nodeSize;
+    const g = clone(g0); delete g.libHost; delete g.libBlock;
+    const kept = new Set(); // blocks with many copies: one drawn out already, the rest stay
+    // a use × k becomes a use of one copy (returned, to be drawn out) chained before the use × (k − 1)
+    const splitFirst = n => {
+      const k = Math.max(1, Math.floor(+n.params.repeat || 1)); if (k === 1) return n.id;
+      const first = clone(n); first.id = uid('n'); first.params.repeat = 1; first.params.name = n.params.name ? n.params.name + '_0' : '';
+      // the first copy takes the use's place; the rest go just above it
+      const h = sz(n).h + 40, top = n.y - sz(n).h / 2; // a row inserted above it, for the rest
+      for (const m of g.nodes) if (m.y < top) m.y -= h;
+      n.y = first.y - h;
+      n.params.repeat = k - 1; g.nodes.push(first);
+      // the first copy takes the chain's input; the rest take its output (other inputs are shared by every copy)
+      for (const e of g.edges.filter(e => e.to === n.id)) { if (e.port === 0) e.to = first.id; else g.edges.push(Object.assign({}, e, { id: uid('e'), to: first.id })); }
+      g.edges.push({ id: uid('e'), from: first.id, to: n.id, port: 0 });
+      // the rest still follow the rest of their leader; the first copy is paired by the caller
+      return first.id;
+    };
+    for (let level = 0; level < 12; level++) {
+      const uses = g.nodes.filter(n => n.type === 'block' && g.blocks && g.blocks[n.params.block]);
+      if (!uses.length) break;
+      const copies = {}; for (const n of uses) copies[n.params.block] = (copies[n.params.block] || 0) + Math.max(1, Math.floor(+n.params.repeat || 1));
+      const { order } = topo(g, index(g)), at = new Map(order.map((id, i) => [id, i]));
+      const only = new Set();
+      for (const n of uses.slice().sort((a, b) => (at.get(a.id) ?? 0) - (at.get(b.id) ?? 0))) {
+        const b = n.params.block;
+        if (kept.has(b)) continue;
+        if (copies[b] <= few) { only.add(n.id); continue; }
+        // many copies: draw out this one copy and keep the rest as blocks
+        kept.add(b);
+        only.add(splitFirst(n));
+      }
+      // a use that follows another (EMA), or is followed, is drawn out together with its partner, copy for copy
+      for (let changed = true; changed;) {
+        changed = false;
+        for (const n of g.nodes) {
+          if (n.type !== 'block' || !n.params.follows) continue;
+          const L = g.nodes.find(m => m.id === n.params.follows); if (!L || L.type !== 'block') continue;
+          if (only.has(n.id) === only.has(L.id)) continue;
+          const [x, y] = only.has(n.id) ? [n, L] : [L, n]; // x is drawn out, y isn't yet
+          const kx = Math.max(1, Math.floor(+x.params.repeat || 1)), ky = Math.max(1, Math.floor(+y.params.repeat || 1));
+          if (ky > kx) { const f = splitFirst(y); only.add(f); const fn = g.nodes.find(m => m.id === f); if (y === n) fn.params.follows = x.id; else n.params.follows = fn.id; }
+          else only.add(y.id);
+          changed = true;
+        }
+      }
+      if (!only.size) break;
+      const at0 = new Map([...only].map(id => { const n = g.nodes.find(m => m.id === id); return [id, { x: n.x, y: n.y, s: sz(n) }]; }));
+      const { flat } = expandBlocks(g, { only });
+      // the drawn-out uses' groups go: their layers become the model's own, named after the use
+      const drawn = flat.groups.filter(gr => gr.blk && only.has(String(gr.id).split('#')[0]));
+      const byId = new Map(flat.nodes.map(n => [n.id, n]));
+      for (const gr of drawn) {
+        for (const id of gr.nodes) {
+          const n = byId.get(id); if (!n) continue;
+          if (n.params.name) n.params.name = `${gr.attr}_${n.params.name}`;
+          else if (n.type === 'block') n.params.name = gr.attr + '_' + (g.blocks[n.params.block] ? g.blocks[n.params.block].name.toLowerCase() : 'block');
+          if (gr.frozen && FREEZABLE.has(n.type)) n.params.frozen = true;
+          if (gr.follows) { // the same layer in the use it follows
+            const pre = id.startsWith(gr.id.split('#')[0] + '::') ? gr.id.split('#')[0] : null;
+            const lid = pre ? id.replace(pre + '::', String(gr.follows) + '::') : null;
+            if (lid && byId.has(lid) && (FREEZABLE.has(n.type) || n.type === 'block')) { n.params.follows = lid; n.params.momentum = gr.momentum ?? '0.996'; n.params.momentum_end = gr.momentum_end ?? '1.0'; delete n.params.frozen; }
+          }
+        }
+      }
+      g.nodes = flat.nodes; g.edges = flat.edges; g.groups = (flat.groups || []).filter(gr => !drawn.includes(gr) && !gr.blk);
+      // each drawn-out copy is laid out as its block's own diagram, put where the use was, with room made as if a row
+      // and a column were inserted in the drawing there: everything above the use moves up by the extra height, and
+      // everything left and right of it moves out by half the extra width each, so the rest of the drawing keeps its
+      // shape. (The caller may lay the whole model out again by the house conventions instead.)
+      const pending = new Set(drawn.flatMap(gr => gr.nodes));
+      const virt = new Map([...at0].map(([id, u]) => [id, { x: u.x, y: u.y, s: u.s }])); // uses not opened yet
+      const ordered = drawn.slice().sort((a2, b2) => (at.get(String(a2.id).split('#')[0]) ?? 0) - (at.get(String(b2.id).split('#')[0]) ?? 0));
+      for (const gr of ordered) {
+        const useId = String(gr.id).split('#')[0], u = virt.get(useId); if (!u) continue;
+        const ms = gr.nodes.map(id => byId.get(id)).filter(Boolean); if (!ms.length) continue;
+        let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+        for (const m of ms) { const q = sz(m); x0 = Math.min(x0, m.x - q.w / 2); x1 = Math.max(x1, m.x + q.w / 2); y0 = Math.min(y0, m.y - q.h / 2); y1 = Math.max(y1, m.y + q.h / 2); }
+        const dh = Math.max(0, y1 - y0 - u.s.h), dw = Math.max(0, x1 - x0 - u.s.w), top = u.y - u.s.h / 2, l = u.x - u.s.w / 2, r = u.x + u.s.w / 2;
+        const move = m => { const ox = m.x, oy = m.y; if (m.y < top) m.y -= dh; if (m.x > r) m.x += dw / 2; else if (m.x < l) m.x -= dw / 2; return [m.x - ox, m.y - oy]; };
+        for (const m of g.nodes) if (!pending.has(m.id)) { const [mx, my] = move(m); if (m.params.split && typeof m.params.split === 'object') { m.params.split.x += mx; m.params.split.y += my; } }
+        const self = virt.get(useId); virt.delete(useId); for (const [, v] of virt) move(v);
+        const dx = u.x - (x0 + x1) / 2, dy = u.y + u.s.h / 2 - y1;
+        for (const m of ms) { m.x += dx; m.y += dy; pending.delete(m.id); if (m.params.split && typeof m.params.split === 'object') { m.params.split.x += dx; m.params.split.y += dy; } }
+        // a repeated use drawn out whole: its next copy goes just above this one, in a row inserted for it
+        if (ordered.some(o2 => o2 !== gr && pending.has(o2.nodes[0]) && String(o2.id).split('#')[0] === useId)) {
+          const h = u.s.h + 40, top2 = y0 + dy;
+          for (const m of g.nodes) if (!pending.has(m.id) && m.y < top2) m.y -= h;
+          for (const [, v] of virt) if (v.y < top2) v.y -= h;
+          virt.set(useId, { x: self.x, y: top2 - 40 - u.s.h / 2, s: u.s });
+        }
+      }
+      // a follower whose leader stayed a block, or the reverse: the tie can't be per layer, so it is left out
+      for (const n of g.nodes) if (n.params.follows && !g.nodes.some(m => m.id === n.params.follows)) { delete n.params.follows; delete n.params.momentum; delete n.params.momentum_end; }
+    }
+    // blocks nothing uses any more go; ids become ordinary ones (and ties, followers and wires follow them)
+    const used = new Set(); const walk = gg => { for (const n of gg.nodes) if (n.type === 'block' && g.blocks && g.blocks[n.params.block] && !used.has(n.params.block)) { used.add(n.params.block); walk(g.blocks[n.params.block].graph); } }; walk(g);
+    if (g.blocks) { for (const k of Object.keys(g.blocks)) if (!used.has(k)) delete g.blocks[k]; if (!Object.keys(g.blocks).length) delete g.blocks; }
+    const idMap = new Map(g.nodes.map(n => [n.id, uid('n')]));
+    for (const n of g.nodes) { n.id = idMap.get(n.id); for (const f of ['tie', 'follows']) if (n.params[f] && idMap.has(n.params[f])) n.params[f] = idMap.get(n.params[f]); }
+    g.edges = g.edges.filter(e => idMap.has(e.from) && idMap.has(e.to)).map(e => { const c = Object.assign({}, e, { id: uid('e'), from: idMap.get(e.from), to: idMap.get(e.to) }); delete c.route; delete c.lbl; return c; });
+    for (const n of g.nodes) delete n.params.tie_x; // (lanes of the old drawing)
+    for (const gr of g.groups || []) gr.nodes = gr.nodes.map(id => idMap.get(id)).filter(Boolean);
+    return g;
+  }
+
+
+  // ── residual-stream layout (the Residual MLP / Llama convention) ──
+  // The stream runs left → right along the top row through its + nodes; each sublayer is a column below its +, read
+  // upward; layers between the input and the first + (a stem, embeddings) rise from the input at the bottom left; layers
+  // after a + that the stream passes through (a pool, a post-norm, a block × k) sit on the top row; what follows the last
+  // + (the head) runs down a column on the right. Positions are set in place; returns false, changing nothing, when the
+  // model isn't one residual stream (fewer than two + on one path, a fifth of the layers off it, or a second stream
+  // with adds of its own feeding a column), so the caller can keep another layout. sz(node) → { w, h }.
+  function streamLayout(g, sz = nodeSize) {
+    const ix = index(g), byId = new Map(g.nodes.map(n => [n.id, n]));
+    const P = id => (ix.ins.get(id) || []).filter(Boolean).map(k => splitKey(k)[0]);
+    const C = id => [...new Set((ix.outs.get(id) || []).map(o => o.to))];
+    const memo = new Map(), anc = id => { if (memo.has(id)) return memo.get(id); const s = new Set(); memo.set(id, s); for (const p of P(id)) { s.add(p); anc(p).forEach(a => s.add(a)); } return s; };
+    const capW = n => (n.params.title && isCircle(n) ? n.params.title.length * 6.6 + 14 : 0); // a circle's nickname sits beside it
+    const W = n => sz(n).w + capW(n), H = n => sz(n).h;
+    const adds = g.nodes.filter(n => n.type === 'binop' && n.params.op === '+' && P(n.id).length === 2);
+    const inputs = g.nodes.filter(n => n.type === 'input');
+    if (adds.length < 2 || !inputs.length) return false;
+    // the main input: the one that reaches the most adds
+    const main = inputs.slice().sort((a, b) => adds.filter(x => anc(x.id).has(b.id)).length - adds.filter(x => anc(x.id).has(a.id)).length)[0];
+    const steps = [], used = new Set([main.id]), stem = [];
+    let cur = main.id;
+    for (let guard = 0; guard <= adds.length; guard++) {
+      // the next add on the stream: reached from cur, with no other unused add between
+      const cand = adds.filter(a => !used.has(a.id) && anc(a.id).has(cur));
+      const A = cand.find(a => !cand.some(b => b !== a && anc(a.id).has(b.id) && anc(b.id).has(cur)));
+      if (!A) break;
+      const [p0, p1] = P(A.id);
+      // the skip: cur itself, or the shorter path from cur (a stem, a projection shortcut)
+      let skipIn = p0 === cur ? p0 : p1 === cur ? p1 : null, branchIn;
+      if (skipIn) branchIn = skipIn === p0 ? p1 : p0;
+      else { const n0 = [...anc(p0)].filter(a => anc(a).has(cur) || a === cur).length, n1 = [...anc(p1)].filter(a => anc(a).has(cur) || a === cur).length; skipIn = n0 <= n1 ? p0 : p1; branchIn = skipIn === p0 ? p1 : p0; }
+      const desc = id => id === cur || anc(id).has(cur);
+      // layers both sides of the add come through (a stem before the first add) are the stream itself, not the branch
+      const upTo = id => new Set([...anc(id), id]), u0 = upTo(p0), u1 = upTo(p1);
+      const common = [...u0].filter(id => u1.has(id) && id !== cur && desc(id) && !used.has(id));
+      if (common.length) { common.forEach(id => used.add(id)); stem.push(...common.filter(id => !stem.includes(id))); }
+      const branch = new Set([...anc(branchIn), branchIn].filter(id => id !== cur && desc(id) && !used.has(id)));
+      const shortcut = skipIn === cur ? new Set() : new Set([...anc(skipIn), skipIn].filter(id => id !== cur && desc(id) && !used.has(id) && !branch.has(id)));
+      // what the branch needs that doesn't come from the stream (memory, masks, positions, parameters)
+      const side = new Set(); for (const id of branch) for (const a of anc(id)) if (!desc(a) && !used.has(a) && a !== main.id) side.add(a);
+      [...branch, ...shortcut, ...side, A.id].forEach(id => used.add(id));
+      // the stream after the add: single-consumer layers it passes through, until it forks or the next add
+      const after = []; let s = A.id;
+      for (;;) { const c = C(s); if (c.length !== 1) break; const nx = byId.get(c[0]); if (!nx || used.has(nx.id) || nx.type === 'output' || nx.type === 'loss' || (nx.type === 'binop' && nx.params.op === '+')) break; after.push(nx.id); used.add(nx.id); s = nx.id; }
+      // inputs a column needs that come with residual adds of their own are a second stream (a decoder beside its
+      // encoder, a vision tower beside a language model): not this layout
+      if ([...side].some(id => adds.some(a2 => a2.id === id))) return false;
+      steps.push({ A: A.id, branch, branchIn, shortcut, side, after });
+      cur = s;
+    }
+    if (steps.length < 2) return false;
+    // the head: the last step's after-layers and everything downstream of the stream's end that isn't placed yet
+    const last = steps[steps.length - 1], tail = new Set(last.after.splice(0));
+    const q = [last.A, ...tail]; while (q.length) { const id = q.pop(); for (const c of C(id)) if (!used.has(c) || tail.has(c)) { if (!tail.has(c)) { tail.add(c); q.push(c); } } }
+    tail.forEach(id => used.add(id));
+    if (used.size < g.nodes.length * 0.8) return false;
+
+    const pos = new Map(), TOP = 100, GAPX = 28, GAPY = 34;
+    const layerOf = set => { const d = new Map(); const depth = id => { if (d.has(id)) return d.get(id); d.set(id, 1); let m = 0; for (const p of P(id)) if (set.has(p)) m = Math.max(m, depth(p)); d.set(id, m + 1); return m + 1; }; for (const id of set) depth(id); return d; };
+    // a column: rows by depth, the deepest just below the top row
+    const column = set => {
+      const d = layerOf(set), maxD = Math.max(0, ...d.values()), rows = [];
+      for (const [id, k] of d) (rows[k] = rows[k] || []).push(id);
+      const rowW = r => (r || []).reduce((t, id) => t + W(byId.get(id)), 0) + Math.max(0, (r || []).length - 1) * GAPX;
+      const width = Math.max(0, ...rows.filter(Boolean).map(rowW));
+      const ys = []; let y = TOP + 13, prevH = 26;
+      for (let k = maxD; k >= 1; k--) { const h = Math.max(...rows[k].map(id => H(byId.get(id)))); y += prevH / 2 + GAPY + h / 2; ys[k] = y; prevH = h; }
+      const place = xl => {
+        const cx = xl + width / 2;
+        for (let k = 1; k <= maxD; k++) {
+          const r = rows[k].slice(), bary = id => { const ps = P(id).filter(p => pos.has(p)); return ps.length ? ps.reduce((t, p) => t + pos.get(p)[0], 0) / ps.length : byId.get(id).x; };
+          r.sort((a, b) => bary(a) - bary(b) || byId.get(a).x - byId.get(b).x);
+          let x = cx - rowW(r) / 2; for (const id of r) { const nd = byId.get(id), w = W(nd); pos.set(id, [Math.round(x + capW(nd) + sz(nd).w / 2), Math.round(ys[k])]); x += w + GAPX; }
+        }
+        return { bottom: ys[1] ?? TOP };
+      };
+      return { width, place };
+    };
+    const mainN = byId.get(main.id);
+    const lane = Math.max(W(mainN), ...stem.map(id => W(byId.get(id))), ...steps.flatMap(st => [...st.shortcut].map(id => W(byId.get(id)))));
+    let X = 60 + W(mainN) / 2 + lane / 2 + 60, lastX = 0, firstBottom = null, bottom = TOP;
+    for (const st of steps) {
+      // side inputs (inputs, parameters) go under the column; what the branch computes from them joins it
+      const sideIn = new Set([...st.side].filter(id => !P(id).length)), colSet = new Set([...st.branch, ...[...st.side].filter(id => !sideIn.has(id))]);
+      const c = column(colSet), r = c.place(X); if (firstBottom == null) firstBottom = r.bottom; bottom = Math.max(bottom, r.bottom);
+      let right = -Infinity;
+      const want = id => { const cons = C(id).filter(t => pos.has(t)); return cons.length ? Math.min(...cons.map(t => pos.get(t)[0])) : X; };
+      for (const id of [...sideIn].sort((a, b) => want(a) - want(b))) { const w = W(byId.get(id)), cx = Math.max(want(id), right + GAPX + w / 2); pos.set(id, [Math.round(cx), Math.round(r.bottom + 100)]); right = cx + w / 2; }
+      const top = pos.get(st.branchIn), ax = top ? top[0] : X + c.width / 2;
+      pos.set(st.A, [ax, TOP]);
+      let x = ax + 13; for (const id of st.after) { const w = W(byId.get(id)); x += 40 + w / 2; pos.set(id, [Math.round(x), TOP]); x += w / 2; }
+      lastX = x; X = Math.max(X + c.width, x) + 70;
+    }
+    // the main input: level with the first column's bottom (just below it when it feeds several layers there)
+    const feeds = C(main.id).filter(t => steps[0].branch.has(t)).length;
+    pos.set(main.id, [Math.round(60 + W(mainN) / 2), Math.round((firstBottom ?? TOP + 300) + (feeds > 1 ? 80 : 0))]);
+    // the stem (layers between the input and the stream's first fork), then any projection shortcut, rise from the
+    // input along the left lane
+    let [laneX, laneY] = pos.get(main.id), laneH = H(mainN);
+    const rise = set => {
+      const d = layerOf(set);
+      for (let k = 1; k <= Math.max(0, ...d.values()); k++) for (const [id, kk] of d) if (kk === k && !pos.has(id)) { const h = H(byId.get(id)); laneY -= laneH / 2 + 46 + h / 2; pos.set(id, [Math.round(laneX), Math.round(laneY)]); laneH = h; }
+    };
+    if (stem.length) rise(new Set(stem));
+    for (const st of steps) if (st.shortcut.size) rise(st.shortcut);
+    // the head: rows going down, right of the last add (a layer's row is one below its deepest input in the head)
+    const hd = new Map(); const hdep = id => { if (hd.has(id)) return hd.get(id); hd.set(id, 0); let m = 0; for (const p of P(id)) if (tail.has(p)) m = Math.max(m, hdep(p) + 1); hd.set(id, m); return m; };
+    for (const id of tail) hdep(id);
+    const hrows = []; for (const [id, k] of hd) (hrows[k] = hrows[k] || []).push(id);
+    const hrowW = r => r.reduce((t, id) => t + W(byId.get(id)), 0) + (r.length - 1) * GAPX;
+    const hw = Math.max(0, ...hrows.filter(Boolean).map(hrowW)), hx = Math.round(Math.max(lastX + 40, X - 30) + hw / 2); // right of the last column
+    let y = TOP, prevH = 26;
+    for (const r of hrows) {
+      if (!r) continue;
+      const h = Math.max(...r.map(id => H(byId.get(id)))); y += prevH / 2 + 40 + h / 2; prevH = h;
+      const bary = id => { const ps = P(id).filter(p => pos.has(p)); return ps.length ? ps.reduce((t, p) => t + pos.get(p)[0], 0) / ps.length : hx; };
+      r.sort((a, b) => bary(a) - bary(b));
+      let x = hx - hrowW(r) / 2; for (const id of r) { const nd = byId.get(id); pos.set(id, [Math.round(x + capW(nd) + sz(nd).w / 2), Math.round(y)]); x += W(nd) + GAPX; }
+    }
+    // anything else (a second output, a loss's other input) to the right of the head
+    let ox = hx + 160;
+    for (const n of g.nodes) if (!pos.has(n.id)) { const w = W(n); const cons = C(n.id).filter(t => pos.has(t)); pos.set(n.id, [Math.round(ox + w / 2), cons.length ? pos.get(cons[0])[1] : Math.round(bottom)]); ox += w + 40; }
+    for (const n of g.nodes) { const p = pos.get(n.id); if (p) { n.x = p[0]; n.y = p[1]; } }
+    for (const e of g.edges) delete e.route;
+    return true;
+  }
+
+  return { streamLayout, explodeBlocks, sanitizeGraph, carryDiagram, lowerReshapes, reshapeSteps, reshapeStepCode, reshapeShape, reshapeAxisSource, stepsToPattern, reshapeDescribe, reshapePlan, stepsShape, parseSizes, HELPER_OPS, indexInputRange, FREEZABLE, helperDoc, srcKey, splitKey, blockOutputs, blockClassCode, LOSSES, lossParts, lossPlan, weightShape, tieOwner, blockParams, blockInputs, expandBlocks, instantiateBlock, presetResidualMLPBlocks, NORMS, linkSizes, syncWidths, mergeIntoSource, uid, BATCH, DEFAULTS, ACTS, INITS, initCode, makeNode, inCount, isCircle, index, topo, evalDim, parseShape, inferShapes, paramCount, propagateWidth, generate, importPython, importFx, autoLayout, nodeSize, nodeLabel, presetResidualMLP, parse, identsIn };
 })();
 if (typeof module !== 'undefined') module.exports = NN;

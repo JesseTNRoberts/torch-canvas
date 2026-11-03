@@ -2825,11 +2825,31 @@ function groupMenu(x, y, gid) {
     });
   });
 }
+// the house layouts: a residual stream along the top with its sublayers in columns below (NN.streamLayout), or else
+// the general one, flowing upward (NN.autoLayout)
+function layoutGraph(g) { if (!NN.streamLayout(g, sizeOf)) NN.autoLayout(g, sizeOf); }
+// Explode blocks: a copy of the model with its blocks drawn out (NN.explodeBlocks: a block with more than three copies
+// has its first copy drawn out and the rest kept), laid out by the house conventions, opened in a new tab
+function explodeModel() {
+  const root = R(); if (root.libHost || !root.nodes.some(n => n.type === 'block')) return toast('This model has no blocks to explode.');
+  const before = root.nodes.filter(n => n.type === 'block').length;
+  let g; try { g = NN.explodeBlocks(root, { sz: sizeOf }); } catch (e) { return toast("Couldn't explode the blocks: " + e.message); }
+  g.name = (root.name || 'Model') + 'Exploded';
+  // a residual stream gets the stream layout; anything else keeps the model's own drawing, with each drawn-out copy
+  // drawn as its block is, in the block's place
+  NN.streamLayout(g, sizeOf);
+  const kept = g.nodes.filter(n => n.type === 'block');
+  openDoc(g); changed(); fit();
+  toast(kept.length ? `Opened an exploded copy. Blocks with more than three copies show their first copy drawn out, then the rest as a block (${[...new Set(kept.map(n => (g.blocks[n.params.block] || {}).name))].join(', ')}).` : `Opened an exploded copy with all ${before} block use${before === 1 ? '' : 's'} drawn out.`);
+}
 function canvasMenu(x, y, wpt) {
-  openCtx(x, y, (S.clip ? item('paste', 'Paste', 'Ctrl+V') : '') + item('fit', 'Fit view', 'F') + item('layout', 'Auto layout'), el => {
+  const hasBlocks = !R().libHost && R().nodes.some(n => n.type === 'block');
+  openCtx(x, y, (S.clip ? item('paste', 'Paste', 'Ctrl+V') : '') + item('fit', 'Fit view', 'F') + item('layout', 'Auto layout')
+    + (hasBlocks ? item('explode', 'Explode blocks', 'A copy with the blocks drawn out, in a new tab') : ''), el => {
     el.addEventListener('click', e => {
       const b = e.target.closest('[data-act]'); if (!b) return; const act = b.dataset.act;
-      if (act === 'paste') paste(); else if (act === 'fit') fit(); else if (act === 'layout') { commit(() => NN.autoLayout(S.g, sizeOf)); fit(); }
+      if (act === 'paste') paste(); else if (act === 'fit') fit(); else if (act === 'layout') { commit(() => layoutGraph(S.g)); fit(); }
+      else if (act === 'explode') explodeModel();
       closeCtx();
     });
   });
@@ -3505,7 +3525,9 @@ $('#bMore').onclick = e => {
     + (nets.length ? `<div class="hd">Example networks <span>open in a new tab</span></div>` + catGroups(nets, NET_CATS, 'net', curLib && curLib.file) : '')
     + (blks.length ? `<div class="hd">Blocks <span>open in a new tab to edit</span></div>` + catGroups(blks, BLOCK_CATS, 'blk', curLib && curLib.file) : '')
     + `<hr><div class="hd">From your computer</div>` + item('ofile', 'Open file…', 'A .py model, edited in place · Ctrl+O') + item('odir', 'Open folder…', 'Browse the models in a project') + item('paste', 'Paste code…', 'Or press Ctrl+V anywhere')
-    + '<hr>' + (curLib ? item('link', 'Copy link to this example', `Opens ${curLib.title} directly`) : '') + item('json', 'Copy graph JSON', 'Restore it later with Paste code'),
+    + '<hr>' + (curLib ? item('link', 'Copy link to this example', `Opens ${curLib.title} directly`) : '')
+    + (!R().libHost && R().nodes.some(n => n.type === 'block') ? item('explode', 'Explode blocks', 'Open a copy with the blocks drawn out, in a new tab') : '')
+    + item('json', 'Copy graph JSON', 'Restore it later with Paste code'),
     el => { el.classList.add('ctx-open'); el.addEventListener('click', ev => {
       if (ev.target.closest('[data-close]')) return closeCtx();
       const ch = ev.target.closest('[data-cat]');
@@ -3513,7 +3535,7 @@ $('#bMore').onclick = e => {
       const b = ev.target.closest('[data-act]'); if (!b) return; closeCtx();
       const a = b.dataset.act;
       if (a.startsWith('lib:')) return openLibrary(S.library.find(x => x.file === a.slice(4)));
-      ({ link: () => copyLibLink(curLib), ofile: openFileDialog, odir: openFolder, paste: openImport, json: () => copyText(JSON.stringify(R(), null, 1), 'Graph JSON copied. Paste it into Paste code to restore.') })[a]();
+      ({ explode: explodeModel, link: () => copyLibLink(curLib), ofile: openFileDialog, odir: openFolder, paste: openImport, json: () => copyText(JSON.stringify(R(), null, 1), 'Graph JSON copied. Paste it into Paste code to restore.') })[a]();
     }); });
 };
 // ── library: example networks and blocks shipped with the app (examples/ folder) ──
@@ -4680,6 +4702,6 @@ window.addEventListener('resize', () => render());
 if (savedOff) setTimeout(() => toast("Torch Canvas couldn't open what it had saved in this browser last time, and the storage is too full to keep a copy, so it was left as it is and this visit starts fresh without saving. Clear some of this site's storage to go back to saving."), 400);
 if (bootRecovered) setTimeout(() => toast(`Torch Canvas couldn't open what it had saved in this browser last time, so it started fresh. The saved tabs were set aside in this browser's storage as torchcanvas.backup.${bootRecovered}.`), 400);
 // for the routing checks in tools/ (read-only access to the open graph and the router)
-window.__tc = { S, route, drawFrom, box, keyOf, byId, switchTo, openLibrary, openLibraryBlock, findLibEntry, render, renderInspector, selectionChanged, fit, sizeOf };
+window.__tc = { explodeModel, layoutGraph, S, route, drawFrom, box, keyOf, byId, switchTo, openLibrary, openLibraryBlock, findLibEntry, render, renderInspector, selectionChanged, fit, sizeOf };
 })();
 </script>
