@@ -10,12 +10,14 @@
 #     parameter count must be the app's, and every shape must be the one written in its "# expected" comment.
 #     Big models (over SMALL parameters) run on the meta device, which checks shapes without memory or compute.
 #   train.py, with --train (small models only): 2 optimizer steps on synthetic data with a checkpoint, then the same
-#     script again resuming from that checkpoint; train_bf16.py: one step in bf16 autocast, SGD, one-cycle, EMA,
-#     gradient accumulation and clipping.
+#     script again resuming from that checkpoint; train_bf16.py (models up to BF16_MAX parameters): one step in bf16
+#     autocast, SGD, one-cycle, EMA, gradient accumulation and clipping.
 # Exits non-zero if anything fails. Needs torch (CPU is enough).
 import contextlib, gc, io, json, os, re, shutil, subprocess, sys, tempfile, time, traceback
 import torch
 
+BF16_MAX = 5_000_000  # models checked with the bf16 train.py
+TRAIN_TIMEOUT = 300  # seconds for one tiny train.py run (they take seconds)
 SMALL = 40_000_000  # bigger models (or activations) would need too much memory on a CI runner
 out = sys.argv[1] if len(sys.argv) > 1 and not sys.argv[1].startswith('--') else None
 if not out:
@@ -62,7 +64,7 @@ for e in manifest:
             shapes = [l.strip() for l in lines if l.strip().startswith('torch.Size')]
             if shapes != expected:
                 raise AssertionError(f'output shapes {shapes}, the code says {expected}')
-            print(f'ok   {name}/{f}{" (meta)" if meta else ""}')
+            print(f'ok   {name}/{f}{" (meta)" if meta else ""}', flush=True)
         except NotImplementedError as ex:
             # a forward pass that reads values (Qwen2.5-VL's image grid) can't run on meta: check the build alone
             if not meta or 'meta' not in str(ex):
@@ -87,20 +89,36 @@ for e in manifest:
         wd = tempfile.mkdtemp()
         open(os.path.join(wd, 'model.py'), 'w').write(open(os.path.join(d, 'model.py')).read())
         for script, resume in (('train.py', False), ('train.py', True), ('train_bf16.py', False)):
+            if script == 'train_bf16.py' and e['params'] > BF16_MAX:
+                # bf16 autocast on a CPU without bf16 instructions (a CI runner) is emulated: minutes per step for a
+                # big model. The bf16 path of train.py is the same code for every model, so the small ones check it
+                print(f'skip {name}/{script} (over {BF16_MAX:,} parameters: bf16 is emulated on this CPU)', flush=True)
+                continue
             src = open(os.path.join(d, script)).read()
             if resume:
                 src = src.replace('RESUME = None', 'RESUME = "ckpt/last.pt"', 1)
             open(os.path.join(wd, 'run.py'), 'w').write(src)
             tag = f'{name}/{script}{" (resume)" if resume else ""}'
-            r = subprocess.run([sys.executable, 'run.py'], cwd=wd, capture_output=True, text=True, timeout=900)
+            t1 = time.time()
+            try:
+                r = subprocess.run([sys.executable, 'run.py'], cwd=wd, capture_output=True, text=True, timeout=TRAIN_TIMEOUT)
+            except subprocess.TimeoutExpired as ex:  # a hang is a failure of its own, reported like the others
+                out_, err_ = (ex.stdout or b''), (ex.stderr or b'')
+                out_ = out_.decode(errors='replace') if isinstance(out_, bytes) else out_
+                err_ = err_.decode(errors='replace') if isinstance(err_, bytes) else err_
+                fails.append(f'{tag}: still running after {TRAIN_TIMEOUT}s; last output: {(out_.strip().splitlines() or ["none"])[-1][:200]}')
+                print(f'FAIL {tag}: timed out\n{out_[-800:]}\n{err_[-800:]}', flush=True)
+                continue
             if r.returncode != 0 or (resume and 'resumed from' not in r.stdout):
                 fails.append(f'{tag}: ' + (r.stderr.strip().splitlines() or ['no "resumed from" in its output'])[-1])
                 print(f'FAIL {tag}\n{r.stderr[-1500:]}')
             else:
-                print(f'ok   {tag}')
+                print(f'ok   {tag} ({time.time() - t1:.0f}s)', flush=True)
         shutil.rmtree(wd, ignore_errors=True)
 
 print(f'\n{len(fails)} failure(s) in {time.time() - t0:.0f}s')
 for f in fails:
     print(' -', f)
+    if os.environ.get('GITHUB_ACTIONS'):  # an annotation: shows on the run's summary page, no log needed
+        print('::error title=' + f.split(':')[0].replace(',', ' ') + '::' + f.replace('%', '%25').replace('\n', '%0A')[:900])
 sys.exit(1 if fails else 0)

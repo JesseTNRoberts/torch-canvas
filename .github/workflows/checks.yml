@@ -53,9 +53,9 @@ jobs:
           python-version: '3.12'
       - run: pip install torch --index-url https://download.pytorch.org/whl/cpu
       - run: node tools/export_examples.js out
-      - run: python tools/check_examples.py out --train
+      - run: python -u tools/check_examples.py out --train
       - name: Explode blocks gives the same network (outputs with the weights copied across)
-        run: python tools/check_explode.py out
+        run: python -u tools/check_explode.py out
 
   browser:
     runs-on: ubuntu-latest
@@ -70,4 +70,4 @@ jobs:
           python-version: '3.12'
       - run: pip install playwright && python -m playwright install --with-deps chromium
       - run: npm run build
-      - run: python tools/check_browser.py
+      - run: python -u tools/check_browser.py
