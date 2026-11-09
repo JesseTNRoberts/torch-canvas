@@ -285,6 +285,14 @@ for (const [f, want] of [['23_residual_cnn_gap.json', 57098], ['24_residual_cnn_
     const fails = require('./tools/fuzz_import.js')(400, 7, () => {});
     if (fails.length) { console.error('reading damaged code went wrong:\n' + fails.slice(0, 3).join('\n\n')); process.exit(1); }
   }
+  // a module whose forward() calls itself is refused at once, not after rebuilding the model 150 times (a 4 s fuzz case)
+  {
+    const big = fs.readFileSync(__dirname + '/examples/networks/22_ijepa_small.json', 'utf8'), g = JSON.parse(big).graph;
+    const code = NN.generate(g, { literalDims: false }).code.replace(/(\n(\s+)for blk in self\.predictor_blocks:)/, '\n$2outs = self(imgs, ctx_idx, tgt_idx)$1');
+    const t0 = Date.now(); let msg = '';
+    try { NN.importPython(code); } catch (e) { msg = e.message; }
+    if (!/IJEPA\.forward\(\) calls itself/.test(msg) || Date.now() - t0 > 1000) { console.error(`a forward() that calls itself: ${msg || 'read without error'} after ${Date.now() - t0} ms`); process.exit(1); }
+  }
   console.log('damaged code OK');
   // Explode blocks: the same network (parameters, code that reads back), every block drawn out or kept by the rule (or a
   // view's choices), nothing overlapping; views put layers back where they were saved, by code name

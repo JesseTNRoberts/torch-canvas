@@ -3416,6 +3416,7 @@ const NN = (() => {
       if (v.list) v.list.forEach((x, i) => tagAttr(x, name + '_' + i));
       if (v.mod === 'seq') v.items.forEach((x, i) => tagAttr(x, name + '_' + i));
     }
+    const inForwardOf = new Set();
     function callInstance(m, args, attrName) {
       const fwd = m.inst.def.body.find(s => s.k === 'def' && s.name === 'forward');
       if (!fwd) { warnings.push(`${m.inst.cls} has no forward().`); return args[0]; }
@@ -3428,8 +3429,12 @@ const NN = (() => {
       }
       const env = new Map([['self', m]]);
       fwd.params.slice(1).forEach((p, i) => env.set(p.name, i < args.length ? args[i] : p.def ? ev(p.def, env) : null));
-      const wasFwd = inFwd; inFwd = true;
-      const r = exec(fwd.body, env);
+      // a module whose forward() calls itself (self(x), often from damaged code) never ends: say so at once,
+      // instead of building the whole model again at every level until the call limit
+      if (inForwardOf.has(m.inst)) throw new Error(`${m.inst.cls}.forward() calls itself without end (a module that calls itself).`);
+      const wasFwd = inFwd; inFwd = true; inForwardOf.add(m.inst);
+      let r;
+      try { r = exec(fwd.body, env); } finally { inForwardOf.delete(m.inst); }
       inFwd = wasFwd;
       if (top) {
         // a module returning a tuple of tensors becomes a block with several outputs, its tensor arguments its inputs
