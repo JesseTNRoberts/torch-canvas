@@ -320,3 +320,10 @@ for (const [f, want] of [['23_residual_cnn_gap.json', 57098], ['24_residual_cnn_
   }
   console.log('explode and views OK');
 }
+
+// The page declares its encoding in its first bytes: opened as a file, a browser would otherwise guess (× became Ã—)
+{
+  const head = require('fs').readFileSync(__dirname + '/src.html').subarray(0, 1024).toString('latin1');
+  if (!/<meta charset="utf-8">/i.test(head)) { console.error('src.html: no <meta charset="utf-8"> in its first 1024 bytes'); process.exit(1); }
+  console.log('charset OK');
+}
