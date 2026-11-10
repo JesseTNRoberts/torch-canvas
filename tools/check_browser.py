@@ -4,10 +4,12 @@
 #   - it still starts when what it saved in the browser is damaged (bad JSON, wrong shapes, half-written graphs)
 #   - text from pasted code (strings, comments, a category line) is shown as text, never run as HTML
 #   - a full browser storage doesn't stop editing, and the person is told their tabs aren't being kept
+#   - links that carry a model (#code=, #zip=, #url=) and the page interface for agents (window.torchCanvas) work, and
+#     a graph in a link can't put HTML on the page
 #
 #   npm run build && python tools/check_browser.py [--quick]
 # Needs playwright (pip install playwright; python -m playwright install chromium, or set CHROMIUM to a browser).
-import os, sys, pathlib
+import http.server, os, sys, pathlib, threading, urllib.parse
 from playwright.sync_api import sync_playwright
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -24,7 +26,7 @@ def check(cond, what):
         fails.append(what)
 
 
-def new_page(browser, storage=None):
+def new_page(browser, storage=None, url=None):
     ctx = browser.new_context(viewport={'width': 1600, 'height': 1000})
     if storage is not None:  # what an earlier visit left in localStorage (seeded once: a reload keeps what the app saved;
         # window.name marks it, as the page's own storage can't be relied on this early on a reload)
@@ -35,7 +37,7 @@ def new_page(browser, storage=None):
     pg.on('pageerror', lambda e: errs.append(str(e)))
     # the only dialog the app should open is the name prompt for a saved view (answered "Exploded")
     pg.on('dialog', lambda d: d.accept('Exploded') if d.type == 'prompt' and 'view' in d.message else (errs.append('dialog: ' + d.message), d.dismiss()))
-    pg.goto(URL)
+    pg.goto(url or URL)
     pg.wait_for_function('() => window.__tc && window.__tc.S && window.__tc.S.g', timeout=15000)
     return ctx, pg, errs
 
@@ -221,6 +223,62 @@ class Evil(nn.Module):
     pwned = pg.evaluate("() => !!window.__pwned || !!document.querySelector('img[src=x]')")
     name = pg.evaluate("() => window.__tc.S.root.name")
     check(name == 'Evil' and len(ids) > 2 and not pwned and not errs, f'text in pasted code stays text ({name}, {len(ids)} nodes)' + (f' {errs}' if errs else ''))
+    ctx.close()
+
+    # ── links that carry a model, and the page interface for agents ──
+    tiny = 'import torch\nimport torch.nn as nn\n\n\nclass Tiny(nn.Module):\n    def __init__(self, d=32, h=64):\n        super().__init__()\n        self.fc1 = nn.Linear(d, h)\n        self.fc2 = nn.Linear(h, d)\n\n    def forward(self, x):\n        return x + self.fc2(torch.relu(self.fc1(x)))\n'
+    ctx, pg, errs = new_page(browser, url=URL + '#code=' + urllib.parse.quote(tiny, safe=''))
+    pg.wait_for_timeout(600)
+    tabs, hsh, sm = pg.evaluate("() => [torchCanvas.tabs(), location.hash, torchCanvas.summary()]")
+    check([t['name'] for t in tabs] == ['Tiny'] and hsh == '' and sm['params'] == 4192 and sm['outputs'][0]['shape'][-1] == 32,
+          f'a #code= link opens the model on its own, and the link is cleared ({[t["name"] for t in tabs]}, {sm["params"]} params)')
+    # the links Copy link makes open the same model, and the one with the drawing keeps where everything sits
+    pg.evaluate("() => torchCanvas.openExample('gpt2')"); pg.wait_for_timeout(300)
+    pg.evaluate("() => { const g = window.__tc.S.g; g.nodes[0].x += 37; window.__tc.render(); }")
+    want = pg.evaluate("() => [torchCanvas.code(), window.__tc.S.g.nodes.map(n => [n.x, n.y])]")
+    links = {layout: pg.evaluate("(o) => torchCanvas.link(o)", {'layout': layout}) for layout in (False, True)}
+    for layout, link in links.items():
+        pg.evaluate("(h) => { location.hash = h; }", link[link.index('#'):]); pg.wait_for_timeout(700)
+        got = pg.evaluate("() => [torchCanvas.code(), window.__tc.S.g.nodes.map(n => [n.x, n.y]), torchCanvas.tabs().length]")
+        check(got[0] == want[0] and (not layout or got[1] == want[1]), f'the {"drawing" if layout else "code"} link of GPT-2 ({len(link):,} characters) opens the same model' + (' where it was drawn' if layout else ''))
+    pg.evaluate("() => { location.hash = '#code=' + encodeURIComponent('class X(nn.Module):\\n  def forward(self, x:\\n'); }"); pg.wait_for_timeout(400)
+    shown = pg.evaluate("() => [!document.querySelector('#importModal').hidden, document.querySelector('#imErr').textContent]")
+    check(shown[0] and 'Line' in shown[1], f'code in a link that can\'t be read opens Import with the message ({shown[1][:60]})')
+    # #url= fetches the file (here from a local server that allows it, as raw.githubusercontent.com and gists do)
+    class H(http.server.SimpleHTTPRequestHandler):
+        def __init__(self, *a, **k): super().__init__(*a, directory=str(ROOT / 'examples' / 'networks'), **k)
+        def end_headers(self): self.send_header('Access-Control-Allow-Origin', '*'); super().end_headers()
+        def log_message(self, *a): pass
+    srv = http.server.ThreadingHTTPServer(('127.0.0.1', 0), H); threading.Thread(target=srv.serve_forever, daemon=True).start()
+    pyfile = sorted(f.name for f in (ROOT / 'examples' / 'networks').glob('*.py'))[0]
+    n0 = pg.evaluate("() => torchCanvas.tabs().length")
+    pg.evaluate("(u) => { location.hash = '#url=' + encodeURIComponent(u); }", f'http://127.0.0.1:{srv.server_address[1]}/{pyfile}'); pg.wait_for_timeout(900)
+    n1, code1 = pg.evaluate("() => [torchCanvas.tabs().length, torchCanvas.code()]")
+    missing = pg.evaluate("(u) => torchCanvas.loadUrl(u).then(() => 'opened', e => e.message)", f'http://127.0.0.1:{srv.server_address[1]}/no_such_file.py')
+    check(n1 == n0 + 1 and 'nn.Module' in code1 and missing.startswith("Couldn't fetch"), f'a #url= link opens {pyfile}, and a missing file says so ({missing[:50]})')
+    srv.shutdown()
+    # a graph in a link is checked: any text in it stays text, and a setting outside its choices goes back to its default
+    res = pg.evaluate("""async () => {
+      const x = '<img src=x onerror="window.__pwned=(window.__pwned||[]).concat(window.__cur)">', done = new Set(), crash = [];
+      for (const e of torchCanvas.examples().filter(e => e.kind === 'network')) {
+        torchCanvas.openExample(e.file); const base = torchCanvas.graph(); await torchCanvas.close(torchCanvas.tabs().find(t => t.active).id);
+        const walk = (g, f) => { f(g); for (const b of Object.values(g.blocks || {})) walk(b.graph, f); };
+        const fields = new Set(); walk(base, g => g.nodes.forEach(n => { for (const k of Object.keys(n.params)) if (typeof n.params[k] === 'string') fields.add(n.type + '.' + k); }));
+        for (const fld of fields) {
+          if (done.has(fld)) continue; done.add(fld); window.__cur = fld;
+          const g = JSON.parse(JSON.stringify(base)), [t, k] = fld.split('.');
+          g.name = x; walk(g, gg => { gg.nodes.forEach(n => { if (n.type === t) { n.params[k] = x; n.params.note = x; } }); (gg.groups || []).forEach(gr => { gr.label = x; }); });
+          const r = await torchCanvas.load(JSON.stringify(g), { quiet: true }); if (!r.ok) { crash.push(fld + ': ' + r.error); continue; }
+          const tc = window.__tc;
+          for (const n of tc.S.g.nodes.filter(n => n.type === t).slice(0, 2)) { try { tc.S.sel.nodes.clear(); tc.S.sel.nodes.add(n.id); tc.S.drawerOpen = true; tc.selectionChanged(); } catch (er) { crash.push(fld + ': ' + er.message); } }
+          await new Promise(r => setTimeout(r, 40));
+          await torchCanvas.close(torchCanvas.tabs().find(t => t.active).id);
+        }
+      }
+      return { n: done.size, pwned: [...new Set(window.__pwned || [])], crash, img: !!document.querySelector('img[src=x]') };
+    }""")
+    check(not res['pwned'] and not res['img'] and not res['crash'], f'text in every setting of a linked graph stays text ({res["n"]} settings)' + (f' pwned by {res["pwned"]}' if res['pwned'] else '') + (f' {res["crash"][:3]}' if res['crash'] else ''))
+    check(not errs, 'no script errors with links' + (f' {errs}' if errs else ''))
     ctx.close()
 
     # ── full storage ──

@@ -1,0 +1,9 @@
+# Torch Canvas
+
+> A visual editor for PyTorch neural networks: diagram ⇄ code, shapes on every connection, a variance plot, and train.py export. Created by Jesse Roberts. Everything runs in the browser.
+
+To show someone a network, give them a link with the model inside it: https://jessetnroberts.github.io/torch-canvas/#code=<the Python, URL-encoded>. Longer models use #zip=<raw DEFLATE, base64url> or #url=<a raw .py link>. The code is parsed, never run.
+
+- [Torch Canvas for agents](https://jessetnroberts.github.io/torch-canvas/docs/agents.md): link formats, how to write code it reads well, and the window.torchCanvas page interface
+- [Guide](https://github.com/JesseTNRoberts/torch-canvas/blob/main/docs/guide.md): using the app
+- [Example models](https://github.com/JesseTNRoberts/torch-canvas/blob/main/docs/models.md)

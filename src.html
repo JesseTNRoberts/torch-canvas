@@ -1,6 +1,7 @@
 <meta charset="utf-8">
 <meta name="author" content="Jesse Roberts">
 <title>Torch Canvas</title>
+<!-- For AI agents: open a model with a link (#code=<URL-encoded PyTorch>, #zip=, #url=) or drive the page with window.torchCanvas. See llms.txt and docs/agents.md next to this page. -->
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjggMTI4IiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IlRvcmNoIENhbnZhcyI+CiAgPHJlY3QgeD0iNCIgeT0iNCIgd2lkdGg9IjEyMCIgaGVpZ2h0PSIxMjAiIHJ4PSIyOCIgZmlsbD0iIzI0MjMyZSIvPgogIDwhLS0gdGhlIHBhaW50IHN0cm9rZTogYSB0YXBlcmVkIHN3ZWVwIGZyb20gbGVmdCB0byB0aGUgYnJ1c2ggdGlwIC0tPgogIDxwYXRoIGQ9Ik0xNCA4OCBDIDI2IDcwLCA0NCA3MCwgNTggODIgQyA3MCA5MiwgNzggNzQsIDgyIDU4IEwgODcgNjEgQyA4NCA4MiwgNzAgMTAyLCA1NCA5MiBDIDQyIDg0LCAyOCA4NCwgMTYgOTQgWiIgZmlsbD0iIzc0NjdkNCIgb3BhY2l0eT0iLjQ1Ii8+CiAgPCEtLSBhIHNtYWxsIG5ldHdvcmsgcGFpbnRlZCBpbiB0aGUgc3Ryb2tlIC0tPgogIDxnIHN0cm9rZT0iI2ExOTdmMCIgc3Ryb2tlLXdpZHRoPSIzLjQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCI+CiAgICA8bGluZSB4MT0iMjQiIHkxPSI4NiIgeDI9IjQyIiB5Mj0iNzQiLz48bGluZSB4MT0iMjQiIHkxPSI4NiIgeDI9IjQ0IiB5Mj0iOTYiLz4KICAgIDxsaW5lIHgxPSI0MiIgeTE9Ijc0IiB4Mj0iNjIiIHkyPSI4NiIvPjxsaW5lIHgxPSI0NCIgeTE9Ijk2IiB4Mj0iNjIiIHkyPSI4NiIvPgogIDwvZz4KICA8ZyBmaWxsPSIjZWZlZGZiIj48Y2lyY2xlIGN4PSIyNCIgY3k9Ijg2IiByPSI2LjUiLz48Y2lyY2xlIGN4PSI0MiIgY3k9Ijc0IiByPSI2Ii8+PGNpcmNsZSBjeD0iNDQiIGN5PSI5NiIgcj0iNiIvPjxjaXJjbGUgY3g9IjYyIiBjeT0iODYiIHI9IjYuNSIvPjwvZz4KICA8IS0tIHdoZXJlIHRoZSBicnVzaCBpcyBzdGlsbCBwYWludGluZywgdGhlIHN0cm9rZSBoYXMgYmVjb21lIGNvZGUgLS0+CiAgPGcgc3Ryb2tlPSIjZjBhMzVlIiBzdHJva2Utd2lkdGg9IjQuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIj4KICAgIDxsaW5lIHgxPSI3NCIgeTE9Ijg4IiB4Mj0iOTAiIHkyPSI4OCIvPjxsaW5lIHgxPSI4MCIgeTE9Ijk5IiB4Mj0iMTA2IiB5Mj0iOTkiLz48bGluZSB4MT0iODAiIHkxPSIxMTAiIHgyPSI5NiIgeTI9IjExMCIvPgogIDwvZz4KICA8IS0tIHRoZSBicnVzaCAtLT4KICA8ZyB0cmFuc2Zvcm09InJvdGF0ZSgzNSAxMDEgNDApIj4KICAgIDxyZWN0IHg9Ijk1IiB5PSIyIiB3aWR0aD0iMTIiIGhlaWdodD0iMzYiIHJ4PSI2IiBmaWxsPSIjYzg2NDFhIi8+CiAgICA8cmVjdCB4PSI5NCIgeT0iMzYiIHdpZHRoPSIxNCIgaGVpZ2h0PSI5IiByeD0iMiIgZmlsbD0iI2RmZGVlOCIvPgogICAgPHBhdGggZD0iTTk0IDQ1IGgxNCBjMCA5IC00IDE1IC03IDIwIGMtMyAtNSAtNyAtMTEgLTcgLTIweiIgZmlsbD0iI2ExOTdmMCIvPgogIDwvZz4KPC9zdmc+">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -522,6 +523,7 @@ details summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
         <span class="spacer"></span>
         <button class="btn cb-view" id="bEditCode" title="Edit the code here and apply it to the diagram (or double-click the code)">Edit</button>
         <button class="btn cb-view" id="bCopy">Copy code</button>
+        <button class="btn cb-view" id="bLink" aria-haspopup="menu" title="Copy a link that opens this model in Torch Canvas: to send to someone, or to a model like Claude">Copy link ▾</button>
         <button class="btn cb-edit" id="bCodeCancel" hidden title="Discard these edits (Esc)">Cancel</button>
         <button class="btn primary cb-edit" id="bCodeApply" hidden title="Read this code into the diagram (Ctrl+Enter)">Apply</button>
       </div>
@@ -1443,7 +1445,7 @@ function render() {
       case 'binop': {
         const add = p.op === '+';
         cls += ' t-op';
-        const sym = { '+': '+', '*': '⊙', '-': '−', '/': '÷', '@': '@' }[p.op] || p.op;
+        const sym = { '+': '+', '*': '⊙', '-': '−', '/': '÷', '@': '@' }[p.op] || esc(p.op);
         if (NN.isCircle(n)) inner = `<circle class="n-box" cx="${n.x}" cy="${n.y}" r="${b.r}"/><text x="${n.x}" y="${n.y + (add ? 5 : 4.5)}" text-anchor="middle" font-size="${add ? 15 : 14}">${sym}</text>`;
         // with a constant: a box that says the whole operation
         else { cls += ' t-const'; inner = `<rect class="n-box" x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="15"/><text x="${n.x}" y="${n.y + 4.5}" text-anchor="middle" font-size="13">${esc(constLabel(p))}</text>`; }
@@ -4161,7 +4163,7 @@ function importText(text, file, o = {}) {
   try {
     if (k === 'py') res = NN.importPython(text, { root: o.root });
     else if (k === 'fx') res = NN.importFx(text);
-    else if (k === 'graph') res = { graph: JSON.parse(text), warnings: [] };
+    else if (k === 'graph') { const g = NN.sanitizeGraph(JSON.parse(text)); if (!g) throw new Error('This JSON is not a Torch Canvas graph.'); res = { graph: g, warnings: [] }; }
     else throw new Error(k === 'badjson' ? 'That JSON does not parse.' : 'There is no PyTorch code here to read.');
   } catch (ex) {
     if (o.throwErrors) throw ex;
@@ -4839,6 +4841,88 @@ renderProject();
   // someone opening the link for the first time sees just that model, not the default example beside it
   if (!saved && S.cur !== first) closeDoc(first);
 })();
+// ── links that carry a model, for people and for agents (docs/agents.md) ──
+//   #code=<the Python, URL-encoded>   readable; easy to write by hand
+//   #zip=<deflate-raw, base64url>     what Copy link makes: the code, or the graph JSON with its drawing
+//   #url=<https link to a .py or .json>  for a model too big for a link
+// The text is read like a paste (it's parsed, never run) and opens in a new tab; nothing saved is replaced.
+const SITE = 'https://jessetnroberts.github.io/torch-canvas/', LINK_MAX = 4e6;
+const b64u = {
+  enc(bytes) { let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); },
+  dec(str) { const s = atob(str.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((str.length + 3) % 4)), b = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) b[i] = s.charCodeAt(i); return b; },
+};
+const pump = async (bytes, stream) => new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer());
+const zipText = async t => b64u.enc(await pump(new TextEncoder().encode(t), new CompressionStream('deflate-raw')));
+async function unzipText(z) {
+  const out = await pump(b64u.dec(z), new DecompressionStream('deflate-raw'));
+  if (out.length > LINK_MAX) throw new Error('The model in this link is too big to open.');
+  return new TextDecoder().decode(out);
+}
+// what a link carries: the code, or (layout) the graph with its drawing: positions, nicknames, notes, saved views
+function linkText(layout) {
+  const root = R();
+  if (!layout || root.libHost) return S.gen.code;
+  const g = JSON.parse(JSON.stringify(root)); delete g.derived; delete g.libRef;
+  return JSON.stringify(g);
+}
+async function makeLink(o = {}) {
+  const base = /^https?:$/.test(location.protocol) ? location.origin + location.pathname : SITE;
+  return base + '#zip=' + (await zipText(linkText(!!o.layout)));
+}
+function rawUrl(u) { // a GitHub page for a file → the file itself
+  const m = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\/(.+)$/.exec(u);
+  return m ? `https://raw.githubusercontent.com/${m[1]}/${m[2]}/${m[3]}` : u;
+}
+async function fetchModelText(u) {
+  let url; try { url = new URL(rawUrl(u)); } catch { throw new Error(`“${u.slice(0, 80)}” isn't a link.`); }
+  if (!/^https?:$/.test(url.protocol)) throw new Error('Only http and https links can be opened.');
+  let r; try { r = await fetch(url.href, { credentials: 'omit', redirect: 'follow' }); } catch { throw new Error(`Couldn't fetch ${url.href}: the site doesn't allow it to be read from another page (use a raw file link, such as a gist's Raw button), or it can't be reached.`); }
+  if (!r.ok) throw new Error(`Couldn't fetch ${url.href}: ${r.status} ${r.statusText}.`);
+  const t = await r.text(); if (t.length > LINK_MAX) throw new Error('That file is too big to open.');
+  return { text: t, name: decodeURIComponent(url.pathname.split('/').pop() || '') };
+}
+// #key=value from the link (the value is taken as it is, so a + in the code stays a +)
+function linkPayload(hash) {
+  const m = /^#?(code|zip|url)=([\s\S]*)$/.exec(hash || ''); if (!m) return null;
+  let v = m[2]; if (m[1] !== 'zip') { try { v = decodeURIComponent(v); } catch { /* left as it is */ } }
+  return { key: m[1], value: v };
+}
+async function loadModelText(text, o = {}) {
+  const first = S.cur, before = S.docs.length;
+  let ok = false, err = null;
+  try { ok = importText(text, null, { throwErrors: true, quiet: o.quiet }); } catch (ex) { err = ex.message; }
+  if (!ok && !o.api) { openImport(); $('#imText').value = text; detect(); const e = $('#imErr'); e.hidden = false; e.textContent = (o.from ? o.from + ': ' : '') + (err || "couldn't be read"); }
+  // someone opening a link for the first time sees just that model, not the starter model beside it
+  if (ok && o.firstVisit && S.docs.length > before && S.cur !== first) closeDoc(first);
+  return { ok, error: err };
+}
+async function openFromHash(firstVisit) {
+  const p = linkPayload(location.hash); if (!p) return;
+  try { history.replaceState(history.state, '', location.pathname + location.search); } catch {} // a reload doesn't open it again
+  let text, from = 'The link';
+  try {
+    if (p.key === 'code') text = p.value;
+    else if (p.key === 'zip') text = await unzipText(p.value);
+    else { const f = await fetchModelText(p.value); text = f.text; from = f.name || p.value; }
+  } catch (ex) { return toast(ex.message.startsWith('Couldn') || ex.message.startsWith('Only') || ex.message.includes('too big') || ex.message.includes("isn't a link") ? ex.message : "The model in this link couldn't be unpacked: the link may have been cut short."); }
+  if (text.length > LINK_MAX) return toast('The model in this link is too big to open.');
+  await loadModelText(text, { firstVisit, from });
+}
+openFromHash(!saved);
+window.addEventListener('hashchange', () => openFromHash(false));
+$('#bLink').onclick = e => {
+  const r = e.currentTarget.getBoundingClientRect(), lib = !!R().libHost;
+  const h = `<div class="hd">Copy a link to ${esc(R().name || 'this model')}</div>`
+    + item('lcode', 'Link with the code', 'Shortest. Opens laid out automatically, like pasted code')
+    + (lib ? '' : item('ldraw', 'Link with this drawing', 'Keeps where everything sits, nicknames, notes and saved views'))
+    + `<p class="hint" style="padding:2px 10px 6px;margin:0;max-width:300px">The model is inside the link itself, so nothing is uploaded. Anyone with the link can open it.</p>`;
+  openCtx(r.left, r.bottom + 4, h, el => el.addEventListener('click', async ev => {
+    const b = ev.target.closest('[data-act]'); if (!b) return; closeCtx();
+    let link; try { link = await makeLink({ layout: b.dataset.act === 'ldraw' }); } catch (ex) { return toast("Couldn't make the link: " + ex.message); }
+    const kb = (link.length / 1024).toFixed(link.length < 10240 ? 1 : 0);
+    copyText(link, `Link copied (${kb} KB).` + (link.length > 8000 ? ' Some chat apps and email cut long links short; the link with the code is shorter.' : ''));
+  }));
+};
 idb.get('last').then(r => { if (r && (r.dir || r.file)) { S.remembered = r; if (!S.dir) renderProject(); } }).catch(() => {});
 requestAnimationFrame(fit);
 window.addEventListener('resize', () => render());
@@ -4846,5 +4930,57 @@ if (savedOff) setTimeout(() => toast("Torch Canvas couldn't open what it had sav
 if (bootRecovered) setTimeout(() => toast(`Torch Canvas couldn't open what it had saved in this browser last time, so it started fresh. The saved tabs were set aside in this browser's storage as torchcanvas.backup.${bootRecovered}.`), 400);
 // for the routing checks in tools/ (read-only access to the open graph and the router)
 window.__tc = { explodeModel, rederive, applyView, deleteView, S, route, drawFrom, box, keyOf, byId, switchTo, openLibrary, openLibraryBlock, findLibEntry, render, renderInspector, selectionChanged, fit, sizeOf };
+// ── window.torchCanvas: a small interface for agents driving the page (a browser tool, a playwright script). docs/agents.md ──
+// Everything returns plain data (copies), so nothing an agent holds can change the model behind the page's back.
+{
+  const copy = x => JSON.parse(JSON.stringify(x));
+  const num = d => { const t = dimText(d); return /^\d+$/.test(t) ? +t : t; };
+  const docRoot = d => (d.id === S.cur ? S.root : d.root);
+  const summary = () => {
+    const root = R(); let params = 0, unknown = false;
+    try { const { flat } = NN.expandBlocks(root); for (const n of flat.nodes) { const c = NN.paramCount(n, flat.symbols); if (c == null) unknown = true; else params += c; } } catch { unknown = true; }
+    const ix = S.info && S.info.ix, label = id => { const n = ix && ix.byId.get(id); return n ? NN.nodeLabel(n) : id; };
+    const shape = id => { const sh = S.info && S.info.shapes.get(id); return sh ? sh.map(num) : null; };
+    const top = root.nodes;
+    return {
+      name: root.name, category: root.category || null, params, paramsExact: !unknown,
+      inputs: top.filter(n => n.type === 'input').map(n => ({ name: n.params.name, shape: NN.parseShape(n.params.shape).map(num) })),
+      outputs: top.filter(n => n.type === 'output').map(n => { const e = root.edges.find(z => z.to === n.id); return { name: n.params.name, shape: e ? shape(NN.srcKey(e)) : null }; }),
+      layers: top.filter(n => !['input', 'output', 'block'].includes(n.type)).length,
+      blocks: Object.values(root.blocks || {}).map(b => ({ name: b.name, uses: root.nodes.filter(n => n.type === 'block' && n.params.block === b.id).reduce((a, n) => a + (+n.params.repeat || 1), 0) })),
+      sizes: copy(root.symbols || {}),
+      views: Object.keys(viewsOf(root)),
+      errors: S.info ? [...S.info.errors].map(([id, m]) => `${label(id)}: ${m}`).concat([...S.info.conflicts.keys()].map(id => `${label(id)}: size conflict`)) : [],
+      notes: [...document.querySelectorAll('#warns li')].map(li => li.textContent),
+    };
+  };
+  const tabs = () => S.docs.map(d => { const r = docRoot(d); return { id: d.id, name: r.name, active: d.id === S.cur, kind: r.libHost ? 'block' : r.derived ? 'exploded' : 'model' }; });
+  const pick = which => S.docs.find(d => d.id === which) || S.docs.find(d => docRoot(d).name === which);
+  window.torchCanvas = Object.freeze({
+    version: 1,
+    help: 'Torch Canvas page interface. load(code), loadUrl(url), code(), summary(), graph(), svg(), link({layout}), tabs(), select(idOrName), close(idOrName), examples(), openExample(name), explode(view?), views(), applyView(name), setOptions({namedSizes, shapeComments}). Docs: ' + SITE + 'docs/agents.md',
+    // read Python (or a torch.fx export, or graph JSON) into a new tab, like a paste
+    async load(text, o = {}) { if (typeof text !== 'string') throw new TypeError('load(text): text is the model as a string'); const r = await loadModelText(text, { api: true, quiet: o.quiet }); return r.ok ? Object.assign({ ok: true }, summary()) : r; },
+    async loadUrl(url) { const f = await fetchModelText(String(url)); return this.load(f.text); },
+    code: () => S.gen.code,
+    summary,
+    graph: () => copy(R()),
+    svg: () => svgText(),
+    link: (o = {}) => makeLink(o),
+    tabs,
+    select(which) { const d = pick(which); if (!d) return false; activateDoc(d.id); return true; },
+    async close(which) { const d = pick(which); if (!d) return false; await closeDoc(d.id); return true; },
+    examples: () => S.library.map(e => ({ name: e.title, file: e.file, category: catOf(e), kind: e.file.startsWith('blocks/') ? 'block' : 'network' })),
+    openExample(name) { const e = findLibEntry(name); if (!e) return false; e.file.startsWith('blocks/') ? openLibraryBlock(e) : openLibrary(e); return true; },
+    explode(view) { explodeModel(view); return tabs().find(t => t.active); },
+    views: () => Object.keys(viewsOf(R())),
+    applyView(name) { if (!viewsOf(R())[name]) return false; applyView(name); return true; },
+    setOptions(o = {}) {
+      if ('namedSizes' in o) { S.opts.literalDims = !o.namedSizes; $('#oNamed').checked = !!o.namedSizes; }
+      if ('shapeComments' in o) { S.opts.shapeComments = !!o.shapeComments; $('#oShapes').checked = !!o.shapeComments; }
+      renderCode(); renderFileBar(); return { namedSizes: !S.opts.literalDims, shapeComments: S.opts.shapeComments };
+    },
+  });
+}
 })();
 </script>
