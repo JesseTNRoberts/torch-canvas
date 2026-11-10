@@ -36,6 +36,14 @@ console.log('round trip OK');
   }
   console.log('GPT-2 round trip OK');
 }
+// A graph from a link or a paste is checked: a setting with a fixed set of choices that isn't one of them goes back to its default
+{
+  const NN = require('./core.js');
+  const g = { name: 'G', nodes: [{ id: 'a', type: 'act', params: { fn: '<b>x</b>' } }, { id: 'b', type: 'binop', params: { op: '<img>' } }, { id: 'c', type: 'linear', params: { init: 'nope' } }, { id: 'd', type: 'norm', params: { kind: 'LayerNorm' } }, { id: 'e', type: 'act', params: { fn: 'gelu' } }], edges: [] };
+  const s = NN.sanitizeGraph(g), p = id => s.nodes.find(n => n.id === id).params;
+  if (p('a').fn !== 'silu' || p('b').op !== '+' || p('c').init !== 'default' || p('d').kind !== 'LayerNorm' || p('e').fn !== 'gelu') { console.error('sanitizeGraph: settings outside their choices were kept', p('a').fn, p('b').op, p('c').init); process.exit(1); }
+  console.log('graph settings OK');
+}
 // BERT-base, Llama 2 7B and Qwen2.5-VL 3B: round trips and exact parameter counts.
 for (const [f, want] of [['08_bert_base.json', 109514298], ['09_llama2_7b.json', 6738415616], ['10_qwen2_5_vl_3b.json', 3754622976]]) {
   const g = JSON.parse(require('fs').readFileSync(__dirname + '/examples/networks/' + f, 'utf8')).graph;
@@ -319,13 +327,4 @@ for (const [f, want] of [['23_residual_cnn_gap.json', 57098], ['24_residual_cnn_
     }
   }
   console.log('explode and views OK');
-}
-
-// A graph from a link or a paste is checked: a setting with a fixed set of choices that isn't one of them goes back to its default
-{
-  const NN = require('./core.js');
-  const g = { name: 'G', nodes: [{ id: 'a', type: 'act', params: { fn: '<b>x</b>' } }, { id: 'b', type: 'binop', params: { op: '<img>' } }, { id: 'c', type: 'linear', params: { init: 'nope' } }, { id: 'd', type: 'norm', params: { kind: 'LayerNorm' } }, { id: 'e', type: 'act', params: { fn: 'gelu' } }], edges: [] };
-  const s = NN.sanitizeGraph(g), p = id => s.nodes.find(n => n.id === id).params;
-  if (p('a').fn !== 'silu' || p('b').op !== '+' || p('c').init !== 'default' || p('d').kind !== 'LayerNorm' || p('e').fn !== 'gelu') { console.error('sanitizeGraph: settings outside their choices were kept', p('a').fn, p('b').op, p('c').init); process.exit(1); }
-  console.log('graph settings OK');
 }
