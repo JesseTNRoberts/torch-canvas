@@ -30,7 +30,7 @@ jobs:
       - run: npm test
       - run: npm run build
       - name: Collect the site
-        run: mkdir site && cp index.html site/ && touch site/.nojekyll
+        run: mkdir -p site/docs && cp index.html llms.txt site/ && cp docs/agents.md site/docs/ && touch site/.nojekyll
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:

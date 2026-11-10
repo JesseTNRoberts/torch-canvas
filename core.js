@@ -3500,6 +3500,9 @@ const NN = (() => {
     // block uses anywhere (also inside blocks) name blocks kept in the model's own g.blocks
     if (!known) { known = new Set(); const walk = (x, d) => { if (!x || typeof x !== 'object' || d > 8) return; for (const [id, b] of Object.entries(x.blocks && typeof x.blocks === 'object' ? x.blocks : {})) { known.add(id); if (b) walk(b.graph, d + 1); } }; walk(g, 0); }
     const obj = v => (v && typeof v === 'object' && !Array.isArray(v) ? v : {}), fin = v => (Number.isFinite(+v) && v !== null && v !== '' ? +v : 0);
+    // a setting that names one of a fixed set of choices (an op, an activation, an init) is one of them, or the default
+    const ENUMS = { act: { fn: ACTS }, binop: { op: ['+', '-', '*', '/', '@'] }, linear: { init: Object.keys(INITS) }, embed: { init: Object.keys(INITS) }, norm: { kind: Object.keys(NORMS) } };
+    const enums = q => { for (const [k, ok] of Object.entries(ENUMS[q.type] || {})) if (!ok.includes(q.params[k])) q.params[k] = DEFAULTS[q.type][k]; };
     const out = Object.assign({}, g, { name: typeof g.name === 'string' && g.name ? g.name : 'Model', symbols: obj(g.symbols) });
     out.blocks = {};
     for (const [id, b] of Object.entries(obj(g.blocks))) {
@@ -3509,7 +3512,7 @@ const NN = (() => {
     if (!Object.keys(out.blocks).length && !g.blocks) delete out.blocks;
     const seen = new Set();
     out.nodes = g.nodes.filter(n => n && typeof n === 'object' && typeof n.id === 'string' && !seen.has(n.id) && typeof n.type === 'string' && Object.prototype.hasOwnProperty.call(DEFAULTS, n.type) && seen.add(n.id))
-      .map(n => { const q = Object.assign({}, n, { x: fin(n.x), y: fin(n.y), params: Object.assign(JSON.parse(JSON.stringify(DEFAULTS[n.type])), obj(n.params)) }); if (q.type === 'block') q.params.args = obj(q.params.args); return q; })
+      .map(n => { const q = Object.assign({}, n, { x: fin(n.x), y: fin(n.y), params: Object.assign(JSON.parse(JSON.stringify(DEFAULTS[n.type])), obj(n.params)) }); if (q.type === 'block') q.params.args = obj(q.params.args); enums(q); return q; })
       .filter(n => n.type !== 'block' || known.has(n.params.block) || n.params.lib || n.params.libName); // (a library block's own nested uses are joined up later)
     const ids = new Set(out.nodes.map(n => n.id));
     out.edges = (Array.isArray(g.edges) ? g.edges : []).filter(e => e && ids.has(e.from) && ids.has(e.to) && Number.isInteger(+e.port))

@@ -164,6 +164,12 @@ What the code doesn't hold is carried over from the diagram it replaces: where e
 
 If the diagram changes while you're editing (an untouched editor simply follows it), the panel says so: Apply then replaces the diagram with your code. Unapplied edits stay with their model when you switch to another tab.
 
+## Links
+
+**Copy link ▾** above the code copies a link that opens the model in Torch Canvas: **Link with the code** (the shortest; it opens laid out automatically, like pasted code) or **Link with this drawing** (it opens exactly as drawn, with nicknames, notes and saved views). The model is inside the link, so nothing is uploaded, and anyone with the link can open it. Opening a link adds a tab and never replaces a saved one; on a first visit the link's model is the only tab.
+
+A link can also carry the code as plain text (`#code=` followed by the URL-encoded Python) or point to a file (`#url=` followed by a raw `.py` link, such as a gist's Raw button). That makes links an easy way for a model like Claude to show you a network: [Torch Canvas for agents](agents.md) has the formats, and the page interface an agent driving a browser can use. If a link's code can't be read, Import opens with the code and the message.
+
 ## Import
 
 Paste an `nn.Module` anywhere on the page (Ctrl+V), or use Open / import → Paste code. The reader follows `nn.Linear`, `nn.LayerNorm`/`nn.RMSNorm`, activations, `nn.Dropout`, `nn.Sequential`, `nn.ModuleList` (including list comprehensions), `for` loops over module lists, custom submodules, and elementwise math. Other calls are kept as custom ops so the code still regenerates.

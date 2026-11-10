@@ -21,6 +21,7 @@ Conceived and created by **Jesse Roberts**.
 - **Reusable blocks.** Group layers into blocks such as a transformer layer or a ResNet bottleneck, repeat them, and keep them in a library.
 - **Variance before training.** A plot predicts how the signal and the gradients grow or shrink through the network at initialization.
 - **Ready to train.** Export a `train.py` with losses, frozen layers and EMA targets.
+- **Links that carry a model.** Copy a link with the model inside it, or let an AI model such as Claude send you one: it opens as a diagram, ready to edit ([for agents](docs/agents.md)).
 - **A library of real models.** It ranges from an MLP to GPT-2, BERT, Llama 2, Qwen2.5-VL, ViT, ResNet-50, YOLOv3, Mamba, U-Net, a VAE, the original Transformer and I-JEPA, each checked against a reference implementation.
 
 ## Quick start
