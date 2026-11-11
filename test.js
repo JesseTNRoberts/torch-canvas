@@ -263,6 +263,28 @@ for (const [f, want] of [['23_residual_cnn_gap.json', 57098], ['24_residual_cnn_
     if (!multi || Object.keys(g.blocks).length !== 1 || (code.match(/^class /gm) || []).length !== 2 || NN.generate(NN.importPython(code).graph).code !== code) { console.error('multi-output round trip failed: ' + f); process.exit(1); }
   }
   console.log('multi-output blocks OK');
+  // Saving into a marimo notebook keeps it a notebook: classes keep @app.class_definition, an import the new code
+  // needs goes into the `with app.setup:` cell (not above `app = marimo.App()`), and a new block's class is decorated.
+  // A plain file is saved as before.
+  {
+    const nb = fs.readFileSync(__dirname + '/test_fixtures/marimo/marimo-net.py', 'utf8'), plain = fs.readFileSync(__dirname + '/test_fixtures/losses/' + fs.readdirSync(__dirname + '/test_fixtures/losses/').filter(f => f.endsWith('.py'))[0], 'utf8');
+    const bad = m => { console.error('marimo save failed: ' + m); process.exit(1); };
+    if (!NN.isMarimo(nb) || NN.isMarimo(plain)) bad('detection');
+    const imp = NN.importPython(nb), g = imp.graph;
+    g.nodes.find(n => n.type === 'linear' && n.params.name === 'fc1').params.out = '32'; g.nodes.find(n => n.type === 'linear' && n.params.name === 'fc2').params.in = '32';
+    const gen = NN.generate(g, { literalDims: false }).code, out = NN.mergeIntoSource(nb, gen, imp.usedClasses);
+    if (!/^@app\.class_definition\nclass Net\(nn\.Module\):/m.test(out)) bad('the class lost its decorator');
+    if ((out.match(/@app\.class_definition/g) || []).length !== 1) bad('decorator repeated');
+    if (!/^with app\.setup:\n    import torch\n    import torch\.nn as nn\n    import torch\.nn\.functional as F\n/m.test(out)) bad('the new import is not in the setup cell');
+    if (out.indexOf('import torch') < out.indexOf('marimo.App(')) bad('an import was put above the app');
+    if (!/nn\.Linear\(n_in, 32\)/.test(out) || !/app\.run\(\)/.test(out)) bad('the edit or the rest of the file');
+    if (NN.mergeIntoSource(out, gen, imp.usedClasses) !== out) bad('saving twice changed the file');
+    const back = NN.importPython(out).graph; if (NN.generate(back, { literalDims: false }).code !== gen) bad('the saved notebook reads back differently');
+    // a plain file goes through the old path untouched
+    const pi = NN.importPython(plain), pg = NN.generate(pi.graph, { literalDims: false }).code, po = NN.mergeIntoSource(plain, pg, pi.usedClasses);
+    if (po == null || /@\w+\.(class_definition|function)|app\.setup/.test(po)) bad('a plain file got marimo markup');
+    console.log('marimo save OK');
+  }
   // blocks inside blocks: nested classes come back as nested blocks, sizes pass through, one class per block
   const nd = __dirname + '/test_fixtures/nested/';
   for (const f of fs.readdirSync(nd).filter(f => f.endsWith('.py'))) {

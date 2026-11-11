@@ -3917,7 +3917,7 @@ const NN = (() => {
 
   // Put generated classes back into an existing Python file: the model's class
   // blocks are replaced in place; everything else in the file is kept.
-  function mergeIntoSource(src, gen, used) {
+  function mergePlain(src, gen, used) {
     const lines = src.replace(/\r\n/g, '\n').split('\n');
     const usedSet = new Set(used || []);
     const blocks = [];
@@ -3960,6 +3960,71 @@ const NN = (() => {
       tl.splice(at + 1, 0, ...need); text = tl.join('\n');
     }
     return text.replace(/\n{4,}/g, '\n\n\n');
+  }
+
+  // ── marimo notebooks ──
+  // marimo notebooks keep imports in `with app.setup:` and model classes as
+  // top-level `@app.class_definition` cells. The plain merge drops those
+  // decorators and inserts imports at column 0, which marimo rejects.
+  const isMarimo = src => /^import marimo\b/m.test(src) && /^\w+\s*=\s*marimo\.App\(/m.test(src);
+  const IMPORTS = [
+    ['import torch', /^[ \t]*import torch[ \t]*$/m, /\btorch\./],
+    ['import torch.nn as nn', /^[ \t]*(import torch\.nn as nn|from torch import nn)\b/m, /\bnn\./],
+    ['import torch.nn.functional as F', /^[ \t]*import torch\.nn\.functional as F\b/m, /\bF\./],
+  ];
+  function mergeMarimo(src, gen, used) {
+    const out = mergePlain(src, gen, used);
+    if (out == null) return null;
+    const app = /^(\w+)\s*=\s*marimo\.App\(/m.exec(src)[1];
+    const before = new Set(src.replace(/\r\n/g, '\n').split('\n'));
+    const lines = out.split('\n');
+    // Imports the plain merge added at column 0 are moved into the setup cell below.
+    const added = new Set(IMPORTS.map(i => i[0]).filter(l => lines.includes(l) && !before.has(l)));
+    const body = lines.filter(l => !added.has(l));
+    // Decorate every regenerated class and helper that is new to the file.
+    const seen = new Set(src.match(/^def \w+/gm) || []);
+    const res = [];
+    for (const l of body) {
+      const prev = res.length ? res[res.length - 1] : '';
+      const decorated = /^@/.test(prev);
+      const cls = /^class\s+(\w+)/.exec(l);
+      if (cls && !decorated) res.push(`@${app}.class_definition`);
+      else if (/^def \w+/.test(l) && !decorated && !seen.has(/^def \w+/.exec(l)[0]) && !before.has(l)) res.push(`@${app}.function`);
+      res.push(l);
+    }
+    // Only code decides which imports are needed, so the import lines themselves are skipped.
+    const code = res.filter(l => !/^\s*(import|from)\s/.test(l)).join('\n');
+    return ensureImports(res.join('\n'), code);
+  }
+
+  // Put generated classes back into an existing Python file, plain or marimo.
+  function mergeIntoSource(src, gen, used) {
+    return (isMarimo(src) ? mergeMarimo : mergePlain)(src, gen, used);
+  }
+
+  // Add the imports `code` needs that `text` lacks: into the setup cell of a marimo notebook, else after the last import.
+  const isBlank = l => l.trim() === '';
+  function ensureImports(text, code) {
+    const need = IMPORTS.filter(([, have, uses]) => uses.test(code) && !have.test(text)).map(i => i[0]);
+    if (!need.length) return text;
+    const lines = text.split('\n'), m = /^(\w+)\s*=\s*marimo\.App\(/m.exec(text);
+    if (m) {
+      const at = lines.findIndex(l => /^with\s+\w+\.setup\b.*:\s*$/.test(l));
+      const add = need.map(l => '    ' + l);
+      if (at >= 0) {
+        let end = at + 1, last = at;
+        while (end < lines.length && (isBlank(lines[end]) || /^\s/.test(lines[end]))) { if (/^\s+(import|from)\s/.test(lines[end])) last = end; end++; }
+        lines.splice(last + 1, 0, ...add);
+      } else {
+        const appAt = lines.findIndex(l => /^\w+\s*=\s*marimo\.App\(/.test(l));
+        lines.splice(appAt + 1, 0, '', `with ${m[1]}.setup:`, ...add);
+      }
+      return lines.join('\n');
+    }
+    let at = -1;
+    for (let i = 0; i < lines.length; i++) { if (/^(import|from)\s/.test(lines[i])) at = i; else if (/^(class|def|if|@)/.test(lines[i])) break; }
+    lines.splice(at + 1, 0, ...need);
+    return lines.join('\n');
   }
 
 
@@ -4469,7 +4534,7 @@ const NN = (() => {
     return true;
   }
 
-  return { chainLayout, viewKeys, viewPositions, applyViewPositions, streamLayout, explodeBlocks, sanitizeGraph, carryDiagram, lowerReshapes, reshapeSteps, reshapeStepCode, reshapeShape, reshapeAxisSource, stepsToPattern, reshapeDescribe, reshapePlan, stepsShape, parseSizes, HELPER_OPS, indexInputRange, FREEZABLE, helperDoc, srcKey, splitKey, blockOutputs, blockClassCode, LOSSES, lossParts, lossPlan, weightShape, tieOwner, blockParams, blockInputs, expandBlocks, instantiateBlock, presetResidualMLPBlocks, NORMS, linkSizes, syncWidths, mergeIntoSource, uid, BATCH, DEFAULTS, ACTS, INITS, initCode, makeNode, inCount, isCircle, index, topo, evalDim, parseShape, inferShapes, paramCount, propagateWidth, generate, importPython, importFx, autoLayout, nodeSize, nodeLabel, presetResidualMLP, parse, identsIn };
+  return { chainLayout, viewKeys, viewPositions, applyViewPositions, streamLayout, explodeBlocks, sanitizeGraph, carryDiagram, lowerReshapes, reshapeSteps, reshapeStepCode, reshapeShape, reshapeAxisSource, stepsToPattern, reshapeDescribe, reshapePlan, stepsShape, parseSizes, HELPER_OPS, indexInputRange, FREEZABLE, helperDoc, srcKey, splitKey, blockOutputs, blockClassCode, LOSSES, lossParts, lossPlan, weightShape, tieOwner, blockParams, blockInputs, expandBlocks, instantiateBlock, presetResidualMLPBlocks, NORMS, linkSizes, syncWidths, mergeIntoSource, isMarimo, uid, BATCH, DEFAULTS, ACTS, INITS, initCode, makeNode, inCount, isCircle, index, topo, evalDim, parseShape, inferShapes, paramCount, propagateWidth, generate, importPython, importFx, autoLayout, nodeSize, nodeLabel, presetResidualMLP, parse, identsIn };
 })();
 if (typeof module !== 'undefined') module.exports = NN;
 
