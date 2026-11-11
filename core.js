@@ -1472,7 +1472,7 @@ const NN = (() => {
             }
             if (((sh.length === 3 && i === 1) || (sh.length === 2 && i === 0)) && d !== BATCH && ![...nameOf.values()].includes('t')) { nameOf.set(d, 't'); return 't'; } return d; });
           const z = makeNode('input', { name: gi.inNames ? gi.inNames[j] : gi.extIn.length > 1 ? 'x' + (j + 1) : 'x', shape: dims.join(', ') });
-          inner.nodes.push(z); return z;
+          inner.nodes.push(z); if (g._src) g._src.set(z.id, gi.group.fwdLine ? [gi.group.fwdLine] : []); return z;
         });
         for (const [t, nm] of nameOf) inner.symbols[nm] = (gi.group.argDefaults && gi.group.argDefaults[nm] != null ? gi.group.argDefaults[nm] : evalDim(t, g.symbols)) ?? 64;
         for (const n of inner.nodes) parseShape(n.params.shape).forEach(d => identsIn(d).forEach(t => { if (inner.symbols[t] == null) inner.symbols[t] = g.symbols[t] ?? 16; }));
@@ -1492,7 +1492,7 @@ const NN = (() => {
         for (const c of inner.nodes) if (c.params && c.params.tie) c.params.tie = idm.get(c.params.tie) || ''; // ties to layers outside the block are dropped
         gi.outputs.forEach((o, k) => {
           const nm = gi.outNames && gi.outNames[k] && /^[A-Za-z_]\w*$/.test(gi.outNames[k]) ? gi.outNames[k] : gi.outputs.length > 1 ? 'out' + (k + 1) : 'out';
-          const on = makeNode('output', { name: nm }); inner.nodes.push(on);
+          const on = makeNode('output', { name: nm }); inner.nodes.push(on); if (g._src) g._src.set(on.id, gi.group.retLines || []);
           inner.edges.push(innerEdge(o, on.id, 0));
         });
         collapseRepeats(inner);
@@ -2466,7 +2466,7 @@ const NN = (() => {
     let curGroup = null, seqInput = false;
     // the lines of the statement each node was read from (the innermost one: a layer inside a submodule belongs to
     // the line in that submodule's forward, not to the line that calls the submodule); [] for nodes made elsewhere
-    const srcLines = new Map(), srcAttrs = new Map();
+    const srcLines = new Map(), srcAttrs = new Map(), assignedAt = new Map(); // assignedAt: a variable's latest assignment
     // a submodule call (a group, later a block) belongs to the statement that calls it, in the module it is called from
     const stampNodes = lines => { for (const n of g.nodes) if (!srcLines.has(n.id)) srcLines.set(n.id, lines); const here = curGroup ? curGroup.id : null; for (const gr of g.groups) if (!gr.src && gr.parent === here && gr !== curGroup) gr.src = lines; };
     const linesOf = s => { const ls = []; if (s && s.line) for (let l = s.line; l <= (s.end || s.line); l++) ls.push(l); return ls; };
@@ -2872,6 +2872,8 @@ const NN = (() => {
         g.groups.push(curGroup); if (m._groupId == null) m._groupId = curGroup.id; madeGroups.push(curGroup);
         if (m.followsMod) curGroup.followsMod = m.followsMod;
       }
+      // for the block's own input and output arrows: the line its forward() starts on, and its return
+      curGroup.fwdLine = fwd.line; curGroup.retLines = linesOf([...fwd.body].reverse().find(z => z.k === 'return'));
       const env = new Map([['self', m]]);
       fwd.params.slice(1).forEach((p, i) => env.set(p.name, i < args.length ? args[i] : p.def ? ev(p.def, env) : null));
       // a module whose forward() calls itself (self(x), often from damaged code) never ends: say so at once,
@@ -2915,7 +2917,11 @@ const NN = (() => {
       const delays = carried.map(nm => {
         const v0 = env.get(nm);
         if (v0 && !v0.zeros) warnings.push(`The loop's starting ${nm} isn't zeros; the Delay starts from zeros.`);
-        const d = addNode('delay', { name: nm }, []); env.set(nm, d); return [nm, d];
+        const d = addNode('delay', { name: nm }, []); env.set(nm, d);
+        // a Delay: where its variable starts, the loop, and the lines of the loop that read the earlier step's value
+        const reads = []; for (const st of s.body) { if (namesIn(st.k === 'assign' ? st.value : st).has(nm)) reads.push(...linesOf(st)); if (st.k === 'assign' && st.targets.some(t => t.k === 'name' && t.v === nm)) break; }
+        srcLines.set(d.t, [...new Set([...(assignedAt.get(nm) || []), s.line, ...reads])].filter(Boolean));
+        return [nm, d];
       });
       env.set(s.target.v, { timeIdx: true });
       exec(s.body, env);
@@ -2935,6 +2941,7 @@ const NN = (() => {
         switch (s.k) {
           case 'assign': {
             const before = g.nodes.length, v = ev(s.value, env); s.targets.forEach(t => bind(t, v, env));
+            s.targets.forEach(t => { if (t.k === 'name') assignedAt.set(t.v, linesOf(s)); });
             if (isT(v) && g.nodes.length > before && s.targets.length === 1 && s.targets[0].k === 'name') { const n = g.nodes.find(z => z.id === v.t); if (n && 'var' in n.params && !n.params.var && n.type !== 'output') n.params.var = s.targets[0].v; }
             break;
           }
@@ -3031,6 +3038,11 @@ const NN = (() => {
         const src = g.edges.find(e => e.to === o.id).from;
         addNode('loss', p, [{ t: src }, { t: tn.id }]);
       }
+    }
+
+    { // a loss: the return of loss(); a target input: the line loss() starts on
+      const ld = root.body.find(z => z.k === 'def' && z.name === 'loss');
+      if (ld) for (const n of g.nodes) if (!srcLines.has(n.id)) srcLines.set(n.id, n.type === 'loss' ? ld.body.filter(z => z.k === 'return').flatMap(linesOf) : n.type === 'input' ? [ld.line] : []);
     }
 
     // rename h → h1 when h2 exists
@@ -3719,6 +3731,35 @@ const NN = (() => {
     if (missing.length) {
       const first = oBlocks.length ? oBlocks[0].a : lines.length;
       edits.push({ a: first, b: first, lines: missing.flatMap(s => deco(s.split('\n'), 'function').concat(['', ''])) });
+    }
+    // The example run under `if __name__ == "__main__":`. A line there that reads as the app would write it for the
+    // file's model (the example input, the expected shape) follows the diagram; its comment too, if that is the
+    // app's. Anything else under it is left alone.
+    const mainOf = L => { const a = L.findIndex(l => /^if\s+__name__\s*==/.test(l)); if (a < 0) return null; let b = a + 1; while (b < L.length && (isBlank(L[b]) || /^\s/.test(L[b]))) b++; return [a + 1, b]; };
+    const bm = mainOf(bl), cm = mainOf(cl), om = mainOf(lines);
+    if (bm && cm && om) {
+      const M = lines.slice(om[0], om[1]), M0 = M.slice();
+      const B = bl.slice(bm[0], bm[1]).filter(l => !isBlank(l)), C = cl.slice(cm[0], cm[1]).filter(l => !isBlank(l));
+      // the example tensors, wherever the file builds them (in the call, or on lines of their own)
+      const TENSOR = /torch\.(?:randn|rand|zeros|ones|empty|randint)\((?:[^()]|\((?:[^()]|\([^()]*\))*\))*\)/g;
+      const bt = B.join('\n').match(TENSOR) || [], ct = C.join('\n').match(TENSOR) || [];
+      if (bt.length === ct.length) for (const t of new Set(bt)) {
+        const want = bt.map((x, i) => (x === t ? ct[i] : null)).filter(x => x != null);
+        const at = []; M.forEach((l, j) => { let k = -1; while ((k = l.indexOf(t, k + 1)) >= 0) at.push(j); });
+        if (at.length !== want.length || want.every(x => x === t)) continue; // not the same tensors as the app's: left alone
+        let n = 0; at.forEach(j => { let seen = false; M[j] = M[j].split(t).map((piece, i, a) => (i < a.length - 1 ? piece + (seen ? t : (seen = true, want[n++])) : piece)).join(''); });
+      }
+      // whole lines the app writes (the expected shape), and their comments
+      const parts = l => { const m = /^(\s*)(.*?)(\s+#.*)?$/.exec(l); return [m[1], m[2], m[3] || '']; }, taken = new Set();
+      if (B.length === C.length) B.forEach((b, i) => {
+        if (b === C[i]) return;
+        const [, bc, bn] = parts(b), [, cc, cn] = parts(C[i]);
+        for (let j = 0; j < M0.length; j++) {
+          const [ind, oc, on] = parts(M0[j]); if (oc !== bc || taken.has(j)) continue;
+          taken.add(j); M[j] = ind + cc + (on.trim() === bn.trim() ? cn : on); break;
+        }
+      });
+      M.forEach((l, j) => { if (l !== M0[j]) edits.push({ a: om[0] + j, b: om[0] + j + 1, lines: [l] }); });
     }
     edits.sort((x, y) => y.a - x.a || y.b - x.b);
     const out = lines.slice();

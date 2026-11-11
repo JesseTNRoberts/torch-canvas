@@ -278,7 +278,14 @@ for (const [f, want] of [['23_residual_cnn_gap.json', 57098], ['24_residual_cnn_
     if (at(find(g, n => n.params.fn === 'gelu')) !== '26,27,28') bad('a statement over several lines');
     if (at(find(g, n => n.type === 'binop')) !== '25' || at(find(g, n => n.type === 'block')) !== '25') bad('a block use is the line that calls it');
     if (at(find(g, n => n.type === 'input')) !== '23' || at(find(g, n => n.type === 'output')) !== '29') bad('input and output arrows');
+    if (at(find(blk, n => n.type === 'input')) !== '11' || at(find(blk, n => n.type === 'output')) !== '13') bad("a block's own input and output arrows: its forward() and its return");
     if (at(find(blk, n => n.type === 'linear')) !== '12' || at(find(blk, n => n.type === 'act')) !== '13' || r.attrs.get(find(blk, n => n.type === 'linear').id) !== 'lin') bad('layers inside a block keep the lines of its own forward');
+    { // a Delay: where its variable starts, the loop, the lines that read the earlier step; a loss: the return of loss()
+      const code = NN.generate(JSON.parse(fs.readFileSync(__dirname + '/examples/networks/15_lstm.json', 'utf8')).graph, {}).code, L = code.split('\n'), imp = NN.importPython(code);
+      const text = n => (imp.lines.get(n.id) || []).map(l => L[l - 1].trim().replace(/\s+#.*$/, '').split(' ')[0]).join(' ');
+      const c = imp.graph.nodes.find(n => n.type === 'delay' && n.params.name === 'c'), loss = imp.graph.nodes.find(n => n.type === 'loss'), tgt = imp.graph.nodes.find(n => n.type === 'input' && n.params.name === 'target');
+      if (text(c) !== 'c for c' || text(loss) !== 'return' || text(tgt) !== 'def') bad('Delay, loss or target lines: ' + [text(c), text(loss), text(tgt)].join(' / '));
+    }
     // on the code the app writes, a node's source lines are among the lines the generator gives it
     for (const f of ['01_residual_mlp.json', '07_gpt2.json', '15_lstm.json', '12_resnet50.json']) {
       const code = NN.generate(JSON.parse(fs.readFileSync(__dirname + '/examples/networks/' + f, 'utf8')).graph, {}).code, imp = NN.importPython(code), gen = NN.generate(imp.graph, {});
@@ -289,6 +296,15 @@ for (const [f, want] of [['23_residual_cnn_gap.json', 57098], ['24_residual_cnn_
         n++; if (!ls.every(l => gl.includes(l - 1))) bad(`${f}: ${nd.type} ${nd.params.name || ''} read from line ${ls}, generated on ${gl.map(x => x + 1)}`);
       }
       if (n < 5) bad(f + ': too few nodes with lines');
+    }
+    { // saving a size change also updates the example input under __main__ when that line is the app's; other lines there stay
+      const file = ['import torch', 'import torch.nn as nn', '', '', 'class Net(nn.Module):', '    def __init__(self, d=16):', '        super().__init__()', '        self.fc = nn.Linear(d, 4)  # mine', '',
+        '    def forward(self, x):', '        return self.fc(x)', '', '', 'if __name__ == "__main__":', '    torch.manual_seed(0)  # mine', '    model = Net()', '    x = torch.randn(8, 16)  # my batch',
+        '    out = model(x)', '    print(out.shape)  # expected torch.Size([8, 4])', ''].join('\n');
+      const imp = NN.importPython(file), g2 = JSON.parse(JSON.stringify(imp.graph)); g2.symbols.d = 32;
+      const out = NN.syncSource(file, g2, { gen: { literalDims: false } });
+      if (!/def __init__\(self, d=32\):/.test(out) || !/    x = torch\.randn\(8, 32\)  # my batch\n/.test(out) || !/torch\.manual_seed\(0\)  # mine/.test(out) || !/# mine\n\n    def forward/.test(out)) bad('example input under __main__ not updated, or other lines changed:\n' + out);
+      if (NN.importPython(out).graph.symbols.d !== 32 || NN.syncSource(out, g2, { gen: { literalDims: false } }) !== out) bad('the saved file does not read back with the new size');
     }
     console.log('source lines OK');
   }

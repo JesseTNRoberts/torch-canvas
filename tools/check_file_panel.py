@@ -105,6 +105,8 @@ with sync_playwright() as p:
     pg.locator('#wrap').click(position={'x': 30, 'y': 400}); resize('64')
     t = panel()
     check('tanh' in t and '"""Doc."""' in t and 'def predict' in t and '# keep me' in t and 'nn.Linear(n_in, 64)' in t, 'h. a new activation rewrites forward only; docstring, comment and predict kept', t)
+    # the example input under __main__ follows a size change (h. resized fc1; the input is still 8 wide, so only the classes changed)
+    check('torch.randn(8, 8)' in panel(), 'h. the example run under __main__ is still there', panel()[-200:])
     # i. save as
     pg.locator('#fbSaveAs').click(); pg.wait_for_timeout(700)
     t2 = pg.evaluate("() => window.__disk2.text")
