@@ -722,7 +722,7 @@ function sizeOf0(n) {
     case 'conv1d': { const t = `Causal conv ${p.k}`, sub = dimText(p.ch) + ' channels'; return { w: Math.max(92, t.length * 7.4, sub.length * 7) + 26, h: 40 }; }
     case 'pool': case 'upsample': case 'token': case 'select': case 'param': case 'noise': return { w: Math.max(70, OP_LABEL[n.type](p).length * 7 + 24), h: 30 };
     case 'delay': return { w: Math.max(74, OP_LABEL.delay(p).length * 7 + 30), h: 30 };
-    case 'act': return p.fn === 'sigmoid' ? { w: 32, h: 34 } : p.fn === 'leaky_relu' ? { w: 84, h: 30 } : p.fn === 'softmax' ? { w: 108, h: 30 } : p.fn === 'softplus' ? { w: 84, h: 30 } : p.fn === 'gelu_tanh' ? { w: 84, h: 30 } : { w: 56, h: 30 };
+    case 'act': return p.fn === 'sigmoid' ? { w: 32, h: 34 } : p.fn === 'leaky_relu' ? { w: 84, h: 30 } : p.fn === 'softmax' ? { w: 108, h: 30 } : p.fn === 'softplus' ? { w: 84, h: 30 } : p.fn === 'spike' ? { w: 64, h: 30 } : p.fn === 'gelu_tanh' ? { w: 84, h: 30 } : { w: 56, h: 30 };
     case 'binop': return NN.isCircle(n) ? { w: 26, h: 26 } : { w: Math.max(54, constLabel(p).length * 7.6 + 24), h: 30 };
     case 'dropout': return { w: 86, h: 30 };
     case 'embed': { const t = p.positions ? 'Position embedding' : 'Embedding', sub = dimText(p.num) + ' × ' + dimText(p.dim), il = subLabel(p, n); return { w: Math.max(t.length * 7.4, sub.length * 7, il.length * 6) + 30, h: il ? 52 : 40 }; }
@@ -1438,7 +1438,7 @@ function render() {
         break;
       case 'act': {
         cls += ' t-act';
-        const t = { sigmoid: 'σ', silu: 'SiLU', relu: 'ReLU', leaky_relu: 'LeakyReLU', gelu: 'GELU', gelu_tanh: 'GELU·tanh', tanh: 'tanh', softmax: 'Softmax', softplus: 'Softplus' }[p.fn] || p.fn;
+        const t = { sigmoid: 'σ', silu: 'SiLU', relu: 'ReLU', leaky_relu: 'LeakyReLU', gelu: 'GELU', gelu_tanh: 'GELU·tanh', tanh: 'tanh', softmax: 'Softmax', softplus: 'Softplus', spike: 'Spike' }[p.fn] || p.fn;
         inner = `<rect class="n-box" x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="7"/><text x="${n.x}" y="${n.y + 4.5}" text-anchor="middle" font-size="${p.fn === 'sigmoid' ? 15 : 12.5}">${t}</text>`;
         break;
       }
@@ -1788,6 +1788,7 @@ function opExplain0(n) {
       case 'silu': return box('y = x · σ(x) = x / (1 + e<sup>−x</sup>)', 'Also called swish: about x for large x, about 0 for very negative x, smooth in between (dips slightly below 0); ' + ew);
       case 'gelu': return box('y = x · Φ(x)', 'Φ is the standard normal CDF: each value is kept with weight "how likely a normal sample is below it". A smooth ReLU; ' + ew);
       case 'gelu_tanh': return box('y = ½ x (1 + tanh(√(2/π) (x + 0.044715 x³)))', 'The tanh approximation of GELU (as in GPT-2); ' + ew);
+      case 'spike': return box('y = 1 if x > 0, else 0', `A spiking neuron's output: a step, so the input is usually a membrane potential minus its threshold. The step's own gradient is zero everywhere, so backward uses a surrogate, the slope of the fast sigmoid x / (1 + ${esc(p.slope ?? '25')}·|x|): 1 / (1 + ${esc(p.slope ?? '25')}·|x|)², largest at the threshold; ` + ew);
       case 'softplus': return box('y = log(1 + e<sup>x</sup>)', 'A smooth ReLU that is always positive (about x for large x); used where a value must be > 0, like Mamba\'s time step; ' + ew);
       case 'softmax': return box(`y<sub>i</sub> = e<sup>x<sub>i</sub></sup> / Σ<sub>j</sub> e<sup>x<sub>j</sub></sup>`, `Along dim ${esc(p.dim ?? -1)}: turns scores into positive weights that sum to 1; the largest score gets the most.`);
     } return box('', 'An activation, applied ' + ew);
@@ -1975,7 +1976,7 @@ function renderInspector() {
       + field('eps', txt('eps', p.eps, true, 'placeholder="default"'))
       + (p.kind === 'LayerNorm' ? field('Scale and shift', `<input type="checkbox" id="f-affine" data-f="affine"${p.affine !== false ? ' checked' : ''}>`) + (p.affine === false ? `<p class="hint" style="margin-top:-6px">No weights: <span class="mono">elementwise_affine=False</span>, a plain normalization (I-JEPA's targets).</p>` : '') : '')
       + field('Width', `<span class="mono">${esc(dimText(p.dim))} <small style="font-family:var(--sans);color:var(--faint)">from the stream</small></span>`) + field('Code name', txt('name', p.name, true, 'placeholder="norm"')); break;
-    case 'act': h += field('Function', sel('fn', p.fn, NN.ACTS.map(a => [a, a]))) + (p.fn === 'softmax' ? field('dim', txt('dim', p.dim)) : '') + (p.fn === 'leaky_relu' ? field('Negative slope', txt('slope', p.slope ?? '0.01')) : ''); break;
+    case 'act': h += field('Function', sel('fn', p.fn, NN.ACTS.map(a => [a, a]))) + (p.fn === 'softmax' ? field('dim', txt('dim', p.dim)) : '') + (p.fn === 'leaky_relu' ? field('Negative slope', txt('slope', p.slope ?? '0.01')) : '') + (p.fn === 'spike' ? field('Surrogate slope', txt('slope', p.slope ?? '25')) : ''); break;
     case 'conv': {
       const iv = NN.evalDim(p.in, S.g.symbols), ov = NN.evalDim(p.out, S.g.symbols), kv = NN.evalDim(p.k, S.g.symbols);
       h += `<div class="sub">nn.${p.transposed ? 'ConvTranspose2d' : 'Conv2d'}(${esc(dimText(p.in))}, ${esc(dimText(p.out))}, ${esc(p.k)}), weight ${esc(dimText(p.out))} × ${esc(dimText(p.in))} × ${esc(p.k)} × ${esc(p.k)}${iv != null && ov != null && kv != null ? ` = ${(iv * ov * kv * kv).toLocaleString('en-US')}` : ''}</div>`;
@@ -2206,7 +2207,8 @@ function blockInspector(el, n) {
     const f = t.dataset.f; if (!f) return;
     if (f === 'frozen') { commit(() => { if (t.checked) n.params.frozen = true; else delete n.params.frozen; }); return; }
     if (f === 'follows') { const v = t.value; commit(() => { if (v) { n.params.follows = v; if (n.params.momentum == null) n.params.momentum = '0.996'; if (n.params.momentum_end == null) n.params.momentum_end = '1.0'; delete n.params.frozen; } else { delete n.params.follows; delete n.params.momentum; delete n.params.momentum_end; } }); return; }
-    commit(() => { n.params[f] = t.value; });
+    // an activation's slope means something different per function (LeakyReLU's negative slope, Spike's surrogate slope)
+    commit(() => { n.params[f] = t.value; if (n.type === 'act' && f === 'fn') { if (t.value === 'spike') n.params.slope = '25'; else if (t.value === 'leaky_relu') n.params.slope = '0.01'; else delete n.params.slope; } });
   };
   $('#iOpenBlk').onclick = () => enterBlock(blk.id);
   const rs = $('#iResetSizes'); if (rs) rs.onclick = () => commit(() => params.forEach(p => setBlockArg(n, p, +blk.graph.symbols[p] || 64)));
@@ -3045,7 +3047,8 @@ const COMP = [
       { k: 'act:sigmoid', label: 'Sigmoid σ', sw: 'sw-act', icon: 'σ', desc: 'Squashes to (0, 1); used for gates', torch: 'torch.sigmoid' },
       { k: 'act:tanh', label: 'Tanh', sw: 'sw-act', icon: 'ƒ', desc: 'Squashes to (−1, 1)', torch: 'torch.tanh' },
       { k: 'act:softmax', label: 'Softmax', sw: 'sw-act', icon: 'ƒ', desc: 'Turns scores into probabilities', torch: 'torch.softmax' },
-      { k: 'act:softplus', label: 'Softplus', sw: 'sw-act', icon: 'ƒ', desc: 'log(1 + eˣ), a smooth positive ReLU; Mamba\'s time step', torch: 'F.softplus' } ] },
+      { k: 'act:softplus', label: 'Softplus', sw: 'sw-act', icon: 'ƒ', desc: 'log(1 + eˣ), a smooth positive ReLU; Mamba\'s time step', torch: 'F.softplus' },
+      { k: 'act:spike', label: 'Spike', sw: 'sw-act', icon: 'ƒ', desc: '1 where x > 0, else 0, with a surrogate gradient; the output of a spiking neuron', torch: 'spike(x)' } ] },
     { label: 'Sequence', items: [
       { k: 'delay', label: 'Delay', sw: 'sw-op2', icon: '◷', desc: 'The value from one time step earlier (zeros at the first step). Feed an output back through a Delay to make a recurrence: RNN, LSTM, GRU', torch: 'for t in range(T): h = …' },
       { k: 'token', label: 'Learned token', sw: 'sw-op2', icon: '⊕', desc: 'A learned vector put in front of the sequence, e.g. the class token of ViT', torch: 'torch.cat([tok.expand(…), x], 1)' },
@@ -3165,6 +3168,7 @@ function addFromPalette(k, x, y) {
   if (type === 'heads') { if (S.g.symbols.n_head == null) S.g.symbols.n_head = 8; params.heads = 'n_head'; }
   if (type === 'norm') { params.dim = 'f'; if (sub) params.kind = sub; }
   if (type === 'act' && sub === 'leaky_relu') params.slope = '0.01';
+  if (type === 'act' && sub === 'spike') params.slope = '25';
   if (type === 'conv') { const w = nextFree('c'); S.g.symbols[w] = 64; params.out = w; params.in = 'f'; if (sub === 'transposed') Object.assign(params, { transposed: true, k: '2', stride: '2', pad: '0', bias: true }); }
   if (type === 'pool' && sub) params.kind = sub;
   if (type === 'delay') { const used = new Set(S.g.nodes.filter(z => z.type === 'delay').map(z => z.params.name)); let nm = used.has('h') ? (used.has('c') ? 'h2' : 'c') : 'h', k = 2; while (used.has(nm)) nm = 'h' + ++k; params.name = nm; }

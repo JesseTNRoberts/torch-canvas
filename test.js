@@ -92,6 +92,26 @@ for (const [f, want, delays] of [['14_rnn.json', 5768, 1], ['15_lstm.json', 2151
   const r = require('./engine.js').predict(g);
   if (r.error || r.layers.length !== { 1: 3, 2: 9 }[delays] && f !== '16_gru.json' || r.layers.some(l => !(l.fwdOut > 0 && l.bwdIn > 0)) || !/one step/.test(r.notes[0])) { console.error('variance plot failed: ' + f + ' ' + (r.error || '')); process.exit(1); }
 }
+// A spiking layer: leaky integrate-and-fire neurons drawn flat with two Delays (the membrane potential and the last
+// spike, which resets it). Spike is an
+// activation: a step forward, written with a helper that gives it a surrogate gradient. Reads back in both styles
+// with the surrogate slope kept, and a slope other than the default is written out.
+{
+  const f = '26_lif.json', g = JSON.parse(require('fs').readFileSync(__dirname + '/examples/networks/' + f, 'utf8')).graph;
+  for (const literalDims of [true, false]) {
+    const a = NN.generate(g, { literalDims }).code, imp = NN.importPython(a).graph, b = NN.generate(imp, { literalDims }).code;
+    const sp = imp.nodes.filter(n => n.type === 'act' && n.params.fn === 'spike');
+    if (a !== b || !/for t in range\(/.test(a) || !/^def spike\(x, slope=25\.0\):/m.test(a) || !/v = cur\[:, t\] \+ v \* 0\.9 - s \* 1\b/.test(a) || !/s = spike\(v - 1\)/.test(a) || imp.nodes.filter(n => n.type === 'delay').length !== 2 || sp.length !== 1 || +sp[0].params.slope !== 25) { console.error(f + ' round trip failed, literalDims=' + literalDims); process.exit(1); }
+  }
+  let n = 0; for (const z of g.nodes) n += NN.paramCount(z, g.symbols) || 0;
+  if (n !== 1024) { console.error(f + ' has ' + n + ' parameters, expected 1024'); process.exit(1); }
+  const g2 = JSON.parse(JSON.stringify(g)); g2.nodes.find(z => z.params.fn === 'spike').params.slope = '10';
+  const c2 = NN.generate(g2).code, back = NN.importPython(c2).graph.nodes.find(z => z.params.fn === 'spike');
+  if (!/spike\(v - 1, 10\)/.test(c2) || !back || +back.params.slope !== 10) { console.error(f + ': a surrogate slope of 10 was not kept'); process.exit(1); }
+  // a model without a Spike doesn't get the helper
+  if (/def spike\(/.test(NN.generate(JSON.parse(require('fs').readFileSync(__dirname + '/examples/networks/14_rnn.json', 'utf8')).graph).code)) { console.error('spike helper written for a model without one'); process.exit(1); }
+  console.log(f + ' round trip OK, ' + n.toLocaleString('en-US') + ' parameters');
+}
 // Vision Transformer (torchvision's vit_b_16): patches by a strided convolution, flattened into a sequence, a class
 // token in front, position embeddings, 12 encoder blocks, the class token's position into the head. Same parameter
 // count as torchvision; reads back in both styles; the variance plot simulates every patch as its own position.
