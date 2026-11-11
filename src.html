@@ -1604,6 +1604,9 @@ function renderCode() {
     }
   }
   S.gen = r;
+  // with a .py file open the panel shows the file's own text, with the diagram's changes written into it
+  const ft = fileMode() ? fileText() : null, view = ft ? ft.text : r.code;
+  S.shownCode = view;
   renderViewMenuHint();
   // another open model: edits in progress stay with the model they were made in
   if (S.codeEdit && S.codeEdit.doc !== S.cur) {
@@ -1616,16 +1619,56 @@ function renderCode() {
   renderCodeBar();
   if (S.codeEdit) { // the diagram changed while the code is being edited: follow it unless something was typed
     const ta = $('#codeTa');
-    if (ta.value === S.codeEdit.base) { if (r.code !== S.codeEdit.base) { ta.value = S.codeEdit.base = r.code; codeEditPaint(); } }
-    else if (r.code !== S.codeEdit.base && !S.codeEdit.stale) { S.codeEdit.stale = true; codeEditError('The diagram has changed since you started editing. Apply replaces it with this code; Cancel keeps the diagram.'); }
+    if (ta.value === S.codeEdit.base) { if (view !== S.codeEdit.base) { ta.value = S.codeEdit.base = view; codeEditPaint(); } }
+    else if (view !== S.codeEdit.base && !S.codeEdit.stale) { S.codeEdit.stale = true; codeEditError('The diagram has changed since you started editing. Apply replaces it with this code; Cancel keeps the diagram.'); }
     return;
   }
-  const hl = new Set();
+  let hl = new Set();
   const ids = [...S.sel.nodes]; if (S.sel.group) ids.push('g:' + S.sel.group);
-  for (const id of ids) (r.lineMap.get(id) || []).forEach(l => hl.add(l));
-  $('#code').innerHTML = r.code.replace(/\n$/, '').split('\n').map((ln, i) => `<span class="ln${hl.has(i) ? ' hl' : ''}" data-n="${i + 1}">${highlight(ln) || ' '}</span>`).join('');
-  const w = $('#warns'); w.hidden = !r.warnings.length; w.innerHTML = r.warnings.map(x => `<li>${esc(x)}</li>`).join('');
+  if (view === r.code) { for (const id of ids) (r.lineMap.get(id) || []).forEach(l => hl.add(l)); }
+  else hl = fileHighlight(view, r, ids);
+  $('#code').innerHTML = view.replace(/\n$/, '').split('\n').map((ln, i) => `<span class="ln${hl.has(i) ? ' hl' : ''}" data-n="${i + 1}">${highlight(ln) || ' '}</span>`).join('');
+  const notes = ft && ft.note ? [ft.note, ...r.warnings] : r.warnings;
+  const w = $('#warns'); w.hidden = !notes.length; w.innerHTML = notes.map(x => `<li>${esc(x)}</li>`).join('');
   if (hl.size) { const first = $('#code .ln.hl'); if (first) { const pane = $('#codePane'); const top = first.offsetTop; if (top < pane.scrollTop || top > pane.scrollTop + pane.clientHeight - 40) pane.scrollTop = top - 60; } }
+}
+// ── the open file's text ──
+// With a .py file open, the code panel shows the file's own text (comments, docstrings, hand-written methods and
+// all) with the diagram's changes written into it by NN.syncSource, so the panel is what Save will write. The
+// file's working text is S.file.text: what was read from disk, or the text last applied from the code editor.
+// The idea and syncSource are Taylor Turner's (#1, #3).
+const fileMode = () => !!S.file && S.file.kind === 'py' && typeof S.file.text === 'string' && !R().libHost;
+const unixText = t => t.replace(/\r\n/g, '\n');
+function fileText() {
+  const f = S.file, key = S.gen.code + '\0' + f.text;
+  if (f.shownKey === key) return f.shown;
+  let text = null, note = '';
+  // nothing has changed since the file was read: its text as it is
+  if (S.gen.code === f.savedCode && f.text === unixText(f.diskText)) text = f.text;
+  if (text == null) { try { text = NN.syncSource(f.text, R(), { root: f.root, gen: genOpts() }); } catch {} }
+  if (text == null) { // can't be written line by line: what Save does instead
+    try { text = NN.mergeIntoSource(f.text, S.gen.code, f.used); } catch {}
+    note = text == null ? `The model's classes aren't in ${f.name} any more, so this is the generated code. Saving asks before it replaces the file.`
+      : `This change can't be written into ${f.name} line by line, so the model's classes are replaced whole: comments and your own methods inside them are not kept. The rest of the file is.`;
+  }
+  f.shownKey = key; f.shown = text == null ? null : { text, note };
+  return f.shown || { text: S.gen.code, note };
+}
+// The selected layers' lines in the file's text: the lines that read the same as their generated lines, in the
+// class of the same name, and the lines that define the same self.<name>.
+function fileHighlight(view, r, ids) {
+  const norm = l => l.replace(/\s+#.*$/, '').trim(), hl = new Set();
+  const classes = lines => { let c = ''; return lines.map(l => { const m = /^class\s+(\w+)/.exec(l); if (m) c = m[1]; else if (/^\S/.test(l) && !/^[#@)\]}]/.test(l)) c = ''; return c; }); };
+  const gl = r.code.split('\n'), gc = classes(gl), want = new Set(), defs = new Set();
+  for (const id of ids) for (const l of r.lineMap.get(id) || []) {
+    const t = norm(gl[l] || ''); if (!t) continue;
+    want.add(gc[l] + '\0' + t);
+    const m = /^self\.(\w+)\s*=/.exec(t); if (m) defs.add(gc[l] + '\0' + m[1]);
+  }
+  if (!want.size) return hl;
+  const vl = view.split('\n'), vc = classes(vl);
+  vl.forEach((l, i) => { const t = norm(l), m = /^self\.(\w+)\s*=/.exec(t); if (want.has(vc[i] + '\0' + t) || (m && defs.has(vc[i] + '\0' + m[1]))) hl.add(i); });
+  return hl;
 }
 // ── editing the code: the text is read back into the diagram (core carryDiagram keeps the layout, nicknames and notes) ──
 S.codeEdit = null;
@@ -1643,8 +1686,8 @@ function codeEditPaint() {
 function startCodeEdit(line, draft) {
   if (R().libHost || S.codeEdit) return;
   const pane = $('#codePane'), top = pane.scrollTop, ta = $('#codeTa');
-  S.codeEdit = { base: draft ? draft.base : S.gen.code, stale: !!(draft && draft.stale), doc: S.cur };
-  ta.value = draft ? draft.text : S.gen.code; codeEditPaint();
+  S.codeEdit = { base: draft ? draft.base : S.shownCode, stale: !!(draft && draft.stale), doc: S.cur };
+  ta.value = draft ? draft.text : S.shownCode; codeEditPaint();
   $('#code').hidden = true; $('#codeEdit').hidden = false; codeEditError(''); renderCodeBar();
   if (draft) return;
   ta.focus({ preventScroll: true }); pane.scrollTop = top;
@@ -1660,7 +1703,8 @@ function applyCodeEdit() {
   const text = $('#codeTa').value;
   if (text === S.codeEdit.base) { stopCodeEdit(); return true; }
   let res;
-  try { res = NN.importPython(text); if (!res.graph || !res.graph.nodes.length) throw new Error('There is no model here to read.'); }
+  const fm = fileMode();
+  try { res = NN.importPython(text, { root: fm ? S.file.root : undefined }); if (!res.graph || !res.graph.nodes.length) throw new Error('There is no model here to read.'); }
   catch (ex) {
     codeEditError("Couldn't read this code, so the diagram is unchanged: " + ex.message);
     const m = /\bLine (\d+)/i.exec(ex.message), ta = $('#codeTa');
@@ -1677,6 +1721,7 @@ function applyCodeEdit() {
   // blocks still linked to the library keep this code's version (and pass it on, as an edit in the diagram would)
   syncLinked(g, { skip: new Set(Object.values(g.blocks || {}).filter(b => b.lib).map(b => b.id)) });
   S.codeEdit = null; $('#codeEdit').hidden = true; $('#code').hidden = false; codeEditError('');
+  if (fm) S.file.text = unixText(text); // the typed text is the file's text now, comments and all
   commit(() => { setModel(g); clearSel(); });
   const nb = inBlock && Object.values(g.blocks || {}).find(b => b.name === inBlock); if (nb) switchTo(nb.id);
   if (res.warnings.length) { const w = $('#warns'); w.hidden = false; w.innerHTML += res.warnings.map(x => `<li>Import: ${esc(x)}</li>`).join(''); }
@@ -3653,7 +3698,7 @@ async function copyText(t, ok) {
   try { await navigator.clipboard.writeText(t); toast(ok); }
   catch { const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); toast(ok); } catch { toast('Copy was blocked. Select the text and copy it manually.'); } ta.remove(); }
 }
-$('#bCopy').onclick = () => copyText(S.gen.code, 'PyTorch code copied.');
+$('#bCopy').onclick = () => copyText(S.shownCode || S.gen.code, 'PyTorch code copied.');
 // ── categories in Open / import: each example says which family it belongs to; anything else is Other ──
 let catOpen = {}; try { catOpen = JSON.parse(localStorage.getItem('torchcanvas.menuCats') || '{}') || {}; } catch { catOpen = {}; }
 function catGroups(list, order, kind, curFile) {
@@ -4187,7 +4232,7 @@ function importText(text, file, o = {}) {
   if (res.graph.blocks) for (const b of Object.values(res.graph.blocks)) NN.autoLayout(b.graph, sizeOf);
   if (o.replace) { S.file = null; syncLinked(res.graph); commit(() => { setModel(res.graph); clearSel(); }); } // reloading the open file: same tab
   else openDoc(res.graph, null, { byName: !!o.libTitle }); // anything else opens in a new tab
-  S.file = file ? Object.assign({}, file, { kind: k, diskText: text, used: res.usedClasses || [], root: o.root, changedOnDisk: false }) : null;
+  S.file = file ? Object.assign({}, file, { kind: k, diskText: text, used: res.usedClasses || [], root: o.root, changedOnDisk: false }, k === 'py' ? { text: unixText(text) } : {}) : null;
   if (S.file) restoreLayout();
   S.file && (S.file.savedCode = NN.generate(R(), genOpts()).code);
   changed(); fit();
@@ -4231,36 +4276,47 @@ async function ensureWrite(h) {
 async function writeHandle(h, text) { const w = await h.createWritable(); await w.write(text); await w.close(); return h.getFile(); }
 async function saveFile() {
   if (!S.file || !S.file.handle || S.file.kind === 'fx') return saveAs();
-  const h = S.file.handle, name = S.file.name;
+  const h = S.file.handle, name = S.file.name, cur = S.file;
   try {
     if (!(await ensureWrite(h))) return toast('Chrome needs write permission to save. Press Save again and choose Allow.');
-    const disk = await (await h.getFile()).text();
-    if (disk !== S.file.diskText && !(await ask(`${name} changed on disk since it was opened. Saving merges the diagram into the newer version.`, 'Save anyway'))) return;
+    const disk = await (await h.getFile()).text(), moved = disk !== S.file.diskText;
+    if (moved && !(await ask(`${name} changed on disk since it was opened. Saving merges the diagram into the newer version.`, 'Save anyway'))) return;
     const gen = NN.generate(R(), genOpts()).code;
+    // the text the diagram is written into: the file's working text (what the code panel shows the diagram in),
+    // or the newer text on disk when the file changed there
+    const src = moved || typeof S.file.text !== 'string' ? disk : S.file.text;
+    const before = { text: moved ? unixText(disk) : S.file.text, savedCode: S.file.savedCode, used: S.file.used };
     let out, synced = false;
     if (S.file.kind === 'graph') out = JSON.stringify(R(), null, 1);
     else {
       // Patch only the statements the diagram changed; fall back to replacing the model classes.
-      try { out = NN.syncSource(disk, R(), { root: S.file.root, gen: genOpts() }); synced = out != null; } catch {}
-      if (out == null) out = NN.mergeIntoSource(disk, gen, S.file.used);
+      try { out = NN.syncSource(src, R(), { root: S.file.root, gen: genOpts() }); synced = out != null; } catch {}
+      if (out == null) out = NN.mergeIntoSource(src, gen, S.file.used);
       if (out == null) { if (!(await ask(`The model's classes aren't in ${name} any more. Replace the whole file with the generated code?`, 'Replace file'))) return; out = gen; }
     }
     const f = await writeHandle(h, out);
     let used = S.file.used; try { if (S.file.kind === 'py') used = NN.importPython(out, { root: S.file.root }).usedClasses; } catch {}
-    Object.assign(S.file, { diskText: out, lastModified: f.lastModified, savedCode: gen, used, changedOnDisk: false });
-    renderFileBar();
-    toast(`Saved ${name}. ${synced ? 'Only the lines you changed were rewritten; the rest of the file is untouched.' : 'Only the model classes changed; the rest of the file is untouched.'}`, { label: 'Undo', run: async () => { const f2 = await writeHandle(h, disk); Object.assign(S.file, { diskText: disk, lastModified: f2.lastModified, savedCode: null }); renderFileBar(); toast(`Restored the previous ${name}.`); } });
+    Object.assign(S.file, { diskText: out, lastModified: f.lastModified, savedCode: gen, used, changedOnDisk: false }, S.file.kind === 'py' ? { text: out } : {});
+    renderCode(); renderFileBar();
+    // Undo puts the file back and leaves the diagram alone, so its changes show as unsaved again
+    toast(`Saved ${name}. ${synced ? 'Only the lines you changed were rewritten; the rest of the file is untouched.' : 'Only the model classes changed; the rest of the file is untouched.'}`, { label: 'Undo', run: async () => {
+      const f2 = await writeHandle(h, disk);
+      Object.assign(cur, { diskText: disk, lastModified: f2.lastModified, savedCode: before.savedCode, used: before.used, changedOnDisk: false }, cur.kind === 'py' ? { text: before.text } : {});
+      if (S.file === cur) { renderCode(); renderFileBar(); }
+      toast(`Restored the previous ${name}.${S.file === cur && isDirty() ? ' The diagram still has your changes, unsaved.' : ''}`);
+    } });
   } catch (e) { if (!isAbort(e)) toast(`Couldn't save ${name}: ${e.message}`); }
 }
 async function saveAs() {
-  const gen = NN.generate(R(), genOpts()).code;
+  const code = NN.generate(R(), genOpts()).code;
+  const gen = fileMode() && S.shownCode ? S.shownCode : code; // an open file's own text, with the diagram's changes, not a regenerated one
   if ('showSaveFilePicker' in window) {
     try {
       const h = await showSaveFilePicker({ suggestedName: (S.g.name || 'model').replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase() + '.py', types: PY_TYPES });
       const f = await writeHandle(h, gen);
       let used = []; try { used = NN.importPython(gen).usedClasses; } catch {}
-      S.file = { name: f.name, path: f.name, handle: h, kind: 'py', diskText: gen, used, savedCode: gen, lastModified: f.lastModified };
-      renderFileBar(); rememberHandles(); toast(`Saved ${f.name}.`); return;
+      S.file = { name: f.name, path: f.name, handle: h, kind: 'py', diskText: gen, text: gen, used, savedCode: code, lastModified: f.lastModified };
+      renderCode(); renderFileBar(); rememberHandles(); toast(`Saved ${f.name}.`); return;
     } catch (e) { if (isAbort(e)) return; if (e.name !== 'SecurityError') return toast(e.message); }
   }
   copyText(gen, 'This sandboxed page cannot save files, so the code was copied instead. The local version (npm start) saves directly.');
@@ -4277,7 +4333,11 @@ function ask(msg, okLabel) {
     el.querySelector('#askOk').focus();
   });
 }
-function isDirty() { return S.file && S.gen && S.file.savedCode != null && S.gen.code !== S.file.savedCode; }
+function isDirty() {
+  if (!S.file || !S.gen) return false;
+  if (fileMode() && S.shownCode != null && S.shownCode !== unixText(S.file.diskText)) return true; // what Save would write differs from the file
+  return S.file.savedCode != null && S.gen.code !== S.file.savedCode;
+}
 function renderFileBar() {
   const bar = $('#fileBar'); if (bar.querySelector('.ask')) return;
   const f = S.file;
@@ -4299,7 +4359,7 @@ function renderFileBar() {
   const on = (id, fn) => { const b = bar.querySelector('#' + id); if (b) b.onclick = fn; };
   on('fbSave', saveFile); on('fbSaveAs', saveAs);
   on('fbReload', () => reloadFromDisk(false));
-  on('fbClose', () => { S.file = null; renderFileBar(); renderProject(); });
+  on('fbClose', () => { S.file = null; renderCode(); renderFileBar(); renderProject(); });
 }
 async function reloadFromDisk(auto) {
   const f = S.file; if (!f || !f.handle) return;
