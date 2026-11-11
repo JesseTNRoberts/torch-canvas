@@ -4319,7 +4319,7 @@ async function checkDisk() {
     if (file.lastModified === f.lastModified) return;
     f.lastModified = file.lastModified;
     const text = await file.text(); if (text === f.diskText) return;
-    if (!isDirty()) reloadFromDisk(true);
+    if (!isDirty()) await reloadFromDisk(true); // awaited, so a second check can't start mid-reload
     else { f.changedOnDisk = true; renderFileBar(); }
   } catch {} finally { checking = false; }
 }
