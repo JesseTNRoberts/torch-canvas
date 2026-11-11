@@ -2060,7 +2060,7 @@ const NN = (() => {
           const c = JSON.parse(JSON.stringify(ix.byId.get(id))); c.id = uid('n');
           for (const f of DIMF[c.type] || []) if (typeof c.params[f] === 'string' && (f !== 'shape' || c.type === 'param')) c.params[f] = f === 'sizes' ? mapSizes(c.params[f], v => v.replace(IDENT, t => nameOf.get(t) || t)) : c.params[f].replace(IDENT, t => nameOf.get(t) || t);
           if (c.type === 'block' && c.params.args) for (const k of Object.keys(c.params.args)) c.params.args[k] = String(c.params.args[k]).replace(IDENT, t => nameOf.get(t) || t);
-          inner.nodes.push(c); idm.set(id, c.id);
+          inner.nodes.push(c); idm.set(id, c.id); if (g._src && g._src.has(id)) g._src.set(c.id, g._src.get(id)); if (g._attr && g._attr.has(id)) g._attr.set(c.id, g._attr.get(id));
         }
         // an edge inside the block, from a layer in it (or output k of a block in it) or from one of its inputs
         const innerEdge = (src, to, port) => {
@@ -2091,7 +2091,7 @@ const NN = (() => {
       }
       let cx = 0, cy = 0; gi.members.forEach(id => { cx += ix.byId.get(id).x; cy += ix.byId.get(id).y; });
       const use = makeNode('block', Object.assign({ block: ent.blk.id, args, nIn: gi.extIn.length, nOut: gi.outputs.length, name: gi.group.attr || '' }, gi.group.frozen ? { frozen: true } : {}), cx / gi.members.size, cy / gi.members.size);
-      g.nodes.push(use); useOf.set(gi.group.id, use.id); gi.group.useId = use.id;
+      g.nodes.push(use); useOf.set(gi.group.id, use.id); gi.group.useId = use.id; if (g._src) g._src.set(use.id, gi.group.src || []);
       gi.extIn.forEach((s, j) => { const [f, k] = splitKey(s); g.edges.push(Object.assign({ id: uid('e'), from: f, to: use.id, port: j }, k ? { out: k } : {})); });
       gi.outputs.forEach((o, k) => { if (gi.members.has(baseOf(o)) && !remap.has(o)) remap.set(o, [use.id, k]); });
       gi.members.forEach(id => drop.add(id));
@@ -2824,7 +2824,9 @@ const NN = (() => {
       const s = simple(); return s ? [s] : [];
     }
     function skipLine() { while (!is('nl') && !is('eof')) next(); if (is('nl')) next(); }
-    function stmt() {
+    // every statement carries the lines it is written on (1-based, first to last)
+    function stmt() { const line = peek().line, s = stmt0(); if (s) { s.line = line; s.end = Math.max(line, (T[k - 1] || EOF).line); } return s; }
+    function stmt0() {
       if (is('nl')) { next(); return null; }
       if (isOp('@')) { skipLine(); return null; }
       if (isKw('class')) {
@@ -3042,6 +3044,12 @@ const NN = (() => {
       g.symbols[name] = value; return { sym: name };
     };
     let curGroup = null, seqInput = false;
+    // the lines of the statement each node was read from (the innermost one: a layer inside a submodule belongs to
+    // the line in that submodule's forward, not to the line that calls the submodule); [] for nodes made elsewhere
+    const srcLines = new Map(), srcAttrs = new Map();
+    // a submodule call (a group, later a block) belongs to the statement that calls it, in the module it is called from
+    const stampNodes = lines => { for (const n of g.nodes) if (!srcLines.has(n.id)) srcLines.set(n.id, lines); const here = curGroup ? curGroup.id : null; for (const gr of g.groups) if (!gr.src && gr.parent === here && gr !== curGroup) gr.src = lines; };
+    const linesOf = s => { const ls = []; if (s && s.line) for (let l = s.line; l <= (s.end || s.line); l++) ls.push(l); return ls; };
     const addNode = (type, params, inputs) => {
       if (inputs.some(t => !isT(t))) throw new Error(`A ${type === 'func' ? 'function' : type} is given something that isn't a tensor${params && params.name ? ` (self.${params.name})` : ''}: a name that isn't defined yet, or code that stops part-way.`);
       const n = makeNode(type, params);
@@ -3372,6 +3380,7 @@ const NN = (() => {
     function applyMod(m, args, attrName) {
       const r = applyMod0(m, args, attrName);
       if (m && !m.inst && r && r.t != null && m._nodeId == null) m._nodeId = r.t;
+      if (m && !m.inst && r && r.t != null && (m.attrName || attrName) && !srcAttrs.has(r.t)) srcAttrs.set(r.t, m.attrName || attrName); // the self.<name> it is called by
       if (m && m.frozen && !m.inst && r && r.t != null) { const nd = g.nodes.find(z => z.id === r.t); if (nd && FREEZABLE.has(nd.type)) nd.params.frozen = true; }
       return r;
     }
@@ -3494,6 +3503,15 @@ const NN = (() => {
     }
     function exec(body, env) {
       for (const s of body) {
+        const simple = s.k === 'assign' || s.k === 'expr' || s.k === 'return';
+        if (simple) stampNodes([]);
+        try { const r = exec1(s, env); if (r !== undefined || s.k === 'return') return r; }
+        finally { if (simple) stampNodes(linesOf(s)); }
+      }
+      return undefined;
+    }
+    function exec1(s, env) {
+      {
         switch (s.k) {
           case 'assign': {
             const before = g.nodes.length, v = ev(s.value, env); s.targets.forEach(t => bind(t, v, env));
@@ -3542,11 +3560,14 @@ const NN = (() => {
     });
     const fenv = new Map([['self', rootVal]]);
     fwd.params.slice(1).forEach((p, i) => fenv.set(p.name, inputs[i]));
+    inputs.forEach(v => srcLines.set(v.t, fwd.line ? [fwd.line] : [])); // an input arrow: the line forward() starts on
     inFwd = true;
     let ret = exec(fwd.body, fenv);
     inFwd = false;
     const rets = ret && ret.list ? ret.list : [ret];
+    stampNodes([]);
     rets.forEach((r, i) => { if (isT(r)) addNode('output', { name: rets.length > 1 ? 'out' + i : 'out' }, [r]); });
+    stampNodes(linesOf([...fwd.body].reverse().find(z => z.k === 'return'))); // an output arrow: the return it stands for
     // loss(): rebuild loss nodes from the forms Torch Canvas writes (see lossPlan)
     const lossM = findMethod(src, root.name, 'loss');
     const newTargets = [];
@@ -3697,7 +3718,7 @@ const NN = (() => {
       }
     }
     linkSizes(g);
-    groupsToBlocks(g);
+    g._src = srcLines; g._attr = srcAttrs; try { groupsToBlocks(g); } finally { delete g._src; delete g._attr; }
     for (const gr of madeGroups) if (gr.followsMod && gr.followsMod._groupId != null) {
       const lead = madeGroups.find(z => z.id === gr.followsMod._groupId), use = g.nodes.find(z => z.id === gr.useId), luse = lead && g.nodes.find(z => z.id === lead.useId);
       if (use && luse) { use.params.follows = luse.id; delete use.params.frozen; setMom(use); } else warnings.push('A block that follows another (load_state_dict) could not be matched to its use; the tie was left out.');
@@ -3707,7 +3728,9 @@ const NN = (() => {
     const literalDims = !(rootInit && rootInit.params.length > 1);
     // a category header (# category: Transformers) belongs to the model
     for (const line of src.split('\n')) { if (line.trim() && !/^\s*#/.test(line)) break; const m = /^\s*#\s*category\s*:\s*(.+?)\s*$/i.exec(line); if (m) { g.category = m[1]; break; } }
-    return { graph: g, warnings: [...new Set(warnings)], usedClasses: [...usedClasses], literalDims };
+    // lines: node id → the lines (1-based) of the statement it was read from; attrs: node id → the self.<name> of the
+    // module it is (also for the layers the app writes as functions, like self.act = nn.ReLU())
+    return { graph: g, warnings: [...new Set(warnings)], usedClasses: [...usedClasses], literalDims, lines: srcLines, attrs: srcAttrs };
   }
 
   // ── torch.fx JSON importer (from export_graph.py) ──
@@ -4290,23 +4313,24 @@ const NN = (() => {
   // the graph it replaces, node by node; size names come back too ("768" in literal code is d again, and changing
   // every 768 that was d changes d). Nodes are paired by kind and name in code order. layout(g) is the caller's
   // auto layout, used to place the nodes the code added next to their neighbours.
+  // Nodes of two graphs of the same model, paired by kind and name in code order: id in a → node in b.
+  const genLines = g => { const m = new Map(); try { const r = generate(g, { shapeComments: false, literalDims: false }); for (const [k, ls] of r.lineMap) if (ls.length) m.set(k, Math.min(...ls)); } catch {} return m; };
+  const pairNodes = (a, b) => {
+    const la = genLines(a), lb = genLines(b), ia = index(a), ib = index(b);
+    const ord = (g, l) => { const pos = new Map(g.nodes.map((n, i) => [n.id, i])); return (x, y) => ((l.has(x.id) ? l.get(x.id) : 1e9) - (l.has(y.id) ? l.get(y.id) : 1e9)) || pos.get(x.id) - pos.get(y.id); };
+    const oa = ord(a, la), ob = ord(b, lb), pairs = new Map(), used = new Set();
+    for (const key of [(g, ix, n) => { const gr = ix.groupOf.get(n.id); return `${gr ? gr.attr : ''}|${n.type}|${n.params.name || n.params.fn || n.params.op || n.params.kind || ''}`; }, (g, ix, n) => n.type]) {
+      const bucket = (g, ix, skip, cmp) => { const m = new Map(); for (const n of [...g.nodes].sort(cmp)) if (!skip(n)) { const k = key(g, ix, n); if (!m.has(k)) m.set(k, []); m.get(k).push(n); } return m; };
+      const A = bucket(a, ia, n => pairs.has(n.id), oa), B = bucket(b, ib, n => used.has(n.id), ob);
+      for (const [k, xs] of A) { const ys = B.get(k) || []; xs.forEach((x, i) => { if (ys[i]) { pairs.set(x.id, ys[i]); used.add(ys[i].id); } }); }
+    }
+    return pairs; // old id → new node
+  };
   const DIAGRAM_ONLY = ['title', 'note', 'tone', 'split', 'tie_x', 'demo', 'lib', 'from_use', 'from_path'];
   function carryDiagram(old, neu, layout, sz = nodeSize) {
     const clone = x => JSON.parse(JSON.stringify(x));
-    const lines = g => { const m = new Map(); try { const r = generate(g, { shapeComments: false, literalDims: false }); for (const [k, ls] of r.lineMap) if (ls.length) m.set(k, Math.min(...ls)); } catch {} return m; };
-    const pairsOf = (a, b) => {
-      const la = lines(a), lb = lines(b), ia = index(a), ib = index(b);
-      const ord = (g, l) => { const pos = new Map(g.nodes.map((n, i) => [n.id, i])); return (x, y) => ((l.has(x.id) ? l.get(x.id) : 1e9) - (l.has(y.id) ? l.get(y.id) : 1e9)) || pos.get(x.id) - pos.get(y.id); };
-      const oa = ord(a, la), ob = ord(b, lb), pairs = new Map(), used = new Set();
-      for (const key of [(g, ix, n) => { const gr = ix.groupOf.get(n.id); return `${gr ? gr.attr : ''}|${n.type}|${n.params.name || n.params.fn || n.params.op || n.params.kind || ''}`; }, (g, ix, n) => n.type]) {
-        const bucket = (g, ix, skip, cmp) => { const m = new Map(); for (const n of [...g.nodes].sort(cmp)) if (!skip(n)) { const k = key(g, ix, n); if (!m.has(k)) m.set(k, []); m.get(k).push(n); } return m; };
-        const A = bucket(a, ia, n => pairs.has(n.id), oa), B = bucket(b, ib, n => used.has(n.id), ob);
-        for (const [k, xs] of A) { const ys = B.get(k) || []; xs.forEach((x, i) => { if (ys[i]) { pairs.set(x.id, ys[i]); used.add(ys[i].id); } }); }
-      }
-      return pairs; // old id → new node
-    };
     const place = (a, b) => {
-      const pairs = pairsOf(a, b), back = new Map([...pairs].map(([o, n]) => [n.id, o])), byIdA = new Map(a.nodes.map(n => [n.id, n]));
+      const pairs = pairNodes(a, b), back = new Map([...pairs].map(([o, n]) => [n.id, o])), byIdA = new Map(a.nodes.map(n => [n.id, n]));
       if (layout) layout(b);
       const auto = new Map(b.nodes.map(n => [n.id, [n.x, n.y]]));
       for (const [oid, n] of pairs) {
@@ -4790,7 +4814,7 @@ const NN = (() => {
     return true;
   }
 
-  return { syncSource, chainLayout, viewKeys, viewPositions, applyViewPositions, streamLayout, explodeBlocks, sanitizeGraph, carryDiagram, lowerReshapes, reshapeSteps, reshapeStepCode, reshapeShape, reshapeAxisSource, stepsToPattern, reshapeDescribe, reshapePlan, stepsShape, parseSizes, HELPER_OPS, indexInputRange, FREEZABLE, helperDoc, srcKey, splitKey, blockOutputs, blockClassCode, LOSSES, lossParts, lossPlan, weightShape, tieOwner, blockParams, blockInputs, expandBlocks, instantiateBlock, presetResidualMLPBlocks, NORMS, linkSizes, syncWidths, mergeIntoSource, isMarimo, uid, BATCH, DEFAULTS, ACTS, INITS, initCode, makeNode, inCount, isCircle, index, topo, evalDim, parseShape, inferShapes, paramCount, propagateWidth, generate, importPython, importFx, autoLayout, nodeSize, nodeLabel, presetResidualMLP, parse, identsIn };
+  return { syncSource, pairNodes, chainLayout, viewKeys, viewPositions, applyViewPositions, streamLayout, explodeBlocks, sanitizeGraph, carryDiagram, lowerReshapes, reshapeSteps, reshapeStepCode, reshapeShape, reshapeAxisSource, stepsToPattern, reshapeDescribe, reshapePlan, stepsShape, parseSizes, HELPER_OPS, indexInputRange, FREEZABLE, helperDoc, srcKey, splitKey, blockOutputs, blockClassCode, LOSSES, lossParts, lossPlan, weightShape, tieOwner, blockParams, blockInputs, expandBlocks, instantiateBlock, presetResidualMLPBlocks, NORMS, linkSizes, syncWidths, mergeIntoSource, isMarimo, uid, BATCH, DEFAULTS, ACTS, INITS, initCode, makeNode, inCount, isCircle, index, topo, evalDim, parseShape, inferShapes, paramCount, propagateWidth, generate, importPython, importFx, autoLayout, nodeSize, nodeLabel, presetResidualMLP, parse, identsIn };
 })();
 if (typeof module !== 'undefined') module.exports = NN;
 
@@ -7408,6 +7432,9 @@ function renderCode() {
     }
   }
   S.gen = r;
+  // with a .py file open the panel shows the file's own text, with the diagram's changes written into it
+  const ft = fileMode() ? fileText() : null, view = ft ? ft.text : r.code;
+  S.shownCode = view;
   renderViewMenuHint();
   // another open model: edits in progress stay with the model they were made in
   if (S.codeEdit && S.codeEdit.doc !== S.cur) {
@@ -7420,16 +7447,90 @@ function renderCode() {
   renderCodeBar();
   if (S.codeEdit) { // the diagram changed while the code is being edited: follow it unless something was typed
     const ta = $('#codeTa');
-    if (ta.value === S.codeEdit.base) { if (r.code !== S.codeEdit.base) { ta.value = S.codeEdit.base = r.code; codeEditPaint(); } }
-    else if (r.code !== S.codeEdit.base && !S.codeEdit.stale) { S.codeEdit.stale = true; codeEditError('The diagram has changed since you started editing. Apply replaces it with this code; Cancel keeps the diagram.'); }
+    if (ta.value === S.codeEdit.base) { if (view !== S.codeEdit.base) { ta.value = S.codeEdit.base = view; codeEditPaint(); } }
+    else if (view !== S.codeEdit.base && !S.codeEdit.stale) { S.codeEdit.stale = true; codeEditError('The diagram has changed since you started editing. Apply replaces it with this code; Cancel keeps the diagram.'); }
     return;
   }
-  const hl = new Set();
+  let hl = new Set();
   const ids = [...S.sel.nodes]; if (S.sel.group) ids.push('g:' + S.sel.group);
-  for (const id of ids) (r.lineMap.get(id) || []).forEach(l => hl.add(l));
-  $('#code').innerHTML = r.code.replace(/\n$/, '').split('\n').map((ln, i) => `<span class="ln${hl.has(i) ? ' hl' : ''}" data-n="${i + 1}">${highlight(ln) || ' '}</span>`).join('');
-  const w = $('#warns'); w.hidden = !r.warnings.length; w.innerHTML = r.warnings.map(x => `<li>${esc(x)}</li>`).join('');
+  if (view === r.code) { for (const id of ids) (r.lineMap.get(id) || []).forEach(l => hl.add(l)); }
+  else hl = fileHighlight(view, r, ids);
+  $('#code').innerHTML = view.replace(/\n$/, '').split('\n').map((ln, i) => `<span class="ln${hl.has(i) ? ' hl' : ''}" data-n="${i + 1}">${highlight(ln) || ' '}</span>`).join('');
+  const notes = ft && ft.note ? [ft.note, ...r.warnings] : r.warnings;
+  const w = $('#warns'); w.hidden = !notes.length; w.innerHTML = notes.map(x => `<li>${esc(x)}</li>`).join('');
   if (hl.size) { const first = $('#code .ln.hl'); if (first) { const pane = $('#codePane'); const top = first.offsetTop; if (top < pane.scrollTop || top > pane.scrollTop + pane.clientHeight - 40) pane.scrollTop = top - 60; } }
+}
+// ── the open file's text ──
+// With a .py file open, the code panel shows the file's own text (comments, docstrings, hand-written methods and
+// all) with the diagram's changes written into it by NN.syncSource, so the panel is what Save will write. The
+// file's working text is S.file.text: what was read from disk, or the text last applied from the code editor.
+// The idea and syncSource are Taylor Turner's (#1, #3).
+const fileMode = () => !!S.file && S.file.kind === 'py' && typeof S.file.text === 'string' && !R().libHost;
+const unixText = t => t.replace(/\r\n/g, '\n');
+function fileText() {
+  const f = S.file, key = S.gen.code + '\0' + f.text;
+  if (f.shownKey === key) return f.shown;
+  let text = null, note = '';
+  // nothing has changed since the file was read: its text as it is
+  if (S.gen.code === f.savedCode && f.text === unixText(f.diskText)) text = f.text;
+  if (text == null) { try { text = NN.syncSource(f.text, R(), { root: f.root, gen: genOpts() }); } catch {} }
+  if (text == null) { // can't be written line by line: what Save does instead
+    try { text = NN.mergeIntoSource(f.text, S.gen.code, f.used); } catch {}
+    note = text == null ? `The model's classes aren't in ${f.name} any more, so this is the generated code. Saving asks before it replaces the file.`
+      : `This change can't be written into ${f.name} line by line, so the model's classes are replaced whole: comments and your own methods inside them are not kept. The rest of the file is.`;
+  }
+  f.shownKey = key; f.shown = text == null ? null : { text, note };
+  return f.shown || { text: S.gen.code, note };
+}
+// The selected components' lines in the file's text: every line that touches them. That is the statements they
+// were read from (the reader keeps each node's lines; the diagram's nodes are paired with the file's by NN.pairNodes),
+// and every line of the same class that names them (self.<name>: where it is made and wherever it is used). A
+// component with neither falls back to the lines that read the same as its generated lines.
+function fileHighlight(view, r, ids) {
+  const hl = new Set(); if (!ids.length) return hl;
+  const f = S.file, cur = S.g, sig = view + '\0' + (S.edit || '') + '\0' + cur.nodes.map(n => n.id).join();
+  let m = f.hlMap;
+  if (!m || m.sig !== sig) {
+    m = f.hlMap = { sig, pairs: null, lines: null, attrs: null, cls: '', uses: [] };
+    try {
+      const imp = NN.importPython(view, { root: f.root }), blk = S.edit && R().blocks && R().blocks[S.edit];
+      const other = blk ? (Object.values(imp.graph.blocks || {}).find(z => z.name === blk.name) || {}).graph : imp.graph;
+      if (other && imp.lines) { m.pairs = NN.pairNodes(cur, other); m.lines = imp.lines; m.attrs = imp.attrs; m.cls = blk ? blk.name : imp.graph.name;
+        // inside a block: the lines that use the block count too, as they do in the generated code
+        if (blk) for (const [cls, gr] of [[imp.graph.name, imp.graph], ...Object.values(imp.graph.blocks || {}).map(z => [z.name, z.graph])]) for (const u of gr.nodes) {
+          if (u.type === 'block' && (imp.graph.blocks[u.params.block] || {}).name === blk.name) m.uses.push({ cls, lines: imp.lines.get(u.id) || [], name: u.params.name });
+        }
+      }
+    } catch {}
+  }
+  const norm = l => l.replace(/\s+#.*$/, '').trim();
+  const classes = lines => { let c = ''; return lines.map(l => { const k = /^class\s+(\w+)/.exec(l); if (k) c = k[1]; else if (/^\S/.test(l) && !/^[#@)\]}]/.test(l)) c = ''; return c; }); };
+  const gl = r.code.split('\n'), gc = classes(gl), vl = view.split('\n'), vc = classes(vl);
+  const names = [], same = new Set();
+  const named = (cls, nm) => { // self.nm, or self.blocks for blocks_3 of a ModuleList
+    const re = x => new RegExp('\\bself\\.' + x + '\\b(?!\\w)'), base = nm.replace(/(_\d+)+$/, '');
+    names.push([cls, base !== nm && !vl.some((l, i) => vc[i] === cls && re(nm).test(l)) ? re(base) : re(nm)]);
+  };
+  for (const u of m.uses) { u.lines.forEach(l => { if (l >= 1 && l <= vl.length) hl.add(l - 1); }); if (u.name && /^\w+$/.test(u.name)) named(u.cls, u.name); }
+  for (const id of ids) {
+    let found = false;
+    const twin = m.pairs && m.pairs.get(id), src = twin && m.lines.get(twin.id);
+    if (src && src.length) { found = true; src.forEach(l => { if (l >= 1 && l <= vl.length) hl.add(l - 1); }); }
+    const attr = twin && (m.attrs.get(twin.id) || (twin.type === 'block' && twin.params.name));
+    if (attr && /^\w+$/.test(attr)) { found = true; named(m.cls, attr); }
+    const mine = [];
+    for (const l of r.lineMap.get(id) || []) {
+      const t = norm(gl[l] || ''); if (!t) continue;
+      mine.push(gc[l] + '\0' + t);
+      const k = /^self\.(\w+)\s*=/.exec(t); if (k) { found = true; named(gc[l], k[1]); }
+    }
+    if (!found) mine.forEach(x => same.add(x));
+  }
+  if (names.length || same.size) vl.forEach((l, i) => {
+    const code = l.replace(/^\s*#.*$/, '');
+    if (same.has(vc[i] + '\0' + norm(l)) || names.some(([c, re]) => c === vc[i] && re.test(code))) hl.add(i);
+  });
+  return hl;
 }
 // ── editing the code: the text is read back into the diagram (core carryDiagram keeps the layout, nicknames and notes) ──
 S.codeEdit = null;
@@ -7447,8 +7548,8 @@ function codeEditPaint() {
 function startCodeEdit(line, draft) {
   if (R().libHost || S.codeEdit) return;
   const pane = $('#codePane'), top = pane.scrollTop, ta = $('#codeTa');
-  S.codeEdit = { base: draft ? draft.base : S.gen.code, stale: !!(draft && draft.stale), doc: S.cur };
-  ta.value = draft ? draft.text : S.gen.code; codeEditPaint();
+  S.codeEdit = { base: draft ? draft.base : S.shownCode, stale: !!(draft && draft.stale), doc: S.cur };
+  ta.value = draft ? draft.text : S.shownCode; codeEditPaint();
   $('#code').hidden = true; $('#codeEdit').hidden = false; codeEditError(''); renderCodeBar();
   if (draft) return;
   ta.focus({ preventScroll: true }); pane.scrollTop = top;
@@ -7464,7 +7565,8 @@ function applyCodeEdit() {
   const text = $('#codeTa').value;
   if (text === S.codeEdit.base) { stopCodeEdit(); return true; }
   let res;
-  try { res = NN.importPython(text); if (!res.graph || !res.graph.nodes.length) throw new Error('There is no model here to read.'); }
+  const fm = fileMode();
+  try { res = NN.importPython(text, { root: fm ? S.file.root : undefined }); if (!res.graph || !res.graph.nodes.length) throw new Error('There is no model here to read.'); }
   catch (ex) {
     codeEditError("Couldn't read this code, so the diagram is unchanged: " + ex.message);
     const m = /\bLine (\d+)/i.exec(ex.message), ta = $('#codeTa');
@@ -7481,6 +7583,7 @@ function applyCodeEdit() {
   // blocks still linked to the library keep this code's version (and pass it on, as an edit in the diagram would)
   syncLinked(g, { skip: new Set(Object.values(g.blocks || {}).filter(b => b.lib).map(b => b.id)) });
   S.codeEdit = null; $('#codeEdit').hidden = true; $('#code').hidden = false; codeEditError('');
+  if (fm) S.file.text = unixText(text); // the typed text is the file's text now, comments and all
   commit(() => { setModel(g); clearSel(); });
   const nb = inBlock && Object.values(g.blocks || {}).find(b => b.name === inBlock); if (nb) switchTo(nb.id);
   if (res.warnings.length) { const w = $('#warns'); w.hidden = false; w.innerHTML += res.warnings.map(x => `<li>Import: ${esc(x)}</li>`).join(''); }
@@ -9457,7 +9560,7 @@ async function copyText(t, ok) {
   try { await navigator.clipboard.writeText(t); toast(ok); }
   catch { const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); toast(ok); } catch { toast('Copy was blocked. Select the text and copy it manually.'); } ta.remove(); }
 }
-$('#bCopy').onclick = () => copyText(S.gen.code, 'PyTorch code copied.');
+$('#bCopy').onclick = () => copyText(S.shownCode || S.gen.code, 'PyTorch code copied.');
 // ── categories in Open / import: each example says which family it belongs to; anything else is Other ──
 let catOpen = {}; try { catOpen = JSON.parse(localStorage.getItem('torchcanvas.menuCats') || '{}') || {}; } catch { catOpen = {}; }
 function catGroups(list, order, kind, curFile) {
@@ -9991,7 +10094,7 @@ function importText(text, file, o = {}) {
   if (res.graph.blocks) for (const b of Object.values(res.graph.blocks)) NN.autoLayout(b.graph, sizeOf);
   if (o.replace) { S.file = null; syncLinked(res.graph); commit(() => { setModel(res.graph); clearSel(); }); } // reloading the open file: same tab
   else openDoc(res.graph, null, { byName: !!o.libTitle }); // anything else opens in a new tab
-  S.file = file ? Object.assign({}, file, { kind: k, diskText: text, used: res.usedClasses || [], root: o.root, changedOnDisk: false }) : null;
+  S.file = file ? Object.assign({}, file, { kind: k, diskText: text, used: res.usedClasses || [], root: o.root, changedOnDisk: false }, k === 'py' ? { text: unixText(text) } : {}) : null;
   if (S.file) restoreLayout();
   S.file && (S.file.savedCode = NN.generate(R(), genOpts()).code);
   changed(); fit();
@@ -10035,36 +10138,47 @@ async function ensureWrite(h) {
 async function writeHandle(h, text) { const w = await h.createWritable(); await w.write(text); await w.close(); return h.getFile(); }
 async function saveFile() {
   if (!S.file || !S.file.handle || S.file.kind === 'fx') return saveAs();
-  const h = S.file.handle, name = S.file.name;
+  const h = S.file.handle, name = S.file.name, cur = S.file;
   try {
     if (!(await ensureWrite(h))) return toast('Chrome needs write permission to save. Press Save again and choose Allow.');
-    const disk = await (await h.getFile()).text();
-    if (disk !== S.file.diskText && !(await ask(`${name} changed on disk since it was opened. Saving merges the diagram into the newer version.`, 'Save anyway'))) return;
+    const disk = await (await h.getFile()).text(), moved = disk !== S.file.diskText;
+    if (moved && !(await ask(`${name} changed on disk since it was opened. Saving merges the diagram into the newer version.`, 'Save anyway'))) return;
     const gen = NN.generate(R(), genOpts()).code;
+    // the text the diagram is written into: the file's working text (what the code panel shows the diagram in),
+    // or the newer text on disk when the file changed there
+    const src = moved || typeof S.file.text !== 'string' ? disk : S.file.text;
+    const before = { text: moved ? unixText(disk) : S.file.text, savedCode: S.file.savedCode, used: S.file.used };
     let out, synced = false;
     if (S.file.kind === 'graph') out = JSON.stringify(R(), null, 1);
     else {
       // Patch only the statements the diagram changed; fall back to replacing the model classes.
-      try { out = NN.syncSource(disk, R(), { root: S.file.root, gen: genOpts() }); synced = out != null; } catch {}
-      if (out == null) out = NN.mergeIntoSource(disk, gen, S.file.used);
+      try { out = NN.syncSource(src, R(), { root: S.file.root, gen: genOpts() }); synced = out != null; } catch {}
+      if (out == null) out = NN.mergeIntoSource(src, gen, S.file.used);
       if (out == null) { if (!(await ask(`The model's classes aren't in ${name} any more. Replace the whole file with the generated code?`, 'Replace file'))) return; out = gen; }
     }
     const f = await writeHandle(h, out);
     let used = S.file.used; try { if (S.file.kind === 'py') used = NN.importPython(out, { root: S.file.root }).usedClasses; } catch {}
-    Object.assign(S.file, { diskText: out, lastModified: f.lastModified, savedCode: gen, used, changedOnDisk: false });
-    renderFileBar();
-    toast(`Saved ${name}. ${synced ? 'Only the lines you changed were rewritten; the rest of the file is untouched.' : 'Only the model classes changed; the rest of the file is untouched.'}`, { label: 'Undo', run: async () => { const f2 = await writeHandle(h, disk); Object.assign(S.file, { diskText: disk, lastModified: f2.lastModified, savedCode: null }); renderFileBar(); toast(`Restored the previous ${name}.`); } });
+    Object.assign(S.file, { diskText: out, lastModified: f.lastModified, savedCode: gen, used, changedOnDisk: false }, S.file.kind === 'py' ? { text: out } : {});
+    renderCode(); renderFileBar();
+    // Undo puts the file back and leaves the diagram alone, so its changes show as unsaved again
+    toast(`Saved ${name}. ${synced ? 'Only the lines you changed were rewritten; the rest of the file is untouched.' : 'Only the model classes changed; the rest of the file is untouched.'}`, { label: 'Undo', run: async () => {
+      const f2 = await writeHandle(h, disk);
+      Object.assign(cur, { diskText: disk, lastModified: f2.lastModified, savedCode: before.savedCode, used: before.used, changedOnDisk: false }, cur.kind === 'py' ? { text: before.text } : {});
+      if (S.file === cur) { renderCode(); renderFileBar(); }
+      toast(`Restored the previous ${name}.${S.file === cur && isDirty() ? ' The diagram still has your changes, unsaved.' : ''}`);
+    } });
   } catch (e) { if (!isAbort(e)) toast(`Couldn't save ${name}: ${e.message}`); }
 }
 async function saveAs() {
-  const gen = NN.generate(R(), genOpts()).code;
+  const code = NN.generate(R(), genOpts()).code;
+  const gen = fileMode() && S.shownCode ? S.shownCode : code; // an open file's own text, with the diagram's changes, not a regenerated one
   if ('showSaveFilePicker' in window) {
     try {
       const h = await showSaveFilePicker({ suggestedName: (S.g.name || 'model').replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase() + '.py', types: PY_TYPES });
       const f = await writeHandle(h, gen);
       let used = []; try { used = NN.importPython(gen).usedClasses; } catch {}
-      S.file = { name: f.name, path: f.name, handle: h, kind: 'py', diskText: gen, used, savedCode: gen, lastModified: f.lastModified };
-      renderFileBar(); rememberHandles(); toast(`Saved ${f.name}.`); return;
+      S.file = { name: f.name, path: f.name, handle: h, kind: 'py', diskText: gen, text: gen, used, savedCode: code, lastModified: f.lastModified };
+      renderCode(); renderFileBar(); rememberHandles(); toast(`Saved ${f.name}.`); return;
     } catch (e) { if (isAbort(e)) return; if (e.name !== 'SecurityError') return toast(e.message); }
   }
   copyText(gen, 'This sandboxed page cannot save files, so the code was copied instead. The local version (npm start) saves directly.');
@@ -10081,7 +10195,11 @@ function ask(msg, okLabel) {
     el.querySelector('#askOk').focus();
   });
 }
-function isDirty() { return S.file && S.gen && S.file.savedCode != null && S.gen.code !== S.file.savedCode; }
+function isDirty() {
+  if (!S.file || !S.gen) return false;
+  if (fileMode() && S.shownCode != null && S.shownCode !== unixText(S.file.diskText)) return true; // what Save would write differs from the file
+  return S.file.savedCode != null && S.gen.code !== S.file.savedCode;
+}
 function renderFileBar() {
   const bar = $('#fileBar'); if (bar.querySelector('.ask')) return;
   const f = S.file;
@@ -10103,7 +10221,7 @@ function renderFileBar() {
   const on = (id, fn) => { const b = bar.querySelector('#' + id); if (b) b.onclick = fn; };
   on('fbSave', saveFile); on('fbSaveAs', saveAs);
   on('fbReload', () => reloadFromDisk(false));
-  on('fbClose', () => { S.file = null; renderFileBar(); renderProject(); });
+  on('fbClose', () => { S.file = null; renderCode(); renderFileBar(); renderProject(); });
 }
 async function reloadFromDisk(auto) {
   const f = S.file; if (!f || !f.handle) return;

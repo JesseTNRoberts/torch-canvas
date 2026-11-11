@@ -1480,7 +1480,7 @@ const NN = (() => {
           const c = JSON.parse(JSON.stringify(ix.byId.get(id))); c.id = uid('n');
           for (const f of DIMF[c.type] || []) if (typeof c.params[f] === 'string' && (f !== 'shape' || c.type === 'param')) c.params[f] = f === 'sizes' ? mapSizes(c.params[f], v => v.replace(IDENT, t => nameOf.get(t) || t)) : c.params[f].replace(IDENT, t => nameOf.get(t) || t);
           if (c.type === 'block' && c.params.args) for (const k of Object.keys(c.params.args)) c.params.args[k] = String(c.params.args[k]).replace(IDENT, t => nameOf.get(t) || t);
-          inner.nodes.push(c); idm.set(id, c.id);
+          inner.nodes.push(c); idm.set(id, c.id); if (g._src && g._src.has(id)) g._src.set(c.id, g._src.get(id)); if (g._attr && g._attr.has(id)) g._attr.set(c.id, g._attr.get(id));
         }
         // an edge inside the block, from a layer in it (or output k of a block in it) or from one of its inputs
         const innerEdge = (src, to, port) => {
@@ -1511,7 +1511,7 @@ const NN = (() => {
       }
       let cx = 0, cy = 0; gi.members.forEach(id => { cx += ix.byId.get(id).x; cy += ix.byId.get(id).y; });
       const use = makeNode('block', Object.assign({ block: ent.blk.id, args, nIn: gi.extIn.length, nOut: gi.outputs.length, name: gi.group.attr || '' }, gi.group.frozen ? { frozen: true } : {}), cx / gi.members.size, cy / gi.members.size);
-      g.nodes.push(use); useOf.set(gi.group.id, use.id); gi.group.useId = use.id;
+      g.nodes.push(use); useOf.set(gi.group.id, use.id); gi.group.useId = use.id; if (g._src) g._src.set(use.id, gi.group.src || []);
       gi.extIn.forEach((s, j) => { const [f, k] = splitKey(s); g.edges.push(Object.assign({ id: uid('e'), from: f, to: use.id, port: j }, k ? { out: k } : {})); });
       gi.outputs.forEach((o, k) => { if (gi.members.has(baseOf(o)) && !remap.has(o)) remap.set(o, [use.id, k]); });
       gi.members.forEach(id => drop.add(id));
@@ -2244,7 +2244,9 @@ const NN = (() => {
       const s = simple(); return s ? [s] : [];
     }
     function skipLine() { while (!is('nl') && !is('eof')) next(); if (is('nl')) next(); }
-    function stmt() {
+    // every statement carries the lines it is written on (1-based, first to last)
+    function stmt() { const line = peek().line, s = stmt0(); if (s) { s.line = line; s.end = Math.max(line, (T[k - 1] || EOF).line); } return s; }
+    function stmt0() {
       if (is('nl')) { next(); return null; }
       if (isOp('@')) { skipLine(); return null; }
       if (isKw('class')) {
@@ -2462,6 +2464,12 @@ const NN = (() => {
       g.symbols[name] = value; return { sym: name };
     };
     let curGroup = null, seqInput = false;
+    // the lines of the statement each node was read from (the innermost one: a layer inside a submodule belongs to
+    // the line in that submodule's forward, not to the line that calls the submodule); [] for nodes made elsewhere
+    const srcLines = new Map(), srcAttrs = new Map();
+    // a submodule call (a group, later a block) belongs to the statement that calls it, in the module it is called from
+    const stampNodes = lines => { for (const n of g.nodes) if (!srcLines.has(n.id)) srcLines.set(n.id, lines); const here = curGroup ? curGroup.id : null; for (const gr of g.groups) if (!gr.src && gr.parent === here && gr !== curGroup) gr.src = lines; };
+    const linesOf = s => { const ls = []; if (s && s.line) for (let l = s.line; l <= (s.end || s.line); l++) ls.push(l); return ls; };
     const addNode = (type, params, inputs) => {
       if (inputs.some(t => !isT(t))) throw new Error(`A ${type === 'func' ? 'function' : type} is given something that isn't a tensor${params && params.name ? ` (self.${params.name})` : ''}: a name that isn't defined yet, or code that stops part-way.`);
       const n = makeNode(type, params);
@@ -2792,6 +2800,7 @@ const NN = (() => {
     function applyMod(m, args, attrName) {
       const r = applyMod0(m, args, attrName);
       if (m && !m.inst && r && r.t != null && m._nodeId == null) m._nodeId = r.t;
+      if (m && !m.inst && r && r.t != null && (m.attrName || attrName) && !srcAttrs.has(r.t)) srcAttrs.set(r.t, m.attrName || attrName); // the self.<name> it is called by
       if (m && m.frozen && !m.inst && r && r.t != null) { const nd = g.nodes.find(z => z.id === r.t); if (nd && FREEZABLE.has(nd.type)) nd.params.frozen = true; }
       return r;
     }
@@ -2914,6 +2923,15 @@ const NN = (() => {
     }
     function exec(body, env) {
       for (const s of body) {
+        const simple = s.k === 'assign' || s.k === 'expr' || s.k === 'return';
+        if (simple) stampNodes([]);
+        try { const r = exec1(s, env); if (r !== undefined || s.k === 'return') return r; }
+        finally { if (simple) stampNodes(linesOf(s)); }
+      }
+      return undefined;
+    }
+    function exec1(s, env) {
+      {
         switch (s.k) {
           case 'assign': {
             const before = g.nodes.length, v = ev(s.value, env); s.targets.forEach(t => bind(t, v, env));
@@ -2962,11 +2980,14 @@ const NN = (() => {
     });
     const fenv = new Map([['self', rootVal]]);
     fwd.params.slice(1).forEach((p, i) => fenv.set(p.name, inputs[i]));
+    inputs.forEach(v => srcLines.set(v.t, fwd.line ? [fwd.line] : [])); // an input arrow: the line forward() starts on
     inFwd = true;
     let ret = exec(fwd.body, fenv);
     inFwd = false;
     const rets = ret && ret.list ? ret.list : [ret];
+    stampNodes([]);
     rets.forEach((r, i) => { if (isT(r)) addNode('output', { name: rets.length > 1 ? 'out' + i : 'out' }, [r]); });
+    stampNodes(linesOf([...fwd.body].reverse().find(z => z.k === 'return'))); // an output arrow: the return it stands for
     // loss(): rebuild loss nodes from the forms Torch Canvas writes (see lossPlan)
     const lossM = findMethod(src, root.name, 'loss');
     const newTargets = [];
@@ -3117,7 +3138,7 @@ const NN = (() => {
       }
     }
     linkSizes(g);
-    groupsToBlocks(g);
+    g._src = srcLines; g._attr = srcAttrs; try { groupsToBlocks(g); } finally { delete g._src; delete g._attr; }
     for (const gr of madeGroups) if (gr.followsMod && gr.followsMod._groupId != null) {
       const lead = madeGroups.find(z => z.id === gr.followsMod._groupId), use = g.nodes.find(z => z.id === gr.useId), luse = lead && g.nodes.find(z => z.id === lead.useId);
       if (use && luse) { use.params.follows = luse.id; delete use.params.frozen; setMom(use); } else warnings.push('A block that follows another (load_state_dict) could not be matched to its use; the tie was left out.');
@@ -3127,7 +3148,9 @@ const NN = (() => {
     const literalDims = !(rootInit && rootInit.params.length > 1);
     // a category header (# category: Transformers) belongs to the model
     for (const line of src.split('\n')) { if (line.trim() && !/^\s*#/.test(line)) break; const m = /^\s*#\s*category\s*:\s*(.+?)\s*$/i.exec(line); if (m) { g.category = m[1]; break; } }
-    return { graph: g, warnings: [...new Set(warnings)], usedClasses: [...usedClasses], literalDims };
+    // lines: node id → the lines (1-based) of the statement it was read from; attrs: node id → the self.<name> of the
+    // module it is (also for the layers the app writes as functions, like self.act = nn.ReLU())
+    return { graph: g, warnings: [...new Set(warnings)], usedClasses: [...usedClasses], literalDims, lines: srcLines, attrs: srcAttrs };
   }
 
   // ── torch.fx JSON importer (from export_graph.py) ──
@@ -3710,23 +3733,24 @@ const NN = (() => {
   // the graph it replaces, node by node; size names come back too ("768" in literal code is d again, and changing
   // every 768 that was d changes d). Nodes are paired by kind and name in code order. layout(g) is the caller's
   // auto layout, used to place the nodes the code added next to their neighbours.
+  // Nodes of two graphs of the same model, paired by kind and name in code order: id in a → node in b.
+  const genLines = g => { const m = new Map(); try { const r = generate(g, { shapeComments: false, literalDims: false }); for (const [k, ls] of r.lineMap) if (ls.length) m.set(k, Math.min(...ls)); } catch {} return m; };
+  const pairNodes = (a, b) => {
+    const la = genLines(a), lb = genLines(b), ia = index(a), ib = index(b);
+    const ord = (g, l) => { const pos = new Map(g.nodes.map((n, i) => [n.id, i])); return (x, y) => ((l.has(x.id) ? l.get(x.id) : 1e9) - (l.has(y.id) ? l.get(y.id) : 1e9)) || pos.get(x.id) - pos.get(y.id); };
+    const oa = ord(a, la), ob = ord(b, lb), pairs = new Map(), used = new Set();
+    for (const key of [(g, ix, n) => { const gr = ix.groupOf.get(n.id); return `${gr ? gr.attr : ''}|${n.type}|${n.params.name || n.params.fn || n.params.op || n.params.kind || ''}`; }, (g, ix, n) => n.type]) {
+      const bucket = (g, ix, skip, cmp) => { const m = new Map(); for (const n of [...g.nodes].sort(cmp)) if (!skip(n)) { const k = key(g, ix, n); if (!m.has(k)) m.set(k, []); m.get(k).push(n); } return m; };
+      const A = bucket(a, ia, n => pairs.has(n.id), oa), B = bucket(b, ib, n => used.has(n.id), ob);
+      for (const [k, xs] of A) { const ys = B.get(k) || []; xs.forEach((x, i) => { if (ys[i]) { pairs.set(x.id, ys[i]); used.add(ys[i].id); } }); }
+    }
+    return pairs; // old id → new node
+  };
   const DIAGRAM_ONLY = ['title', 'note', 'tone', 'split', 'tie_x', 'demo', 'lib', 'from_use', 'from_path'];
   function carryDiagram(old, neu, layout, sz = nodeSize) {
     const clone = x => JSON.parse(JSON.stringify(x));
-    const lines = g => { const m = new Map(); try { const r = generate(g, { shapeComments: false, literalDims: false }); for (const [k, ls] of r.lineMap) if (ls.length) m.set(k, Math.min(...ls)); } catch {} return m; };
-    const pairsOf = (a, b) => {
-      const la = lines(a), lb = lines(b), ia = index(a), ib = index(b);
-      const ord = (g, l) => { const pos = new Map(g.nodes.map((n, i) => [n.id, i])); return (x, y) => ((l.has(x.id) ? l.get(x.id) : 1e9) - (l.has(y.id) ? l.get(y.id) : 1e9)) || pos.get(x.id) - pos.get(y.id); };
-      const oa = ord(a, la), ob = ord(b, lb), pairs = new Map(), used = new Set();
-      for (const key of [(g, ix, n) => { const gr = ix.groupOf.get(n.id); return `${gr ? gr.attr : ''}|${n.type}|${n.params.name || n.params.fn || n.params.op || n.params.kind || ''}`; }, (g, ix, n) => n.type]) {
-        const bucket = (g, ix, skip, cmp) => { const m = new Map(); for (const n of [...g.nodes].sort(cmp)) if (!skip(n)) { const k = key(g, ix, n); if (!m.has(k)) m.set(k, []); m.get(k).push(n); } return m; };
-        const A = bucket(a, ia, n => pairs.has(n.id), oa), B = bucket(b, ib, n => used.has(n.id), ob);
-        for (const [k, xs] of A) { const ys = B.get(k) || []; xs.forEach((x, i) => { if (ys[i]) { pairs.set(x.id, ys[i]); used.add(ys[i].id); } }); }
-      }
-      return pairs; // old id → new node
-    };
     const place = (a, b) => {
-      const pairs = pairsOf(a, b), back = new Map([...pairs].map(([o, n]) => [n.id, o])), byIdA = new Map(a.nodes.map(n => [n.id, n]));
+      const pairs = pairNodes(a, b), back = new Map([...pairs].map(([o, n]) => [n.id, o])), byIdA = new Map(a.nodes.map(n => [n.id, n]));
       if (layout) layout(b);
       const auto = new Map(b.nodes.map(n => [n.id, [n.x, n.y]]));
       for (const [oid, n] of pairs) {
@@ -4210,6 +4234,6 @@ const NN = (() => {
     return true;
   }
 
-  return { syncSource, chainLayout, viewKeys, viewPositions, applyViewPositions, streamLayout, explodeBlocks, sanitizeGraph, carryDiagram, lowerReshapes, reshapeSteps, reshapeStepCode, reshapeShape, reshapeAxisSource, stepsToPattern, reshapeDescribe, reshapePlan, stepsShape, parseSizes, HELPER_OPS, indexInputRange, FREEZABLE, helperDoc, srcKey, splitKey, blockOutputs, blockClassCode, LOSSES, lossParts, lossPlan, weightShape, tieOwner, blockParams, blockInputs, expandBlocks, instantiateBlock, presetResidualMLPBlocks, NORMS, linkSizes, syncWidths, mergeIntoSource, isMarimo, uid, BATCH, DEFAULTS, ACTS, INITS, initCode, makeNode, inCount, isCircle, index, topo, evalDim, parseShape, inferShapes, paramCount, propagateWidth, generate, importPython, importFx, autoLayout, nodeSize, nodeLabel, presetResidualMLP, parse, identsIn };
+  return { syncSource, pairNodes, chainLayout, viewKeys, viewPositions, applyViewPositions, streamLayout, explodeBlocks, sanitizeGraph, carryDiagram, lowerReshapes, reshapeSteps, reshapeStepCode, reshapeShape, reshapeAxisSource, stepsToPattern, reshapeDescribe, reshapePlan, stepsShape, parseSizes, HELPER_OPS, indexInputRange, FREEZABLE, helperDoc, srcKey, splitKey, blockOutputs, blockClassCode, LOSSES, lossParts, lossPlan, weightShape, tieOwner, blockParams, blockInputs, expandBlocks, instantiateBlock, presetResidualMLPBlocks, NORMS, linkSizes, syncWidths, mergeIntoSource, isMarimo, uid, BATCH, DEFAULTS, ACTS, INITS, initCode, makeNode, inCount, isCircle, index, topo, evalDim, parseShape, inferShapes, paramCount, propagateWidth, generate, importPython, importFx, autoLayout, nodeSize, nodeLabel, presetResidualMLP, parse, identsIn };
 })();
 if (typeof module !== 'undefined') module.exports = NN;
