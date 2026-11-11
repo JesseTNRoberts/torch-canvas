@@ -5,7 +5,7 @@
 #             counts, output shapes, the exploded model giving the same outputs, and
 #             for the small models train.py (2 steps, a resume from the checkpoint, and a bf16 run)
 #   browser:  the built app in headless Chromium: every example opens and plots, damaged saved data, text from
-#             pasted code, a full browser storage
+#             pasted code, a full browser storage; and the code panel with a file open (its own text, saving)
 name: Checks
 
 on:
@@ -71,3 +71,5 @@ jobs:
       - run: pip install playwright && python -m playwright install --with-deps chromium
       - run: npm run build
       - run: python -u tools/check_browser.py
+      - name: The code panel with a file open (a stand-in for the file; nothing is read from or written to disk)
+        run: python -u tools/check_file_panel.py
