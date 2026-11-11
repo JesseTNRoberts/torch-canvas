@@ -1654,20 +1654,54 @@ function fileText() {
   f.shownKey = key; f.shown = text == null ? null : { text, note };
   return f.shown || { text: S.gen.code, note };
 }
-// The selected layers' lines in the file's text: the lines that read the same as their generated lines, in the
-// class of the same name, and the lines that define the same self.<name>.
+// The selected components' lines in the file's text: every line that touches them. That is the statements they
+// were read from (the reader keeps each node's lines; the diagram's nodes are paired with the file's by NN.pairNodes),
+// and every line of the same class that names them (self.<name>: where it is made and wherever it is used). A
+// component with neither falls back to the lines that read the same as its generated lines.
 function fileHighlight(view, r, ids) {
-  const norm = l => l.replace(/\s+#.*$/, '').trim(), hl = new Set();
-  const classes = lines => { let c = ''; return lines.map(l => { const m = /^class\s+(\w+)/.exec(l); if (m) c = m[1]; else if (/^\S/.test(l) && !/^[#@)\]}]/.test(l)) c = ''; return c; }); };
-  const gl = r.code.split('\n'), gc = classes(gl), want = new Set(), defs = new Set();
-  for (const id of ids) for (const l of r.lineMap.get(id) || []) {
-    const t = norm(gl[l] || ''); if (!t) continue;
-    want.add(gc[l] + '\0' + t);
-    const m = /^self\.(\w+)\s*=/.exec(t); if (m) defs.add(gc[l] + '\0' + m[1]);
+  const hl = new Set(); if (!ids.length) return hl;
+  const f = S.file, cur = S.g, sig = view + '\0' + (S.edit || '') + '\0' + cur.nodes.map(n => n.id).join();
+  let m = f.hlMap;
+  if (!m || m.sig !== sig) {
+    m = f.hlMap = { sig, pairs: null, lines: null, attrs: null, cls: '', uses: [] };
+    try {
+      const imp = NN.importPython(view, { root: f.root }), blk = S.edit && R().blocks && R().blocks[S.edit];
+      const other = blk ? (Object.values(imp.graph.blocks || {}).find(z => z.name === blk.name) || {}).graph : imp.graph;
+      if (other && imp.lines) { m.pairs = NN.pairNodes(cur, other); m.lines = imp.lines; m.attrs = imp.attrs; m.cls = blk ? blk.name : imp.graph.name;
+        // inside a block: the lines that use the block count too, as they do in the generated code
+        if (blk) for (const [cls, gr] of [[imp.graph.name, imp.graph], ...Object.values(imp.graph.blocks || {}).map(z => [z.name, z.graph])]) for (const u of gr.nodes) {
+          if (u.type === 'block' && (imp.graph.blocks[u.params.block] || {}).name === blk.name) m.uses.push({ cls, lines: imp.lines.get(u.id) || [], name: u.params.name });
+        }
+      }
+    } catch {}
   }
-  if (!want.size) return hl;
-  const vl = view.split('\n'), vc = classes(vl);
-  vl.forEach((l, i) => { const t = norm(l), m = /^self\.(\w+)\s*=/.exec(t); if (want.has(vc[i] + '\0' + t) || (m && defs.has(vc[i] + '\0' + m[1]))) hl.add(i); });
+  const norm = l => l.replace(/\s+#.*$/, '').trim();
+  const classes = lines => { let c = ''; return lines.map(l => { const k = /^class\s+(\w+)/.exec(l); if (k) c = k[1]; else if (/^\S/.test(l) && !/^[#@)\]}]/.test(l)) c = ''; return c; }); };
+  const gl = r.code.split('\n'), gc = classes(gl), vl = view.split('\n'), vc = classes(vl);
+  const names = [], same = new Set();
+  const named = (cls, nm) => { // self.nm, or self.blocks for blocks_3 of a ModuleList
+    const re = x => new RegExp('\\bself\\.' + x + '\\b(?!\\w)'), base = nm.replace(/(_\d+)+$/, '');
+    names.push([cls, base !== nm && !vl.some((l, i) => vc[i] === cls && re(nm).test(l)) ? re(base) : re(nm)]);
+  };
+  for (const u of m.uses) { u.lines.forEach(l => { if (l >= 1 && l <= vl.length) hl.add(l - 1); }); if (u.name && /^\w+$/.test(u.name)) named(u.cls, u.name); }
+  for (const id of ids) {
+    let found = false;
+    const twin = m.pairs && m.pairs.get(id), src = twin && m.lines.get(twin.id);
+    if (src && src.length) { found = true; src.forEach(l => { if (l >= 1 && l <= vl.length) hl.add(l - 1); }); }
+    const attr = twin && (m.attrs.get(twin.id) || (twin.type === 'block' && twin.params.name));
+    if (attr && /^\w+$/.test(attr)) { found = true; named(m.cls, attr); }
+    const mine = [];
+    for (const l of r.lineMap.get(id) || []) {
+      const t = norm(gl[l] || ''); if (!t) continue;
+      mine.push(gc[l] + '\0' + t);
+      const k = /^self\.(\w+)\s*=/.exec(t); if (k) { found = true; named(gc[l], k[1]); }
+    }
+    if (!found) mine.forEach(x => same.add(x));
+  }
+  if (names.length || same.size) vl.forEach((l, i) => {
+    const code = l.replace(/^\s*#.*$/, '');
+    if (same.has(vc[i] + '\0' + norm(l)) || names.some(([c, re]) => c === vc[i] && re.test(code))) hl.add(i);
+  });
   return hl;
 }
 // ── editing the code: the text is read back into the diagram (core carryDiagram keeps the layout, nicknames and notes) ──

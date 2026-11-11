@@ -263,6 +263,35 @@ for (const [f, want] of [['23_residual_cnn_gap.json', 57098], ['24_residual_cnn_
     if (!multi || Object.keys(g.blocks).length !== 1 || (code.match(/^class /gm) || []).length !== 2 || NN.generate(NN.importPython(code).graph).code !== code) { console.error('multi-output round trip failed: ' + f); process.exit(1); }
   }
   console.log('multi-output blocks OK');
+  // The reader keeps, for every node, the lines of the statement it was read from (the innermost one) and the
+  // self.<name> of the module it is, so the code panel can highlight a component in a file's own text.
+  {
+    const src = ['import torch', 'import torch.nn as nn', 'import torch.nn.functional as F', '', '',
+      'class Inner(nn.Module):', '    def __init__(self, d=16):', '        super().__init__()', '        self.lin = nn.Linear(d, d)', '',
+      '    def forward(self, x):', '        y = self.lin(x)', '        return torch.relu(y)', '', '',
+      'class Net(nn.Module):', '    def __init__(self):', '        super().__init__()', '        self.fc1 = nn.Linear(8, 16)', '        self.act = nn.ReLU()', '        self.inner = Inner(16)', '',
+      '    def forward(self, x):', '        h = self.act(self.fc1(x))', '        h = h + self.inner(h)', '        h = F.gelu(', '            h', '        )', '        return h', ''].join('\n');
+    const r = NN.importPython(src), g = r.graph, at = n => (r.lines.get(n.id) || []).join(','), bad = m => { console.error('source lines failed: ' + m); process.exit(1); };
+    const find = (gr, f) => gr.nodes.find(f), blk = Object.values(g.blocks)[0].graph;
+    if (at(find(g, n => n.type === 'linear')) !== '24' || r.attrs.get(find(g, n => n.type === 'linear').id) !== 'fc1') bad('a layer');
+    if (at(find(g, n => n.params.fn === 'relu')) !== '24' || r.attrs.get(find(g, n => n.params.fn === 'relu').id) !== 'act') bad('an activation written as a module');
+    if (at(find(g, n => n.params.fn === 'gelu')) !== '26,27,28') bad('a statement over several lines');
+    if (at(find(g, n => n.type === 'binop')) !== '25' || at(find(g, n => n.type === 'block')) !== '25') bad('a block use is the line that calls it');
+    if (at(find(g, n => n.type === 'input')) !== '23' || at(find(g, n => n.type === 'output')) !== '29') bad('input and output arrows');
+    if (at(find(blk, n => n.type === 'linear')) !== '12' || at(find(blk, n => n.type === 'act')) !== '13' || r.attrs.get(find(blk, n => n.type === 'linear').id) !== 'lin') bad('layers inside a block keep the lines of its own forward');
+    // on the code the app writes, a node's source lines are among the lines the generator gives it
+    for (const f of ['01_residual_mlp.json', '07_gpt2.json', '15_lstm.json', '12_resnet50.json']) {
+      const code = NN.generate(JSON.parse(fs.readFileSync(__dirname + '/examples/networks/' + f, 'utf8')).graph, {}).code, imp = NN.importPython(code), gen = NN.generate(imp.graph, {});
+      if (gen.code !== code) bad(f + ' round trip');
+      let n = 0;
+      for (const gr of [imp.graph, ...Object.values(imp.graph.blocks || {}).map(b => b.graph)]) for (const nd of gr.nodes) {
+        const ls = imp.lines.get(nd.id) || [], gl = gen.lineMap.get(nd.id) || []; if (!ls.length || !gl.length || nd.type === 'input') continue;
+        n++; if (!ls.every(l => gl.includes(l - 1))) bad(`${f}: ${nd.type} ${nd.params.name || ''} read from line ${ls}, generated on ${gl.map(x => x + 1)}`);
+      }
+      if (n < 5) bad(f + ': too few nodes with lines');
+    }
+    console.log('source lines OK');
+  }
   // Saving into a marimo notebook keeps it a notebook: classes keep @app.class_definition, an import the new code
   // needs goes into the `with app.setup:` cell (not above `app = marimo.App()`), and a new block's class is decorated.
   // A plain file is saved as before.
