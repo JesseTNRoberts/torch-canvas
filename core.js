@@ -57,7 +57,7 @@ const NN = (() => {
     // loss: port 0 = a model output (raw, before any final activation), port 1 = the target
     loss: { fn: 'cross_entropy', mode: 'given', label_smoothing: '', ignore_index: '', delta: '1.0', weight: '1', mask_prob: '0.15', mask_id: '', title: '' },
   };
-  const ACTS = ['sigmoid', 'silu', 'relu', 'leaky_relu', 'gelu', 'gelu_tanh', 'tanh', 'softmax', 'softplus'];
+  const ACTS = ['sigmoid', 'silu', 'relu', 'leaky_relu', 'gelu', 'gelu_tanh', 'tanh', 'softmax', 'softplus', 'spike'];
   // Loss functions. act = what predict() applies at inference (the loss works on the raw output).
   const LOSSES = {
     cross_entropy: { label: 'Cross-entropy', torch: 'F.cross_entropy', act: 'softmax', note: 'Classes or tokens; takes logits' },
@@ -872,6 +872,7 @@ const NN = (() => {
     sincos_2d: `def sincos_2d(n, d):\n    \"\"\"Fixed 2-D sine/cosine position embedding of n patches on a square grid (I-JEPA, MAE): (n, d). A quarter of\n    the features each: sin and cos of the column, then of the row, at frequencies 1 / 10000^(i / (d/4)).\"\"\"\n    g, q = int(round(n ** 0.5)), d // 4\n    omega = 1.0 / 10000 ** (torch.arange(q, dtype=torch.float64) / q)\n    row, col = torch.arange(n, dtype=torch.float64).div(g, rounding_mode=\"floor\"), torch.arange(n, dtype=torch.float64) % g\n    a, b = col[:, None] * omega, row[:, None] * omega\n    return torch.cat([a.sin(), a.cos(), b.sin(), b.cos()], dim=1).float()`,
     causal_conv: `def causal_conv(conv, x):\n    \"\"\"A Conv1d along time on (B, T, C) that sees only the current and earlier steps (padding k - 1, cut back to T).\"\"\"\n    return conv(x.transpose(1, 2))[..., : x.size(1)].transpose(1, 2)`,
     dt_bias: `def dt_bias_(bias, dt_min=0.001, dt_max=0.1):\n    \"\"\"Mamba's init of the time step's bias: softplus(bias) starts log-uniform in [dt_min, dt_max].\"\"\"\n    dt = (dt_min * (dt_max / dt_min) ** torch.rand_like(bias)).clamp(min=1e-4)\n    with torch.no_grad():\n        bias.copy_(dt + torch.log(-torch.expm1(-dt)))`,
+    spike: `def spike(x, slope=25.0):\n    \"\"\"A spike where x > 0: the step function forward, and the slope of the fast sigmoid x / (1 + slope * |x|),\n    1 / (1 + slope * |x|)^2, as its gradient backward (a surrogate: the step's own gradient is zero).\"\"\"\n    soft = x / (1 + slope * x.abs())\n    return (x > 0).to(x.dtype) + (soft - soft.detach())`,
     delay: `def delay(x):\n    \"\"\"One step later along time (dim 1): out[:, t] = x[:, t - 1], zeros at t = 0.\"\"\"\n    return torch.cat([torch.zeros_like(x[:, :1]), x[:, :-1]], dim=1)`,
     mask: `def causal_mask(scores):\n    \"\"\"Hide future positions: scores above the diagonal become -inf.\"\"\"\n    t = scores.size(-1)\n    future = torch.ones(t, t, dtype=torch.bool, device=scores.device).triu(1)\n    return scores.masked_fill(future, float("-inf"))`,
   };
@@ -1018,6 +1019,7 @@ const NN = (() => {
     for (const n of nodes) {
       if (n.type === 'heads') want.add('heads');
       if (n.type === 'delay') want.add('delay');
+      if (n.type === 'act' && n.params.fn === 'spike') want.add('spike');
       if (n.type === 'conv1d') want.add('causal_conv');
       if (n.type === 'param' && n.params.init === 'sincos2d') want.add('sincos_2d');
       if (n.type === 'linear' && n.params.bias && n.params.bias_init === 'dt') want.add('dt_bias');
@@ -1026,7 +1028,7 @@ const NN = (() => {
       if (n.type === 'mask') want.add(n.params.mode === 'given' ? 'maskGiven' : 'mask');
       if (n.type === 'func' && HELPER_OPS[n.params.fn]) { want.add(n.params.fn); HELPER_OPS[n.params.fn].deps.forEach(d => want.add(d)); }
     }
-    const order = ['heads', 'merge', 'rope', 'ropeAxial', 'ropeMrope', 'mask', 'maskGiven', 'sincos_2d', 'causal_conv', 'dt_bias', 'delay', ...Object.keys(HELPER_OPS)];
+    const order = ['heads', 'merge', 'rope', 'ropeAxial', 'ropeMrope', 'mask', 'maskGiven', 'sincos_2d', 'causal_conv', 'dt_bias', 'spike', 'delay', ...Object.keys(HELPER_OPS)];
     return order.filter(k => want.has(k)).map(k => HELPERS[k] || HELPER_OPS[k].code);
   }
 
@@ -1895,7 +1897,7 @@ const NN = (() => {
               else code = `apply_rope(${a[0].code}${base})`;
               break;
             }
-            case 'act': code = p.fn === 'softmax' ? `torch.softmax(${a[0].code}, dim=${p.dim ?? -1})` : p.fn === 'leaky_relu' ? `F.leaky_relu(${a[0].code}${String(p.slope ?? '0.01') === '0.01' ? '' : ', ' + p.slope})` : (ACT_CODE[p.fn] || ACT_CODE.silu)(a[0].code); break;
+            case 'act': code = p.fn === 'softmax' ? `torch.softmax(${a[0].code}, dim=${p.dim ?? -1})` : p.fn === 'leaky_relu' ? `F.leaky_relu(${a[0].code}${String(p.slope ?? '0.01') === '0.01' ? '' : ', ' + p.slope})` : p.fn === 'spike' ? `spike(${a[0].code}${+(p.slope ?? 25) === 25 ? '' : ', ' + p.slope})` : (ACT_CODE[p.fn] || ACT_CODE.silu)(a[0].code); break;
             case 'binop': {
               const op = p.op || '+'; prec = OP_PREC[op] || 10;
               const cst = constCode.has(it.id) ? constCode.get(it.id) : p.const;
@@ -2098,6 +2100,7 @@ const NN = (() => {
       if (validOf.has(n.id) && n.type === 'block') { for (const [, v] of dimList(n)) note(v); continue; }
       for (const [, v] of dimList(n)) note(v);
       if (n.type === 'func' && n.params.init) note(n.params.init);
+      if (n.type === 'binop' && hasConst(n)) note(n.params.const);   // a named constant (a leak β, a threshold θ)
       if (n.type === 'reshape') { try { Object.values(parseSizes(n.params.sizes)).forEach(note); } catch { /* reported by the shapes */ } }
     }
     // arguments in the order the model lists its sizes (stable across a round trip), unknown names last
@@ -2700,6 +2703,7 @@ const NN = (() => {
         if ((p === 'F.max_pool2d' || p === 'F.avg_pool2d') && isT(A[0])) { const st = arg(2, 'stride', null); return addNode('pool', { kind: p === 'F.max_pool2d' ? 'max' : 'avg', k: valStr(arg(1, 'kernel_size', 2)), stride: st == null ? '' : valStr(st), pad: valStr(arg(3, 'padding', 0)) }, [A[0]]); }
         if (p === 'F.adaptive_avg_pool2d' && isT(A[0])) return addNode('pool', { kind: 'adaptive', size: valStr(arg(1, 'output_size', 1)) }, [A[0]]);
         if (p === 'F.interpolate' && isT(A[0])) { const md = arg(3, 'mode', null); return addNode('upsample', { scale: valStr(arg(2, 'scale_factor', 2)), mode: md && md.str ? md.str : 'nearest' }, [A[0]]); }
+        if (p === 'spike' && isT(A[0])) return addNode('act', { fn: 'spike', slope: valStr(arg(1, 'slope', 25)), dim: '-1' }, [A[0]]);
         if (p === 'F.leaky_relu' && isT(A[0])) return addNode('act', { fn: 'leaky_relu', slope: valStr(arg(1, 'negative_slope', 0.01)), dim: '-1' }, [A[0]]);
         if (p === 'torch.flatten' && isT(A[0])) return addNode('func', { fn: '.flatten', extra: valStr(arg(1, 'start_dim', 0)), n: 1 }, [A[0]]);
         if (FN_ACT[p] && tens.length) return applyAct(FN_ACT[p] === 'gelu' && KW.approximate && KW.approximate.str === 'tanh' ? 'gelu_tanh' : FN_ACT[p], A[0], arg(1, 'dim', -1));
