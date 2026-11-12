@@ -40,7 +40,7 @@ const NN = (() => {
     upsample: { scale: '2', mode: 'nearest', title: '', var: '' },
     // one time step later: out[:, t] = in[:, t − 1], zeros at t = 0 (e × t × …). A loop through a Delay is a recurrence,
     // computed step by step; name is the state's name in the code (h, c)
-    delay: { name: 'h', title: '', var: '' },
+    delay: { name: 'h', steps: '1', title: '', var: '' },
     // learned vectors put in front of the sequence (ViT's class token): (e, t, d) → (e, n + t, d), starting at zeros
     token: { n: '1', dim: 'd', name: '', title: '', var: '' },
     // one position of a sequence: x[:, k], (e, t, …) → (e, …)
@@ -204,6 +204,9 @@ const NN = (() => {
   const parseShape = s => String(s || '').split(',').map(t => t.trim()).filter(Boolean);
   const identsIn = expr => (String(expr).match(IDENT) || []);
 
+  // A Delay's steps as a whole number (1 when not set), or null when it isn't one.
+  const delaySteps = n => { const v = n.params.steps == null || n.params.steps === '' ? '1' : String(n.params.steps).trim(); return /^[1-9]\d*$/.test(v) ? +v : null; };
+
   // ── shape inference ──
   // With Delays, a loop's sizes depend on themselves: each Delay takes the shape that reached it last time round,
   // until nothing changes (a couple of passes)
@@ -244,6 +247,13 @@ const NN = (() => {
       const n = ix.byId.get(id), p = n.params;
       if (n.type === 'delay') {
         if (!ix.ins.get(id)[0]) err(id, 'Unconnected input');
+        // how many steps it holds its input back: a whole number, 1 unless set. More than one only on a wire that
+        // isn't part of a loop (inside a loop, put one-step Delays in a row: each is a state of its own)
+        const st = delaySteps(n);
+        if (st == null) err(id, 'Steps must be a whole number, 1 or more');
+        else if (st > 1) { const seen = new Set([id]), q = [id]; let loop = false;
+          while (q.length && !loop) for (const o of ix.outs.get(q.pop()) || []) { if (o.to === id) { loop = true; break; } if (!seen.has(o.to)) { seen.add(o.to); q.push(o.to); } }
+          if (loop) err(id, 'A Delay inside a loop is one step. For more, put one-step Delays in a row'); }
         const sh = (pre && pre.get(id)) || null;
         if (sh && sh.length < 2) conflict(id, { kind: 'rank', a: sh.join('×'), b: 'e × t × …', ports: [0], cap: 'needs a sequence', msg: 'A Delay shifts along time, so its input needs a shape like e × t × d' });
         shapes.set(id, sh); continue;
@@ -873,7 +883,7 @@ const NN = (() => {
     causal_conv: `def causal_conv(conv, x):\n    \"\"\"A Conv1d along time on (B, T, C) that sees only the current and earlier steps (padding k - 1, cut back to T).\"\"\"\n    return conv(x.transpose(1, 2))[..., : x.size(1)].transpose(1, 2)`,
     dt_bias: `def dt_bias_(bias, dt_min=0.001, dt_max=0.1):\n    \"\"\"Mamba's init of the time step's bias: softplus(bias) starts log-uniform in [dt_min, dt_max].\"\"\"\n    dt = (dt_min * (dt_max / dt_min) ** torch.rand_like(bias)).clamp(min=1e-4)\n    with torch.no_grad():\n        bias.copy_(dt + torch.log(-torch.expm1(-dt)))`,
     spike: `def spike(x, slope=25.0):\n    \"\"\"A spike where x > 0: the step function forward, and the slope of the fast sigmoid x / (1 + slope * |x|),\n    1 / (1 + slope * |x|)^2, as its gradient backward (a surrogate: the step's own gradient is zero).\"\"\"\n    soft = x / (1 + slope * x.abs())\n    return (x > 0).to(x.dtype) + (soft - soft.detach())`,
-    delay: `def delay(x):\n    \"\"\"One step later along time (dim 1): out[:, t] = x[:, t - 1], zeros at t = 0.\"\"\"\n    return torch.cat([torch.zeros_like(x[:, :1]), x[:, :-1]], dim=1)`,
+    delay: `def delay(x, steps=1):\n    \"\"\"Later along time (dim 1) by a whole number of steps: out[:, t] = x[:, t - steps], zeros for the first steps.\"\"\"\n    return torch.cat([torch.zeros_like(x[:, :steps]), x[:, :-steps]], dim=1)`,
     mask: `def causal_mask(scores):\n    \"\"\"Hide future positions: scores above the diagonal become -inf.\"\"\"\n    t = scores.size(-1)\n    future = torch.ones(t, t, dtype=torch.bool, device=scores.device).triu(1)\n    return scores.masked_fill(future, float("-inf"))`,
   };
 
@@ -1647,11 +1657,15 @@ const NN = (() => {
       // reachable DFS post-order
       const order = [], seen = new Set();
       const isDelay = it => it && it.kind === 'node' && it.node.type === 'delay';
+      const inLoop = id => { const seenL = new Set(), q = [...itemById.get(id).ins.map(baseRef)]; // does it feed itself?
+        while (q.length) { const r = q.pop(); if (r === id) return true; if (seenL.has(r) || !itemById.has(r)) continue; seenL.add(r); q.push(...itemById.get(r).ins.map(baseRef)); }
+        return false; };
       const dfs = r => {
         r = baseRef(r);
         if (seen.has(r) || String(r).startsWith('in:') || !itemById.has(r)) return; seen.add(r);
-        // a Delay reads its input from the previous step: what feeds it isn't needed first
-        if (!isDelay(itemById.get(r))) for (const s of itemById.get(r).ins) dfs(s);
+        // a Delay in a loop reads its input from the previous step: what feeds it isn't needed first. A Delay on a
+        // plain wire (an axon) is a shift of what feeds it, which comes first like any other input
+        if (!isDelay(itemById.get(r)) || !inLoop(r)) for (const s of itemById.get(r).ins) dfs(s);
         order.push(r);
       };
       outputRefs.forEach(dfs);
@@ -1857,7 +1871,7 @@ const NN = (() => {
           const n = it.node, p = n.params;
           if (it.silu) code = `F.silu(${a[0].code})`;
           else switch (n.type) {
-            case 'delay': code = `delay(${a[0].code})`; break;
+            case 'delay': code = `delay(${a[0].code}${(delaySteps(n) || 1) > 1 ? ', ' + delaySteps(n) : ''})`; break;
             case 'token': code = `torch.cat([self.${attrFor(it)}.expand(${wrap(a[0], 100)}.size(0), -1, -1), ${a[0].code}], dim=1)`; break;
             case 'select': code = `${wrap(a[0], 100)}[:, ${p.index}]`; break;
             case 'param': code = `self.${attrFor(it)}`; break;
@@ -2712,6 +2726,8 @@ const NN = (() => {
         if (p === 'F.adaptive_avg_pool2d' && isT(A[0])) return addNode('pool', { kind: 'adaptive', size: valStr(arg(1, 'output_size', 1)) }, [A[0]]);
         if (p === 'F.interpolate' && isT(A[0])) { const md = arg(3, 'mode', null); return addNode('upsample', { scale: valStr(arg(2, 'scale_factor', 2)), mode: md && md.str ? md.str : 'nearest' }, [A[0]]); }
         if (p === 'spike' && isT(A[0])) return addNode('act', { fn: 'spike', slope: valStr(arg(1, 'slope', 25)), dim: '-1' }, [A[0]]);
+        // delay(x) or delay(x, 3): a Delay on a wire outside any loop, a shift along time by a whole number of steps
+        if (p === 'delay' && isT(A[0]) && /^[1-9]\d*$/.test(valStr(arg(1, 'steps', 1)))) return addNode('delay', { name: 'h', steps: valStr(arg(1, 'steps', 1)) }, [A[0]]);
         if (p === 'F.leaky_relu' && isT(A[0])) return addNode('act', { fn: 'leaky_relu', slope: valStr(arg(1, 'negative_slope', 0.01)), dim: '-1' }, [A[0]]);
         if (p === 'torch.flatten' && isT(A[0])) return addNode('func', { fn: '.flatten', extra: valStr(arg(1, 'start_dim', 0)), n: 1 }, [A[0]]);
         if (FN_ACT[p] && tens.length) return applyAct(FN_ACT[p] === 'gelu' && KW.approximate && KW.approximate.str === 'tanh' ? 'gelu_tanh' : FN_ACT[p], A[0], arg(1, 'dim', -1));
@@ -4275,6 +4291,6 @@ const NN = (() => {
     return true;
   }
 
-  return { syncSource, pairNodes, chainLayout, viewKeys, viewPositions, applyViewPositions, streamLayout, explodeBlocks, sanitizeGraph, carryDiagram, lowerReshapes, reshapeSteps, reshapeStepCode, reshapeShape, reshapeAxisSource, stepsToPattern, reshapeDescribe, reshapePlan, stepsShape, parseSizes, HELPER_OPS, indexInputRange, FREEZABLE, helperDoc, srcKey, splitKey, blockOutputs, blockClassCode, LOSSES, lossParts, lossPlan, weightShape, tieOwner, blockParams, blockInputs, expandBlocks, instantiateBlock, presetResidualMLPBlocks, NORMS, linkSizes, syncWidths, mergeIntoSource, isMarimo, uid, BATCH, DEFAULTS, ACTS, INITS, initCode, makeNode, inCount, isCircle, index, topo, evalDim, parseShape, inferShapes, paramCount, propagateWidth, generate, importPython, importFx, autoLayout, nodeSize, nodeLabel, presetResidualMLP, parse, identsIn };
+  return { syncSource, pairNodes, delaySteps, chainLayout, viewKeys, viewPositions, applyViewPositions, streamLayout, explodeBlocks, sanitizeGraph, carryDiagram, lowerReshapes, reshapeSteps, reshapeStepCode, reshapeShape, reshapeAxisSource, stepsToPattern, reshapeDescribe, reshapePlan, stepsShape, parseSizes, HELPER_OPS, indexInputRange, FREEZABLE, helperDoc, srcKey, splitKey, blockOutputs, blockClassCode, LOSSES, lossParts, lossPlan, weightShape, tieOwner, blockParams, blockInputs, expandBlocks, instantiateBlock, presetResidualMLPBlocks, NORMS, linkSizes, syncWidths, mergeIntoSource, isMarimo, uid, BATCH, DEFAULTS, ACTS, INITS, initCode, makeNode, inCount, isCircle, index, topo, evalDim, parseShape, inferShapes, paramCount, propagateWidth, generate, importPython, importFx, autoLayout, nodeSize, nodeLabel, presetResidualMLP, parse, identsIn };
 })();
 if (typeof module !== 'undefined') module.exports = NN;

@@ -1,0 +1,293 @@
+{
+ "title": "Recurrent LIF",
+ "description": "A leaky integrate-and-fire layer whose spikes feed back into it through a Linear: v = W·x + V·s_prev + β·v_prev − θ·s_prev (β = 0.9, θ = 1). The last spike is read twice, once by the recurrent weights V and once by the reset. 5,120 parameters.",
+ "category": "Spiking networks",
+ "graph": {
+  "name": "RecurrentLIF",
+  "symbols": {
+   "e": 8,
+   "t": 20,
+   "d64": 64
+  },
+  "nodes": [
+   {
+    "id": "n1kylvd",
+    "type": "input",
+    "x": 420,
+    "y": 850,
+    "params": {
+     "name": "x",
+     "shape": "e, t, 16",
+     "title": ""
+    }
+   },
+   {
+    "id": "n1lggux",
+    "type": "linear",
+    "x": 420,
+    "y": 750,
+    "params": {
+     "in": "16",
+     "out": "d64",
+     "bias": false,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": false,
+     "bias_init": "",
+     "tie": "",
+     "name": "ih",
+     "title": "",
+     "var": "cur"
+    }
+   },
+   {
+    "id": "n1n95pv",
+    "type": "delay",
+    "x": 860,
+    "y": 850,
+    "params": {
+     "name": "s",
+     "steps": "1",
+     "title": "",
+     "var": "",
+     "split": {
+      "x": 860,
+      "y": 230,
+      "lane": "below"
+     }
+    }
+   },
+   {
+    "id": "n1ofvgy",
+    "type": "delay",
+    "x": 200,
+    "y": 850,
+    "params": {
+     "name": "v",
+     "steps": "1",
+     "title": "",
+     "var": "",
+     "split": {
+      "x": 200,
+      "y": 230,
+      "lane": "below"
+     }
+    }
+   },
+   {
+    "id": "n1pg7mu",
+    "type": "linear",
+    "x": 640,
+    "y": 750,
+    "params": {
+     "in": "d64",
+     "out": "d64",
+     "bias": false,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": false,
+     "bias_init": "",
+     "tie": "",
+     "name": "rec",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1rjp34",
+    "type": "binop",
+    "x": 420,
+    "y": 660,
+    "params": {
+     "op": "+",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1ueq6n",
+    "type": "binop",
+    "x": 200,
+    "y": 660,
+    "params": {
+     "op": "*",
+     "const": "0.9",
+     "rev": false,
+     "title": "× β",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1w6ehl",
+    "type": "binop",
+    "x": 420,
+    "y": 570,
+    "params": {
+     "op": "+",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1z9lch",
+    "type": "binop",
+    "x": 860,
+    "y": 570,
+    "params": {
+     "op": "*",
+     "const": "1",
+     "rev": false,
+     "title": "× θ",
+     "var": ""
+    }
+   },
+   {
+    "id": "n21bsa2",
+    "type": "binop",
+    "x": 420,
+    "y": 480,
+    "params": {
+     "op": "-",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": "v"
+    }
+   },
+   {
+    "id": "n24z6q8",
+    "type": "binop",
+    "x": 420,
+    "y": 390,
+    "params": {
+     "op": "-",
+     "const": "1",
+     "rev": false,
+     "title": "− θ",
+     "var": ""
+    }
+   },
+   {
+    "id": "n268wh0",
+    "type": "act",
+    "x": 420,
+    "y": 300,
+    "params": {
+     "fn": "spike",
+     "dim": "-1",
+     "title": "",
+     "var": "s",
+     "slope": "25"
+    }
+   },
+   {
+    "id": "n2aj327",
+    "type": "output",
+    "x": 420,
+    "y": 170,
+    "params": {
+     "name": "s",
+     "title": ""
+    }
+   }
+  ],
+  "edges": [
+   {
+    "id": "e1mt9p4",
+    "from": "n1kylvd",
+    "to": "n1lggux",
+    "port": 0
+   },
+   {
+    "id": "e1qh05i",
+    "from": "n1n95pv",
+    "to": "n1pg7mu",
+    "port": 0
+   },
+   {
+    "id": "e1sxgou",
+    "from": "n1lggux",
+    "to": "n1rjp34",
+    "port": 0
+   },
+   {
+    "id": "e1tdcns",
+    "from": "n1pg7mu",
+    "to": "n1rjp34",
+    "port": 1
+   },
+   {
+    "id": "e1vbnss",
+    "from": "n1ofvgy",
+    "to": "n1ueq6n",
+    "port": 0
+   },
+   {
+    "id": "e1xxcgc",
+    "from": "n1rjp34",
+    "to": "n1w6ehl",
+    "port": 0
+   },
+   {
+    "id": "e1y6jq8",
+    "from": "n1ueq6n",
+    "to": "n1w6ehl",
+    "port": 1
+   },
+   {
+    "id": "e209g47",
+    "from": "n1n95pv",
+    "to": "n1z9lch",
+    "port": 0
+   },
+   {
+    "id": "e22np2u",
+    "from": "n1w6ehl",
+    "to": "n21bsa2",
+    "port": 0
+   },
+   {
+    "id": "e2350sa",
+    "from": "n1z9lch",
+    "to": "n21bsa2",
+    "port": 1
+   },
+   {
+    "id": "e2598m3",
+    "from": "n21bsa2",
+    "to": "n24z6q8",
+    "port": 0
+   },
+   {
+    "id": "e2755f9",
+    "from": "n24z6q8",
+    "to": "n268wh0",
+    "port": 0
+   },
+   {
+    "id": "e283n58",
+    "from": "n268wh0",
+    "to": "n1n95pv",
+    "port": 0
+   },
+   {
+    "id": "e299u2n",
+    "from": "n21bsa2",
+    "to": "n1ofvgy",
+    "port": 0
+   },
+   {
+    "id": "e2b9owl",
+    "from": "n268wh0",
+    "to": "n2aj327",
+    "port": 0
+   }
+  ],
+  "groups": [],
+  "blocks": {}
+ }
+}

@@ -1,0 +1,309 @@
+{
+ "title": "LIF with a synaptic current",
+ "description": "A leaky integrate-and-fire layer whose input passes through a synapse first: a second leaky state, the synaptic current i = α·i_prev + W·x (α = 0.8), feeds the membrane potential v = β·v_prev + i − θ·s_prev (β = 0.9, θ = 1). Three Delays: i, v and the last spike s. 1,024 parameters.",
+ "category": "Spiking networks",
+ "graph": {
+  "name": "SynapticLIF",
+  "symbols": {
+   "e": 8,
+   "t": 20
+  },
+  "nodes": [
+   {
+    "id": "nqwh02",
+    "type": "input",
+    "x": 420,
+    "y": 850,
+    "params": {
+     "name": "x",
+     "shape": "e, t, 16",
+     "title": ""
+    }
+   },
+   {
+    "id": "nr12zf",
+    "type": "linear",
+    "x": 420,
+    "y": 750,
+    "params": {
+     "in": "16",
+     "out": "64",
+     "bias": false,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": false,
+     "bias_init": "",
+     "tie": "",
+     "name": "ih",
+     "title": "",
+     "var": "cur"
+    }
+   },
+   {
+    "id": "ntkxbe",
+    "type": "delay",
+    "x": 640,
+    "y": 850,
+    "params": {
+     "name": "i",
+     "steps": "1",
+     "title": "",
+     "var": "",
+     "split": {
+      "x": 640,
+      "y": 560,
+      "lane": "below"
+     }
+    }
+   },
+   {
+    "id": "nuui8a",
+    "type": "delay",
+    "x": 200,
+    "y": 850,
+    "params": {
+     "name": "v",
+     "steps": "1",
+     "title": "",
+     "var": "",
+     "split": {
+      "x": 200,
+      "y": 230,
+      "lane": "below"
+     }
+    }
+   },
+   {
+    "id": "nv70ze",
+    "type": "delay",
+    "x": 860,
+    "y": 850,
+    "params": {
+     "name": "s",
+     "steps": "1",
+     "title": "",
+     "var": "",
+     "split": {
+      "x": 860,
+      "y": 230,
+      "lane": "below"
+     }
+    }
+   },
+   {
+    "id": "nwkkxb",
+    "type": "binop",
+    "x": 640,
+    "y": 750,
+    "params": {
+     "op": "*",
+     "const": "0.8",
+     "rev": false,
+     "title": "× α",
+     "var": ""
+    }
+   },
+   {
+    "id": "nyjfdd",
+    "type": "binop",
+    "x": 420,
+    "y": 660,
+    "params": {
+     "op": "+",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": "i"
+    }
+   },
+   {
+    "id": "n116arz",
+    "type": "binop",
+    "x": 200,
+    "y": 660,
+    "params": {
+     "op": "*",
+     "const": "0.9",
+     "rev": false,
+     "title": "× β",
+     "var": ""
+    }
+   },
+   {
+    "id": "n13cp8n",
+    "type": "binop",
+    "x": 420,
+    "y": 570,
+    "params": {
+     "op": "+",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n16u6y8",
+    "type": "binop",
+    "x": 860,
+    "y": 570,
+    "params": {
+     "op": "*",
+     "const": "1",
+     "rev": false,
+     "title": "× θ",
+     "var": ""
+    }
+   },
+   {
+    "id": "n18hsu1",
+    "type": "binop",
+    "x": 420,
+    "y": 480,
+    "params": {
+     "op": "-",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": "v"
+    }
+   },
+   {
+    "id": "n1bx04v",
+    "type": "binop",
+    "x": 420,
+    "y": 390,
+    "params": {
+     "op": "-",
+     "const": "1",
+     "rev": false,
+     "title": "− θ",
+     "var": ""
+    }
+   },
+   {
+    "id": "n1drrjh",
+    "type": "act",
+    "x": 420,
+    "y": 300,
+    "params": {
+     "fn": "spike",
+     "dim": "-1",
+     "title": "",
+     "var": "s",
+     "slope": "25"
+    }
+   },
+   {
+    "id": "n1ivhrg",
+    "type": "output",
+    "x": 420,
+    "y": 170,
+    "params": {
+     "name": "s",
+     "title": ""
+    }
+   }
+  ],
+  "edges": [
+   {
+    "id": "es1lhq",
+    "from": "nqwh02",
+    "to": "nr12zf",
+    "port": 0
+   },
+   {
+    "id": "exf7p3",
+    "from": "ntkxbe",
+    "to": "nwkkxb",
+    "port": 0
+   },
+   {
+    "id": "ezvk4j",
+    "from": "nr12zf",
+    "to": "nyjfdd",
+    "port": 0
+   },
+   {
+    "id": "e10r6ws",
+    "from": "nwkkxb",
+    "to": "nyjfdd",
+    "port": 1
+   },
+   {
+    "id": "e12d8rc",
+    "from": "nuui8a",
+    "to": "n116arz",
+    "port": 0
+   },
+   {
+    "id": "e14vd3m",
+    "from": "nyjfdd",
+    "to": "n13cp8n",
+    "port": 0
+   },
+   {
+    "id": "e1558zi",
+    "from": "n116arz",
+    "to": "n13cp8n",
+    "port": 1
+   },
+   {
+    "id": "e17b0fi",
+    "from": "nv70ze",
+    "to": "n16u6y8",
+    "port": 0
+   },
+   {
+    "id": "e19wn4q",
+    "from": "n13cp8n",
+    "to": "n18hsu1",
+    "port": 0
+   },
+   {
+    "id": "e1acyp8",
+    "from": "n16u6y8",
+    "to": "n18hsu1",
+    "port": 1
+   },
+   {
+    "id": "e1ctpok",
+    "from": "n18hsu1",
+    "to": "n1bx04v",
+    "port": 0
+   },
+   {
+    "id": "e1er949",
+    "from": "n1bx04v",
+    "to": "n1drrjh",
+    "port": 0
+   },
+   {
+    "id": "e1fy8rw",
+    "from": "nyjfdd",
+    "to": "ntkxbe",
+    "port": 0
+   },
+   {
+    "id": "e1gi5ih",
+    "from": "n18hsu1",
+    "to": "nuui8a",
+    "port": 0
+   },
+   {
+    "id": "e1h735z",
+    "from": "n1drrjh",
+    "to": "nv70ze",
+    "port": 0
+   },
+   {
+    "id": "e1jowvb",
+    "from": "n1drrjh",
+    "to": "n1ivhrg",
+    "port": 0
+   }
+  ],
+  "groups": [],
+  "blocks": {}
+ }
+}

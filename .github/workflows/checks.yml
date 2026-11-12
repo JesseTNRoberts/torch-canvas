@@ -3,7 +3,8 @@
 #             was rebuilt from the sources it contains
 #   pytorch:  the code written for every example (and its exploded drawing) runs in real PyTorch (CPU): parameter
 #             counts, output shapes, the exploded model giving the same outputs, and
-#             for the small models train.py (2 steps, a resume from the checkpoint, and a bf16 run)
+#             for the small models train.py (2 steps, a resume from the checkpoint, and a bf16 run); the spiking
+#             examples against plain loops and snnTorch
 #   browser:  the built app in headless Chromium: every example opens and plots, damaged saved data, text from
 #             pasted code, a full browser storage; and the code panel with a file open (its own text, saving)
 name: Checks
@@ -56,6 +57,8 @@ jobs:
       - run: python -u tools/check_examples.py out --train
       - name: Explode blocks gives the same network (outputs with the weights copied across)
         run: python -u tools/check_explode.py out
+      - name: Spiking examples against plain loops and snnTorch (spikes, gradients, the axon's delay)
+        run: pip install snntorch && python -u tools/check_spiking.py
 
   browser:
     runs-on: ubuntu-latest
