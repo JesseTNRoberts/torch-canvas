@@ -1645,11 +1645,12 @@ function fileText() {
   let text = null, note = '';
   // nothing has changed since the file was read: its text as it is
   if (S.gen.code === f.savedCode && f.text === unixText(f.diskText)) text = f.text;
-  if (text == null) { try { text = NN.syncSource(f.text, R(), { root: f.root, gen: genOpts() }); } catch {} }
+  let why = '';
+  if (text == null) { try { text = NN.syncSource(f.text, R(), { root: f.root, gen: genOpts() }); } catch (e) { why = e.message; console.warn(`Torch Canvas: ${f.name} could not be patched line by line:`, e); } }
   if (text == null) { // can't be written line by line: what Save does instead
-    try { text = NN.mergeIntoSource(f.text, S.gen.code, f.used); } catch {}
+    try { text = NN.mergeIntoSource(f.text, S.gen.code, f.used); } catch (e) { console.warn(`Torch Canvas: the model's classes could not be replaced in ${f.name}:`, e); }
     note = text == null ? `The model's classes aren't in ${f.name} any more, so this is the generated code. Saving asks before it replaces the file.`
-      : `This change can't be written into ${f.name} line by line, so the model's classes are replaced whole: comments and your own methods inside them are not kept. The rest of the file is.`;
+      : `This change can't be written into ${f.name} line by line${why ? ` (${why})` : ''}, so the model's classes are replaced whole: comments and your own methods inside them are not kept. The rest of the file is.`;
   }
   f.shownKey = key; f.shown = text == null ? null : { text, note };
   return f.shown || { text: S.gen.code, note };
@@ -1686,7 +1687,12 @@ function fileHighlight(view, r, ids) {
   for (const u of m.uses) { u.lines.forEach(l => { if (l >= 1 && l <= vl.length) hl.add(l - 1); }); if (u.name && /^\w+$/.test(u.name)) named(u.cls, u.name); }
   for (const id of ids) {
     let found = false;
-    const twin = m.pairs && m.pairs.get(id), src = twin && m.lines.get(twin.id);
+    const twin = m.pairs && m.pairs.get(id); let src = twin && m.lines.get(twin.id);
+    if (twin && twin.type === 'loss') { // each term of a loss has its own line when the file writes it as the app does
+      const keys = new Set((r.lineMap.get(id) || []).map(l => gc[l] + '\0' + norm(gl[l] || '')));
+      const own = vl.map((l, i) => (keys.has(vc[i] + '\0' + norm(l)) ? i : -1)).filter(i => i >= 0);
+      if (own.length) { found = true; own.forEach(i => hl.add(i)); src = null; }
+    }
     if (src && src.length) { found = true; src.forEach(l => { if (l >= 1 && l <= vl.length) hl.add(l - 1); }); }
     const attr = twin && (m.attrs.get(twin.id) || (twin.type === 'block' && twin.params.name));
     if (attr && /^\w+$/.test(attr)) { found = true; named(m.cls, attr); }
@@ -4324,7 +4330,7 @@ async function saveFile() {
     if (S.file.kind === 'graph') out = JSON.stringify(R(), null, 1);
     else {
       // Patch only the statements the diagram changed; fall back to replacing the model classes.
-      try { out = NN.syncSource(src, R(), { root: S.file.root, gen: genOpts() }); synced = out != null; } catch {}
+      try { out = NN.syncSource(src, R(), { root: S.file.root, gen: genOpts() }); synced = out != null; } catch (e) { console.warn(`Torch Canvas: ${name} could not be patched line by line, so its model classes are replaced whole:`, e); }
       if (out == null) out = NN.mergeIntoSource(src, gen, S.file.used);
       if (out == null) { if (!(await ask(`The model's classes aren't in ${name} any more. Replace the whole file with the generated code?`, 'Replace file'))) return; out = gen; }
     }
