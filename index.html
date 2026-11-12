@@ -217,6 +217,17 @@ kbd { font-family: var(--mono); font-size: 10.5px; border: 1px solid var(--line)
 .t-delay .n-box { fill: var(--stream-bg); stroke: var(--stream); stroke-dasharray: 4 2; } .t-delay text { fill: var(--stream); } .t-delay .clk { fill: none; stroke: var(--stream); stroke-width: 1.3; }
 .t-norm .n-box { fill: var(--norm-bg); stroke: var(--norm-bd); } .t-norm text { fill: var(--norm-ink); }
 .t-act .n-box { fill: var(--act-bg); stroke: var(--act-bd); } .t-act text { fill: var(--act-ink); }
+/* Spike: a step going forward, a sigmoid coming back. The small glyph on the node, and the view a double-click opens. */
+.sv-step { fill: none; stroke: var(--act-ink); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.sv-sig { fill: none; stroke: var(--bwd); stroke-width: 1.5; stroke-linecap: round; stroke-dasharray: 3.5 3; }
+.spikeview { filter: drop-shadow(0 6px 14px rgba(20, 20, 40, .22)); }
+.sv-box { fill: var(--act-bg); stroke: var(--act-bd); stroke-width: 1.4; }
+.sv-card { fill: var(--panel); stroke: var(--act-bd); stroke-width: 1.3; } .sv-card.bwd { stroke: var(--bwd); stroke-dasharray: 5 4; }
+.sv-lane { fill: none; stroke: var(--edge); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; } .sv-lane.bwd { stroke: var(--bwd); stroke-dasharray: 5 4; }
+.sv-head { fill: var(--edge); } .sv-head.bwd { fill: var(--bwd); } .sv-dot { fill: var(--edge); }
+.spikeview text { fill: var(--act-ink); font-family: var(--sans); pointer-events: none; } .spikeview .sv-title { font-size: 14px; font-weight: 600; }
+.spikeview .sv-name { font-size: 12px; font-weight: 600; } .spikeview .sv-what { font-size: 11px; } .spikeview .sv-lbl { font-size: 10.5px; fill: var(--muted); }
+.sv-close { cursor: pointer; } .sv-close rect { fill: transparent; } .sv-close path { fill: none; stroke: var(--act-ink); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .t-proj .n-box { fill: var(--proj-bg); stroke: var(--proj-bd); } .t-proj text { fill: var(--proj-ink); }
 .t-loss .n-box { fill: var(--proj-bg); stroke: var(--proj-bd); stroke-width: 1.4; stroke-dasharray: 0; } .t-loss text { fill: var(--proj-ink); }
 .sw-loss { background: var(--proj-bg); color: var(--proj-ink); border-color: var(--proj-bd) !important; }
@@ -511,7 +522,7 @@ details summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
           <marker id="ar-bad" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0.8 L7.5,4 L0,7.2 z" style="fill:var(--err)"/></marker>
           <marker id="ar-sel" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0.8 L7.5,4 L0,7.2 z" style="fill:var(--sel)"/></marker>
         </defs>
-        <g id="vp"><g id="gGroups"></g><g id="gEdges"></g><g id="gNodes"></g><g id="gOver"></g></g>
+        <g id="vp"><g id="gGroups"></g><g id="gEdges"></g><g id="gNodes"></g><g id="gOver"></g><g id="gSpike"></g></g>
       </svg>
       <div class="legend" id="legend"><span style="--c:var(--scaled)">scaled path inside SiLU</span></div>
       <div class="blockbar" id="blockBar" hidden></div>
@@ -6600,7 +6611,7 @@ function sizeOf0(n) {
     case 'conv1d': { const t = `Causal conv ${p.k}`, sub = dimText(p.ch) + ' channels'; return { w: Math.max(92, t.length * 7.4, sub.length * 7) + 26, h: 40 }; }
     case 'pool': case 'upsample': case 'token': case 'select': case 'param': case 'noise': return { w: Math.max(70, OP_LABEL[n.type](p).length * 7 + 24), h: 30 };
     case 'delay': return { w: Math.max(74, OP_LABEL.delay(p).length * 7 + 30), h: 30 };
-    case 'act': return p.fn === 'sigmoid' ? { w: 32, h: 34 } : p.fn === 'leaky_relu' ? { w: 84, h: 30 } : p.fn === 'softmax' ? { w: 108, h: 30 } : p.fn === 'softplus' ? { w: 84, h: 30 } : p.fn === 'spike' ? { w: 64, h: 30 } : p.fn === 'gelu_tanh' ? { w: 84, h: 30 } : { w: 56, h: 30 };
+    case 'act': return p.fn === 'sigmoid' ? { w: 32, h: 34 } : p.fn === 'leaky_relu' ? { w: 84, h: 30 } : p.fn === 'softmax' ? { w: 108, h: 30 } : p.fn === 'softplus' ? { w: 84, h: 30 } : p.fn === 'spike' ? { w: 96, h: 32 } : p.fn === 'gelu_tanh' ? { w: 84, h: 30 } : { w: 56, h: 30 };
     case 'binop': return NN.isCircle(n) ? { w: 26, h: 26 } : { w: Math.max(54, constLabel(p).length * 7.6 + 24), h: 30 };
     case 'dropout': return { w: 86, h: 30 };
     case 'embed': { const t = p.positions ? 'Position embedding' : 'Embedding', sub = dimText(p.num) + ' × ' + dimText(p.dim), il = subLabel(p, n); return { w: Math.max(t.length * 7.4, sub.length * 7, il.length * 6) + 30, h: il ? 52 : 40 }; }
@@ -7183,6 +7194,58 @@ function crossings(routes) {
 }
 
 // ── render ──
+// ── Spike, opened ──
+// A step and a sigmoid on the same axes (either can be left out): the step solid, the sigmoid dashed in the backward colour.
+function spikeGlyph(x, y, w, h, step, sig) {
+  return (sig ? `<path class="sv-sig" d="M${x},${y + h} C${x + w * .42},${y + h} ${x + w * .58},${y} ${x + w},${y}"/>` : '')
+    + (step ? `<path class="sv-step" d="M${x},${y + h} H${x + w / 2} V${y} H${x + w}"/>` : '');
+}
+// The view a double-click on a Spike opens (S.spikeOpen, its node's id; a note on the view, not part of the model). It
+// floats over the canvas, centred on the node: one Spike box, and inside it the wire splits. The value goes on through
+// the step; the gradient comes back through the sigmoid that replaces the step in backprop; then they are one wire again.
+// It is drawn along the direction the node's wire runs (from its input), so the wires outside meet the ones inside.
+function spikeView() {
+  const n = S.spikeOpen && byId(S.spikeOpen);
+  if (!n || n.type !== 'act' || n.params.fn !== 'spike') { S.spikeOpen = null; return ''; }
+  const eIn = S.g.edges.find(e => e.to === n.id), eOut = S.g.edges.find(e => e.from === n.id);
+  const a = eIn ? byId(eIn.from) : null, z = eOut ? byId(eOut.to) : null;
+  const dx = a ? n.x - a.x : z ? z.x - n.x : 0, dy = a ? n.y - a.y : z ? z.y - n.y : -1;
+  const vert = Math.abs(dy) >= Math.abs(dx), sgn = (vert ? dy : dx) < 0 ? -1 : 1;
+  const CW = 196, CH = 58, A = vert ? 108 : 44, L = vert ? 74 : 134, c = vert ? CH / 2 : CW / 2, E = vert ? 128 : 198;
+  const P = (u, v) => (vert ? [n.x + v, n.y + sgn * u] : [n.x + sgn * u, n.y + v]);
+  const line = (cls, pts) => `<path class="sv-lane${cls}" d="M${pts.map(q => P(q[0], q[1]).join(',')).join(' L')}"/>`;
+  const head = (cls, tip, from) => { // an arrow tip at `tip`, arriving from the direction of `from`
+    const [x, y] = P(tip[0], tip[1]), [fx, fy] = P(from[0], from[1]), d = Math.hypot(fx - x, fy - y) || 1, ux = (fx - x) / d, uy = (fy - y) / d;
+    return `<path class="sv-head${cls}" d="M${x},${y} L${x + ux * 7 - uy * 3.6},${y + uy * 7 + ux * 3.6} L${x + ux * 7 + uy * 3.6},${y + uy * 7 - ux * 3.6} Z"/>`;
+  };
+  const box = vert ? { x: n.x - 224, y: n.y - 128, w: 448, h: 256 } : { x: n.x - E, y: n.y - 122, w: 2 * E, h: 214 };
+  const card = (v, bwd, name, what) => {
+    const [cx, cy] = P(0, v), x = cx - CW / 2, y = cy - CH / 2;
+    return `<rect class="sv-card${bwd ? ' bwd' : ''}" x="${x}" y="${y}" width="${CW}" height="${CH}" rx="8"/>${spikeGlyph(x + 14, y + 16, 38, CH - 32, !bwd, bwd)}`
+      + `<text class="sv-name" x="${x + 64}" y="${cy - 3}">${name}</text><text class="sv-what" x="${x + 64}" y="${cy + 13}">${what}</text>`;
+  };
+  // the lane labels: beside each lane where it leaves the split (inside the fork when the wire runs up or down, outside it when sideways)
+  const lbl = (v, text, side) => {
+    if (vert) { const [x, y] = P(-(L + c) / 2, v); return `<text class="sv-lbl" x="${x + side * 9}" y="${y + 4}" text-anchor="${side > 0 ? 'start' : 'end'}">${text}</text>`; }
+    const [x, y] = P(-L, v / 2); return `<text class="sv-lbl" x="${x - sgn * 8}" y="${y + 4}" text-anchor="${sgn > 0 ? 'end' : 'start'}">${text}</text>`;
+  };
+  const [sx, sy] = P(-L, 0), [mx, my] = P(L, 0);
+  return `<g class="spikeview" data-spikeview="${n.id}" role="img" aria-label="Spike: the value goes forward through a step; the gradient comes back through a sigmoid">`
+    + `<rect class="sv-box" x="${box.x}" y="${box.y}" width="${box.w}" height="${box.h}" rx="12"/>`
+    + `<text class="sv-title" x="${box.x + 16}" y="${box.y + 25}">Spike</text>`
+    + `<g class="sv-close" data-spikeclose="1"><title>Close</title><rect x="${box.x + box.w - 34}" y="${box.y + 6}" width="28" height="28"/><path d="M${box.x + box.w - 26},${box.y + 24} l6,-7 l6,7"/></g>`
+    // the value: in, left of the split through the step, out
+    + line('', [[-E, 0], [-L, 0], [-L, -A], [-c, -A]]) + head('', [-c, -A], [-L, -A])
+    + line('', [[c, -A], [L, -A], [L, 0], [E, 0]])
+    // the gradient: back from the merge through the sigmoid, into the wire again
+    + line(' bwd', [[L, 0], [L, A], [c, A]]) + head(' bwd', [c, A], [L, A])
+    + line(' bwd', [[-c, A], [-L, A], [-L, 5]]) + head(' bwd', [-L, 4], [-L, A])
+    + `<circle class="sv-dot" cx="${sx}" cy="${sy}" r="3.2"/><circle class="sv-dot" cx="${mx}" cy="${my}" r="3.2"/>`
+    + card(-A, false, 'Forward', 'step: 1 if x &gt; 0') + card(A, true, 'Backward', `sigmoid, slope ${esc(n.params.slope ?? '25')}`)
+    + lbl(-A, 'value', 1) + lbl(A, 'gradient', -1)
+    + `</g>`;
+}
+
 function render() {
   analyze(); routeCache = null;
   const { ix, shapes, errors } = S.info;
@@ -7318,6 +7381,8 @@ function render() {
         cls += ' t-act';
         const t = { sigmoid: 'σ', silu: 'SiLU', relu: 'ReLU', leaky_relu: 'LeakyReLU', gelu: 'GELU', gelu_tanh: 'GELU·tanh', tanh: 'tanh', softmax: 'Softmax', softplus: 'Softplus', spike: 'Spike' }[p.fn] || p.fn;
         inner = `<rect class="n-box" x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="7"/><text x="${n.x}" y="${n.y + 4.5}" text-anchor="middle" font-size="${p.fn === 'sigmoid' ? 15 : 12.5}">${t}</text>`;
+        // Spike: the step it is going forward, drawn over the sigmoid that stands in for it going backward
+        if (p.fn === 'spike') inner = `<title>A step going forward, a sigmoid coming back. Double-click to open.</title><rect class="n-box" x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="7"/>${spikeGlyph(b.x + 9, b.y + 8, 26, b.h - 16, true, true)}<text x="${b.x + 41 + (b.w - 49) / 2}" y="${n.y + 4.5}" text-anchor="middle" font-size="12.5">${t}</text>`;
         break;
       }
       case 'binop': {
@@ -7426,6 +7491,7 @@ function render() {
     nh += `<g class="${cls}" data-node="${n.id}">${inner}${badge}${port}${cf ? `<title>Size conflict: ${esc(cf.kind === 'groups' ? dimText(cf.a) + ' is not divisible by ' + cf.b + ' groups' : cf.cap || dimText(cf.a) + ' ≠ ' + dimText(cf.b))}</title>` : bad ? `<title>${esc(errors.get(n.id))}</title>` : ''}</g>`;
   }
   $('#gNodes').innerHTML = nh;
+  $('#gSpike').innerHTML = spikeView();
   // header chips
   let total = 0, frozen = 0, unknown = false;
   try {
@@ -7751,7 +7817,7 @@ function opExplain0(n) {
       case 'silu': return box('y = x · σ(x) = x / (1 + e<sup>−x</sup>)', 'Also called swish: about x for large x, about 0 for very negative x, smooth in between (dips slightly below 0); ' + ew);
       case 'gelu': return box('y = x · Φ(x)', 'Φ is the standard normal CDF: each value is kept with weight "how likely a normal sample is below it". A smooth ReLU; ' + ew);
       case 'gelu_tanh': return box('y = ½ x (1 + tanh(√(2/π) (x + 0.044715 x³)))', 'The tanh approximation of GELU (as in GPT-2); ' + ew);
-      case 'spike': return box('y = 1 if x > 0, else 0', `A spiking neuron's output: a step, so the input is usually a membrane potential minus its threshold. The step's own gradient is zero everywhere, so backward uses a surrogate, the slope of the fast sigmoid x / (1 + ${esc(p.slope ?? '25')}·|x|): 1 / (1 + ${esc(p.slope ?? '25')}·|x|)², largest at the threshold; ` + ew);
+      case 'spike': return box('y = 1 if x > 0, else 0', `A spiking neuron's output: a step, so the input is usually a membrane potential minus its threshold. Double-click the node to see the value go forward through the step and the gradient come back through a sigmoid. The step's own gradient is zero everywhere, so backward uses a surrogate, the slope of the fast sigmoid x / (1 + ${esc(p.slope ?? '25')}·|x|): 1 / (1 + ${esc(p.slope ?? '25')}·|x|)², largest at the threshold; ` + ew);
       case 'softplus': return box('y = log(1 + e<sup>x</sup>)', 'A smooth ReLU that is always positive (about x for large x); used where a value must be > 0, like Mamba\'s time step; ' + ew);
       case 'softmax': return box(`y<sub>i</sub> = e<sup>x<sub>i</sub></sup> / Σ<sub>j</sub> e<sup>x<sub>j</sub></sup>`, `Along dim ${esc(p.dim ?? -1)}: turns scores into positive weights that sum to 1; the largest score gets the most.`);
     } return box('', 'An activation, applied ' + ew);
@@ -8381,6 +8447,12 @@ svg.addEventListener('pointerdown', e => {
   if (ob) { e.stopPropagation(); enterBlock(ob.dataset.openblock); return; }
   closePop();
   const t = e.target;
+  if (S.spikeOpen) {
+    const inView = t.closest('[data-spikeview]');
+    if (inView && !t.closest('[data-spikeclose]')) { e.stopPropagation(); return; }
+    S.spikeOpen = null; render();
+    if (inView) { e.stopPropagation(); return; }
+  }
   const pt = toWorld(e.clientX, e.clientY);
   const dimT = t.closest('[data-dimedge]'), out = t.closest('[data-out]'), nodeT = t.closest('[data-node]'), edgeT = t.closest('[data-edge]'), gT = t.closest('[data-glabel]');
   const linT = t.closest('[data-lindim]'), tieT = t.closest('[data-tielink]');
@@ -8510,6 +8582,7 @@ function doubleTap(nodeT, edgeT) {
     const n = byId(nodeT.dataset.node); if (!n) return;
     if (n.type === 'block') return enterBlock(n.params.block);
     if (!S.sel.nodes.has(n.id) || S.sel.nodes.size > 1) { clearSel(); S.sel.nodes.add(n.id); }
+    if (n.type === 'act' && n.params.fn === 'spike') { S.spikeOpen = S.spikeOpen === n.id ? null : n.id; return selectionChanged(); } // its larger view, in place
   } else if (edgeT) {
     const ed = S.g.edges.find(x => x.id === edgeT.dataset.edge); if (!ed) return;
     if (ed.route) return commit(() => { delete ed.route; });
@@ -9541,6 +9614,7 @@ document.addEventListener('keydown', e => {
   if (mod && e.key.toLowerCase() === 'o') { e.preventDefault(); openFileDialog(); return; }
   if (!$('#importModal').hidden) { if (e.key === 'Escape') closeImport(); return; }
   if (typing) return;
+  if (e.key === 'Escape' && S.spikeOpen) { S.spikeOpen = null; render(); return; }
   if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); deleteSel(); } // also Cmd/Ctrl+Delete
   else if (mod && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? doRedo() : doUndo(); }
   else if (mod && e.key.toLowerCase() === 'y') { e.preventDefault(); doRedo(); }
