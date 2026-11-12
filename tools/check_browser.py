@@ -17,7 +17,9 @@ URL = (ROOT / 'index.html').as_uri()
 QUICK = '--quick' in sys.argv
 # examples whose variance plot is known not to work yet, and the message it gives instead
 VARIANCE_UNSUPPORTED = {'networks/10_qwen2_5_vl_3b.json': "Can't predict through vision_window_index",
-                        'networks/26_lif.json': "Can't predict through spike"}
+                        'networks/26_lif.json': "Can't predict through spike", 'networks/27_lif_axonal.json': "Can't predict through spike",
+                        'networks/28_lif_synaptic.json': "Can't predict through spike", 'networks/29_lif_recurrent.json': "Can't predict through spike",
+                        'networks/30_lif_adaptive.json': "Can't predict through spike"}
 fails = []
 
 

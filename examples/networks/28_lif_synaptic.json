@@ -1,6 +1,6 @@
 {
  "title": "LIF with a synaptic current",
- "description": "A leaky integrate-and-fire layer whose input passes through a synapse first: a second leaky state, the synaptic current i = α·i_prev + W·x (α = 0.8), feeds the membrane potential v = β·v_prev + i − θ·s_prev (β = 0.9, θ = 1). Three Delays: i, v and the last spike s. 1,024 parameters.",
+ "description": "A leaky integrate-and-fire layer whose input passes through a synapse first: a second leaky state, the synaptic current i = \u03b1\u00b7i_prev + W\u00b7x (\u03b1 = 0.8), feeds the membrane potential v = \u03b2\u00b7v_prev + i \u2212 \u03b8\u00b7s_prev (\u03b2 = 0.9, \u03b8 = 1). Three Delays: i, v and the last spike s. Same spikes as snnTorch's Synaptic(alpha=0.8, beta=0.9): 1,024 parameters.",
  "category": "Spiking networks",
  "graph": {
   "name": "SynapticLIF",
@@ -99,7 +99,7 @@
      "op": "*",
      "const": "0.8",
      "rev": false,
-     "title": "× α",
+     "title": "\u00d7 \u03b1",
      "var": ""
     }
    },
@@ -125,7 +125,7 @@
      "op": "*",
      "const": "0.9",
      "rev": false,
-     "title": "× β",
+     "title": "\u00d7 \u03b2",
      "var": ""
     }
    },
@@ -151,7 +151,7 @@
      "op": "*",
      "const": "1",
      "rev": false,
-     "title": "× θ",
+     "title": "\u00d7 \u03b8",
      "var": ""
     }
    },
@@ -177,7 +177,7 @@
      "op": "-",
      "const": "1",
      "rev": false,
-     "title": "− θ",
+     "title": "\u2212 \u03b8",
      "var": ""
     }
    },

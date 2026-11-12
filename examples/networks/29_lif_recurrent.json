@@ -1,6 +1,6 @@
 {
  "title": "Recurrent LIF",
- "description": "A leaky integrate-and-fire layer whose spikes feed back into it through a Linear: v = W·x + V·s_prev + β·v_prev − θ·s_prev (β = 0.9, θ = 1). The last spike is read twice, once by the recurrent weights V and once by the reset. 5,120 parameters.",
+ "description": "A leaky integrate-and-fire layer whose spikes feed back into it through a Linear: v = W\u00b7x + V\u00b7s_prev + \u03b2\u00b7v_prev \u2212 \u03b8\u00b7s_prev (\u03b2 = 0.9, \u03b8 = 1). The last spike is read twice, once by the recurrent weights V and once by the reset. Same spikes as snnTorch's RLeaky(beta=0.9) with its recurrent weights copied in: 5,120 parameters.",
  "category": "Spiking networks",
  "graph": {
   "name": "RecurrentLIF",
@@ -115,7 +115,7 @@
      "op": "*",
      "const": "0.9",
      "rev": false,
-     "title": "× β",
+     "title": "\u00d7 \u03b2",
      "var": ""
     }
    },
@@ -141,7 +141,7 @@
      "op": "*",
      "const": "1",
      "rev": false,
-     "title": "× θ",
+     "title": "\u00d7 \u03b8",
      "var": ""
     }
    },
@@ -167,7 +167,7 @@
      "op": "-",
      "const": "1",
      "rev": false,
-     "title": "− θ",
+     "title": "\u2212 \u03b8",
      "var": ""
     }
    },
