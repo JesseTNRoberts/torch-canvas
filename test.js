@@ -108,6 +108,35 @@ for (const [f, want, delays] of [['14_rnn.json', 5768, 1], ['15_lstm.json', 2151
   const g2 = JSON.parse(JSON.stringify(g)); g2.nodes.find(z => z.params.fn === 'spike').params.slope = '10';
   const c2 = NN.generate(g2).code, back = NN.importPython(c2).graph.nodes.find(z => z.params.fn === 'spike');
   if (!/spike\(v - 1, 10\)/.test(c2) || !back || +back.params.slope !== 10) { console.error(f + ': a surrogate slope of 10 was not kept'); process.exit(1); }
+  // the other spiking examples: each reads back the same in both styles, with its Delays and parameter count
+  for (const [f2, want, delays, re] of [['27_lif_axonal.json', 1024, 3, /return delay\(s, 3\)/], ['28_lif_synaptic.json', 1024, 3, /i = cur\[:, t\] \+ i \* 0\.8/],
+    ['29_lif_recurrent.json', 5120, 2, /v = cur\[:, t\] \+ self\.rec\(s\) \+ v \* 0\.9 - s \* 1\b/], ['30_lif_adaptive.json', 1024, 3, /s = spike\(v - 1 - a \* 0\.2\)/]]) {
+    const ex = JSON.parse(require('fs').readFileSync(__dirname + '/examples/networks/' + f2, 'utf8')), g3 = ex.graph;
+    for (const literalDims of [true, false]) {
+      const c = NN.generate(g3, { literalDims }).code, imp = NN.importPython(c), d = NN.generate(imp.graph, { literalDims }).code;
+      if (c !== d || imp.warnings.length || !re.test(c) || imp.graph.nodes.filter(z => z.type === 'delay').length !== delays) { console.error(f2 + ' round trip failed, literalDims=' + literalDims + ' ' + JSON.stringify(imp.warnings)); process.exit(1); }
+    }
+    let n3 = 0; for (const z of g3.nodes) n3 += NN.paramCount(z, g3.symbols) || 0;
+    if (n3 !== want || ex.category !== 'Spiking networks' || NN.inferShapes(g3).errors.size) { console.error(f2 + ': ' + n3 + ' parameters (expected ' + want + '), category ' + ex.category); process.exit(1); }
+  }
+  // a Delay's steps: a whole number, written as delay(x, 3) on a plain wire and read back; 1 is delay(x); the helper
+  // shifts by that many steps; anything but a whole number, or more than one step inside a loop, is an error
+  {
+    const ax = JSON.parse(require('fs').readFileSync(__dirname + '/examples/networks/27_lif_axonal.json', 'utf8')).graph, code = NN.generate(ax).code;
+    const dn = gr => gr.nodes.find(z => z.type === 'delay' && +z.params.steps > 1), back = NN.importPython(code).graph;
+    if (!/^def delay\(x, steps=1\):/m.test(code) || !/x\[:, :-steps\]/.test(code) || !dn(back) || dn(back).params.steps !== '3') { console.error('a Delay of 3 steps was not written or read back'); process.exit(1); }
+    const one = JSON.parse(JSON.stringify(ax)); dn(one).params.steps = '1';
+    if (!/return delay\(s\)\n/.test(NN.generate(one).code)) { console.error('a one-step Delay on a wire should be delay(s)'); process.exit(1); }
+    const old = JSON.parse(JSON.stringify(ax)); delete dn(old).params.steps; // a Delay saved before the setting existed
+    if (!/return delay\(s\)\n/.test(NN.generate(old).code) || NN.inferShapes(old).errors.size) { console.error('a Delay with no steps setting should be one step'); process.exit(1); }
+    for (const bad of ['0', '2.5', '-1', 'x']) { const b = JSON.parse(JSON.stringify(ax)); dn(b).params.steps = bad; if (![...NN.inferShapes(b).errors.values()].some(m => /whole number/.test(m))) { console.error('steps = ' + bad + ' should be an error'); process.exit(1); } }
+    const loop = JSON.parse(JSON.stringify(g)); loop.nodes.find(z => z.type === 'delay').params.steps = '2';
+    if (![...NN.inferShapes(loop).errors.values()].some(m => /inside a loop/.test(m))) { console.error('a 2-step Delay inside a loop should be an error'); process.exit(1); }
+    // a Delay straight after a layer, outside any loop, comes after what feeds it in the code
+    const lin = NN.importPython('import torch\nimport torch.nn as nn\n\n\ndef delay(x, steps=1):\n    return torch.cat([torch.zeros_like(x[:, :steps]), x[:, :-steps]], dim=1)\n\n\nclass M(nn.Module):\n    def __init__(self):\n        super().__init__()\n        self.a = nn.Linear(16, 32)\n\n    def forward(self, x):\n        return delay(self.a(x), 2)\n\n\nif __name__ == "__main__":\n    model = M()\n    out = model(torch.randn(8, 20, 16))\n    print(out.shape)\n');
+    if (lin.warnings.length || !/return delay\(self\.a\(x\), 2\)/.test(NN.generate(lin.graph).code)) { console.error('a Delay after a layer: ' + JSON.stringify(lin.warnings)); process.exit(1); }
+    console.log('delay steps OK');
+  }
   // a model without a Spike doesn't get the helper
   if (/def spike\(/.test(NN.generate(JSON.parse(require('fs').readFileSync(__dirname + '/examples/networks/14_rnn.json', 'utf8')).graph).code)) { console.error('spike helper written for a model without one'); process.exit(1); }
   console.log(f + ' round trip OK, ' + n.toLocaleString('en-US') + ' parameters');

@@ -1,0 +1,353 @@
+{
+ "title": "LIF with an adaptive threshold",
+ "description": "A leaky integrate-and-fire layer whose threshold rises each time it fires and decays back: a third state a = ρ·a_prev + s_prev (ρ = 0.95) is added to the threshold, s = Spike(v − θ − b·a) with b = 0.2, so a neuron that has just fired is harder to fire again and its firing slows under steady input. Three Delays: v, s and a. 1,024 parameters.",
+ "category": "Spiking networks",
+ "graph": {
+  "name": "AdaptiveLIF",
+  "symbols": {
+   "e": 8,
+   "t": 20
+  },
+  "nodes": [
+   {
+    "id": "n2cm8mj",
+    "type": "input",
+    "x": 420,
+    "y": 850,
+    "params": {
+     "name": "x",
+     "shape": "e, t, 16",
+     "title": ""
+    }
+   },
+   {
+    "id": "n2dz8fs",
+    "type": "linear",
+    "x": 420,
+    "y": 750,
+    "params": {
+     "in": "16",
+     "out": "64",
+     "bias": false,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": false,
+     "bias_init": "",
+     "tie": "",
+     "name": "ih",
+     "title": "",
+     "var": "cur"
+    }
+   },
+   {
+    "id": "n2flt8i",
+    "type": "delay",
+    "x": 940,
+    "y": 850,
+    "params": {
+     "name": "a",
+     "steps": "1",
+     "title": "",
+     "var": "",
+     "split": {
+      "x": 940,
+      "y": 610,
+      "lane": "below"
+     }
+    }
+   },
+   {
+    "id": "n2glw3i",
+    "type": "delay",
+    "x": 640,
+    "y": 850,
+    "params": {
+     "name": "s",
+     "steps": "1",
+     "title": "",
+     "var": "",
+     "split": {
+      "x": 640,
+      "y": 230,
+      "lane": "below"
+     }
+    }
+   },
+   {
+    "id": "n2hsb4k",
+    "type": "delay",
+    "x": 200,
+    "y": 850,
+    "params": {
+     "name": "v",
+     "steps": "1",
+     "title": "",
+     "var": "",
+     "split": {
+      "x": 200,
+      "y": 230,
+      "lane": "below"
+     }
+    }
+   },
+   {
+    "id": "n2is7ou",
+    "type": "binop",
+    "x": 940,
+    "y": 750,
+    "params": {
+     "op": "*",
+     "const": "0.95",
+     "rev": false,
+     "title": "× ρ",
+     "var": ""
+    }
+   },
+   {
+    "id": "n2kz7cr",
+    "type": "binop",
+    "x": 800,
+    "y": 750,
+    "params": {
+     "op": "+",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": "a"
+    }
+   },
+   {
+    "id": "n2nfdbi",
+    "type": "binop",
+    "x": 200,
+    "y": 750,
+    "params": {
+     "op": "*",
+     "const": "0.9",
+     "rev": false,
+     "title": "× β",
+     "var": ""
+    }
+   },
+   {
+    "id": "n2p2ij0",
+    "type": "binop",
+    "x": 420,
+    "y": 660,
+    "params": {
+     "op": "+",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n2scw0p",
+    "type": "binop",
+    "x": 640,
+    "y": 660,
+    "params": {
+     "op": "*",
+     "const": "1",
+     "rev": false,
+     "title": "× θ",
+     "var": ""
+    }
+   },
+   {
+    "id": "n2ugfz5",
+    "type": "binop",
+    "x": 420,
+    "y": 570,
+    "params": {
+     "op": "-",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": "v"
+    }
+   },
+   {
+    "id": "n2xxbap",
+    "type": "binop",
+    "x": 420,
+    "y": 480,
+    "params": {
+     "op": "-",
+     "const": "1",
+     "rev": false,
+     "title": "− θ",
+     "var": ""
+    }
+   },
+   {
+    "id": "n2zdiq4",
+    "type": "binop",
+    "x": 800,
+    "y": 480,
+    "params": {
+     "op": "*",
+     "const": "0.2",
+     "rev": false,
+     "title": "× b",
+     "var": ""
+    }
+   },
+   {
+    "id": "n31ah9o",
+    "type": "binop",
+    "x": 420,
+    "y": 390,
+    "params": {
+     "op": "-",
+     "const": "",
+     "rev": false,
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n34vjzv",
+    "type": "act",
+    "x": 420,
+    "y": 300,
+    "params": {
+     "fn": "spike",
+     "dim": "-1",
+     "title": "",
+     "var": "s",
+     "slope": "25"
+    }
+   },
+   {
+    "id": "n39eehg",
+    "type": "output",
+    "x": 420,
+    "y": 170,
+    "params": {
+     "name": "s",
+     "title": ""
+    }
+   }
+  ],
+  "edges": [
+   {
+    "id": "e2e20vt",
+    "from": "n2cm8mj",
+    "to": "n2dz8fs",
+    "port": 0
+   },
+   {
+    "id": "e2j0wgy",
+    "from": "n2flt8i",
+    "to": "n2is7ou",
+    "port": 0
+   },
+   {
+    "id": "e2lkbkj",
+    "from": "n2is7ou",
+    "to": "n2kz7cr",
+    "port": 0
+   },
+   {
+    "id": "e2mx2qu",
+    "from": "n2glw3i",
+    "to": "n2kz7cr",
+    "port": 1
+   },
+   {
+    "id": "e2one3r",
+    "from": "n2hsb4k",
+    "to": "n2nfdbi",
+    "port": 0
+   },
+   {
+    "id": "e2q7r3l",
+    "from": "n2dz8fs",
+    "to": "n2p2ij0",
+    "port": 0
+   },
+   {
+    "id": "e2rz3f5",
+    "from": "n2nfdbi",
+    "to": "n2p2ij0",
+    "port": 1
+   },
+   {
+    "id": "e2tzw3s",
+    "from": "n2glw3i",
+    "to": "n2scw0p",
+    "port": 0
+   },
+   {
+    "id": "e2vo64k",
+    "from": "n2p2ij0",
+    "to": "n2ugfz5",
+    "port": 0
+   },
+   {
+    "id": "e2w3xgh",
+    "from": "n2scw0p",
+    "to": "n2ugfz5",
+    "port": 1
+   },
+   {
+    "id": "e2yoos7",
+    "from": "n2ugfz5",
+    "to": "n2xxbap",
+    "port": 0
+   },
+   {
+    "id": "e3004go",
+    "from": "n2kz7cr",
+    "to": "n2zdiq4",
+    "port": 0
+   },
+   {
+    "id": "e32o5h6",
+    "from": "n2xxbap",
+    "to": "n31ah9o",
+    "port": 0
+   },
+   {
+    "id": "e33ga4l",
+    "from": "n2zdiq4",
+    "to": "n31ah9o",
+    "port": 1
+   },
+   {
+    "id": "e35gu8o",
+    "from": "n31ah9o",
+    "to": "n34vjzv",
+    "port": 0
+   },
+   {
+    "id": "e36masz",
+    "from": "n2kz7cr",
+    "to": "n2flt8i",
+    "port": 0
+   },
+   {
+    "id": "e37o4ai",
+    "from": "n34vjzv",
+    "to": "n2glw3i",
+    "port": 0
+   },
+   {
+    "id": "e38djbv",
+    "from": "n2ugfz5",
+    "to": "n2hsb4k",
+    "port": 0
+   },
+   {
+    "id": "e3aymh0",
+    "from": "n34vjzv",
+    "to": "n39eehg",
+    "port": 0
+   }
+  ],
+  "groups": [],
+  "blocks": {}
+ }
+}

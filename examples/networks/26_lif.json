@@ -1,7 +1,7 @@
 {
  "title": "LIF neuron (spiking)",
  "description": "A layer of leaky integrate-and-fire neurons drawn as one step of a recurrent cell with two Delays: the membrane potential v and the last spike s. v = W·x + β·v_prev − θ·s_prev adds the input current to the leaked potential and takes the threshold back off the neurons that fired last step (reset by subtraction); s = Spike(v − θ) fires where v is over the threshold. The leak β = 0.9 and the threshold θ = 1 are constant operations; Spike is a step with a fast-sigmoid surrogate gradient (slope 25). Same spikes and membrane potentials as snnTorch's Leaky(beta=0.9) after a Linear(16, 64, bias=False): 1,024 parameters.",
- "category": "Recurrent & state space",
+ "category": "Spiking networks",
  "graph": {
   "name": "LIF",
   "symbols": {

@@ -612,7 +612,7 @@ const fmtShort = n => n >= 1e9 ? (n / 1e9).toFixed(2) + 'B' : n >= 1e6 ? (n / 1e
 
 const STORE = 'torchcanvas.graph.v1';
 // categories in Open / import (examples say theirs; anything else is Other)
-const NET_CATS = ['MLPs', 'Convolutional networks', 'Transformers', 'Vision & multimodal transformers', 'Recurrent & state space', 'Generative & self-supervised'];
+const NET_CATS = ['MLPs', 'Convolutional networks', 'Transformers', 'Vision & multimodal transformers', 'Recurrent & state space', 'Spiking networks', 'Generative & self-supervised'];
 const BLOCK_CATS = ['MLP blocks', 'Transformer blocks', 'Convolutional blocks', 'Recurrent & state space blocks'];
 const catOf = x => (x.category && String(x.category).trim()) || 'Other';
 
@@ -865,7 +865,7 @@ function funcFace(n) {
   return null;
 }
 const OP_LABEL = {
-  delay: p => `delay · ${p.name || 'h'}`,
+  delay: p => (+p.steps > 1 ? `delay · ${p.steps} steps` : `delay · ${p.name || 'h'}`),
   token: p => `+ ${p.name || 'token'}${String(p.n) === '1' ? '' : ' × ' + dimText(p.n)}`,
   select: p => `position ${p.index}`,
   noise: () => 'noise ε ~ N(0, 1)',
@@ -2021,7 +2021,8 @@ function opExplain0(n) {
         : box(`y = mean of each window, windows sized to give ${esc(p.size)} × ${esc(p.size)}`, 'Adaptive average pooling: you choose the output size, and the windows are worked out to cover the map.'))
       : box(`y[c, i, j] = ${p.kind === 'avg' ? 'mean' : 'max'} of x[c] over the ${esc(p.k)} × ${esc(p.k)} window at (s·i, s·j)`, `Per channel, no weights: ${p.kind === 'avg' ? 'the average' : 'the largest value'} of each window, stride s = ${esc(p.stride !== '' && p.stride != null ? p.stride : p.k)} (so the map shrinks by about that factor).`);
     case 'upsample': return box(`(H, W) → (${esc(p.scale)}·H, ${esc(p.scale)}·W)`, p.mode === 'bilinear' ? 'Enlarges the image, filling in new pixels by linear interpolation between neighbours. No weights.' : 'Enlarges the image by repeating each pixel into a block. No weights.');
-    case 'delay': return box('y<sub>t</sub> = x<sub>t−1</sub>,  y<sub>0</sub> = 0', 'The value from one time step earlier. In a loop it is the state carried from step to step (an RNN\'s h); the code becomes a for loop over time.');
+    case 'delay': { const d = +p.steps > 1 ? +p.steps : 1;
+      return box(d > 1 ? `y<sub>t</sub> = x<sub>t−${d}</sub>,  y<sub>t</sub> = 0 for t &lt; ${d}` : 'y<sub>t</sub> = x<sub>t−1</sub>,  y<sub>0</sub> = 0', (d > 1 ? `The value from ${d} time steps earlier: everything arrives ${d} steps late, like a signal travelling down an axon. ` : 'The value from one time step earlier. ') + 'In a loop it is the state carried from step to step (an RNN\'s h); the code becomes a for loop over time.'); }
     case 'token': return box('y = [c ; x<sub>1</sub> ; … ; x<sub>T</sub>]', `Puts ${esc(p.n)} learned vector${String(p.n) === '1' ? '' : 's'} (the same for every example) in front of the sequence, which becomes ${esc(p.n)} longer. A classifier then reads the output at that position (ViT's and BERT's class token).`);
     case 'select': return box(`y = x[:, ${esc(p.index)}]`, 'Keeps one position of the sequence and drops that axis, e.g. the class token for a classifier head.');
     case 'param': return box(`y = θ   (${esc(String(p.shape).split(',').map(s => dimText(s.trim())).join(' × '))})`, `A learned tensor used as it is, with no input: ${{ zeros: 'starts at zeros', ones: 'starts at ones', normal: `starts N(0, ${esc(p.init_arg || '0.02')}²)`, s4d: 'starts at log 1 … N along its last size (Mamba\'s A_log)', sincos2d: 'fixed 2-D sine/cosine position values (usually frozen)' }[p.init] || 'its own init'}. It broadcasts against what it is combined with.`);
@@ -2181,6 +2182,7 @@ function renderInspector() {
       break;
     case 'delay':
       h += `<div class="sub">Passes on what it received one time step earlier: out[:, t] = in[:, t − 1], zeros at the first step. A loop through a Delay is a recurrence (an RNN): the code runs it as a for loop over time, with this as the state carried from step to step.</div>`
+        + field('Steps', txt('steps', p.steps ?? '1', true, 'placeholder="1" inputmode="numeric"')) + `<p class="hint">How many time steps it holds its input back: a whole number. More than 1 on a wire outside a loop, such as an axon before the output.</p>`
         + field('State name', txt('name', p.name, true, 'placeholder="h"')) + `<p class="hint">The variable that holds it in the code, e.g. h or c.</p>`
         + field('Split in / out', `<input type="checkbox" data-f="split"${splitOf(n) ? ' checked' : ''}>`)
         + (splitOf(n) ? field('Return wire', sel('split_lane', p.split.lane === 'above' ? 'above' : 'below', [['below', 'Below'], ['above', 'Above']])) : '')

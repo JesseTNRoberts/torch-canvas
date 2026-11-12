@@ -546,8 +546,8 @@ const NNVar = (() => {
           // the previous step's state: given (settled), or zeros on the first repeat
           const st = opts._state && opts._state.get(id), sh = shapeOf(id), T = sh ? posT(id) : 1;
           out = feat(T, st && st.length === T * NS ? Float32Array.from(st) : new Float32Array(T * NS)); break;
-        } else { // one position later; zeros at the first
-          const X = new Float32Array(A.X.length); X.set(A.X.subarray(0, (A.T - 1) * NS), NS); out = Object.assign({}, A, { X }); break;
+        } else { // later by its steps (one unless set); zeros at the first positions
+          const d = Math.min(A.T, C.delaySteps(n) || 1), X = new Float32Array(A.X.length); X.set(A.X.subarray(0, (A.T - d) * NS), d * NS); out = Object.assign({}, A, { X }); break;
         }
         case 'transpose':
           if (A.k === 'f') out = Object.assign({}, A, { k: 'fT' });
@@ -908,7 +908,7 @@ const NNVar = (() => {
           addGrad(src[0], dX); break;
         }
         case 'select': { const dX = new Float32Array(t.T * NS); dX.set(G, t.sel * NS); addGrad(src[0], dX); break; }
-        case 'delay': { if (typeof loopDelays !== 'undefined' && loopDelays.has(id)) break; const dX = new Float32Array(G.length); dX.set(G.subarray(NS), 0); addGrad(src[0], dX); break; }
+        case 'delay': { if (typeof loopDelays !== 'undefined' && loopDelays.has(id)) break; const d = Math.min(G.length / NS, C.delaySteps(n) || 1), dX = new Float32Array(G.length); dX.set(G.subarray(d * NS), 0); addGrad(src[0], dX); break; }
         case 'transpose': addGrad(src[0], me.k === 's' ? transposeScores(like(me, G)).X : G); break;
         case 'mask': addGrad(src[0], mapG(G, (g, i) => (me.X[i] === -Infinity ? 0 : g))); break;
         case 'linear': {
