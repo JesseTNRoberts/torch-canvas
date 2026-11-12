@@ -9,7 +9,7 @@
 #
 #   npm run build && python tools/check_browser.py [--quick]
 # Needs playwright (pip install playwright; python -m playwright install chromium, or set CHROMIUM to a browser).
-import http.server, os, sys, pathlib, threading, urllib.parse
+import http.server, json, os, sys, pathlib, threading, urllib.parse
 from playwright.sync_api import sync_playwright
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -244,6 +244,20 @@ class Evil(nn.Module):
         pg.evaluate("(h) => { location.hash = h; }", link[link.index('#'):]); pg.wait_for_timeout(700)
         got = pg.evaluate("() => [torchCanvas.code(), window.__tc.S.g.nodes.map(n => [n.x, n.y]), torchCanvas.tabs().length]")
         check(got[0] == want[0] and (not layout or got[1] == want[1]), f'the {"drawing" if layout else "code"} link of GPT-2 ({len(link):,} characters) opens the same model' + (' where it was drawn' if layout else ''))
+    # Share: an untouched example gets its short ?open= link, an edited model a link that carries the drawing
+    pg.evaluate("() => torchCanvas.openExample('gpt2')"); pg.wait_for_timeout(300)
+    short = pg.evaluate("() => torchCanvas.shareLink()")
+    check(short.endswith('?open=gpt2'), f'Share on an unchanged example gives its short link ({short[-24:]})')
+    pg.evaluate("() => { location.hash = '#code=' + encodeURIComponent(%s); }" % json.dumps(tiny)); pg.wait_for_timeout(600)
+    pg.evaluate("() => { const g = window.__tc.S.g; g.nodes[0].x += 41; window.__tc.render(); }")
+    want = pg.evaluate("() => [torchCanvas.code(), window.__tc.S.g.nodes.map(n => [n.x, n.y])]")
+    pg.evaluate("() => { window.__copied = null; navigator.clipboard.writeText = async t => { window.__copied = t; }; document.querySelector('#bShare').click(); }"); pg.wait_for_timeout(400)
+    link = pg.evaluate("() => window.__copied") or ''
+    ok = '#zip=' in link
+    if ok:
+        pg.evaluate("(h) => { location.hash = h; }", link[link.index('#'):]); pg.wait_for_timeout(700)
+        ok = pg.evaluate("() => [torchCanvas.code(), window.__tc.S.g.nodes.map(n => [n.x, n.y])]") == want
+    check(ok, f'the Share button copies a link ({len(link):,} characters) that opens the model where it was drawn')
     pg.evaluate("() => { location.hash = '#code=' + encodeURIComponent('class X(nn.Module):\\n  def forward(self, x:\\n'); }"); pg.wait_for_timeout(400)
     shown = pg.evaluate("() => [!document.querySelector('#importModal').hidden, document.querySelector('#imErr').textContent]")
     check(shown[0] and 'Line' in shown[1], f'code in a link that can\'t be read opens Import with the message ({shown[1][:60]})')

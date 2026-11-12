@@ -64,6 +64,7 @@ An agent driving the page (a browser tool, a Playwright script) can call these i
 | `torchCanvas.graph()` | the graph JSON (what a drawing link carries) |
 | `torchCanvas.svg()` | the diagram as SVG text, as **Export SVG** saves it |
 | `await torchCanvas.link({layout})` | a `#zip=` link to the open tab: the code, or with `layout: true` the drawing |
+| `await torchCanvas.shareLink()` | the link the **Share** button gives: `?open=` for an unchanged example, otherwise the `#zip=` link with the drawing |
 | `torchCanvas.tabs()`, `select(idOrName)`, `await close(idOrName)` | the open tabs |
 | `torchCanvas.examples()`, `openExample(name)` | the example networks and library blocks (`openExample('gpt2')`) |
 | `torchCanvas.explode(view?)`, `views()`, `applyView(name)` | Explode blocks and saved views |

@@ -473,6 +473,7 @@ details summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
       <button class="btn primary" id="bNew" title="Start a new model from a small editable MLP">New model</button>
       <button class="btn" id="bMore" aria-haspopup="menu" title="Open a file or folder, paste code, copy graph JSON">Open / import ▾</button>
       <button class="btn" id="bExport" title="Export model.py and a train.py with optimizer, schedule and training settings">Export…</button>
+      <button class="btn" id="bShare" title="Copy a link that opens this model in Torch Canvas, to send to someone">Share</button>
     </div>
     <div class="spacer"></div>
     <div class="tb">
@@ -11021,6 +11022,24 @@ async function openFromHash(firstVisit) {
 }
 openFromHash(!saved);
 window.addEventListener('hashchange', () => openFromHash(false));
+// Share: one link to what's on screen. An example nobody has changed gets its short ?open= link; anything else
+// carries the model, as drawn, in the link itself. A phone gets its share sheet, a computer the clipboard.
+async function shareLink() {
+  const d = docById(S.cur), lib = curLibEntry(), base = /^https?:$/.test(location.protocol) ? location.origin + location.pathname : SITE;
+  if (lib && !R().libHost && d && !docEdited(d)) return { url: base + libLink(lib).replace(/^[^?]*/, ''), example: lib.title };
+  return { url: await makeLink({ layout: true }) };
+}
+$('#bShare').onclick = async () => {
+  let l; try { l = await shareLink(); } catch (ex) { return toast("Couldn't make the link: " + ex.message); }
+  const name = l.example || R().name || 'A model';
+  if (navigator.share && matchMedia('(pointer: coarse)').matches) {
+    try { await navigator.share({ title: name + ' on Torch Canvas', url: l.url }); return; }
+    catch (ex) { if (ex && ex.name === 'AbortError') return; } // closed the sheet; anything else falls back to copying
+  }
+  copyText(l.url, l.example ? `Link copied: anyone who opens it lands on ${l.example}.`
+    : 'Link copied: anyone who opens it sees this model as you drew it. Nothing is uploaded; the model is inside the link.'
+      + (l.url.length > 8000 ? ' It is long, and some chat apps and email cut long links short; Copy link ▾ above the code has a shorter one.' : ''));
+};
 $('#bLink').onclick = e => {
   const r = e.currentTarget.getBoundingClientRect(), lib = !!R().libHost;
   const h = `<div class="hd">Copy a link to ${esc(R().name || 'this model')}</div>`
@@ -11121,6 +11140,7 @@ window.__tc = { explodeModel, rederive, applyView, deleteView, S, route, drawFro
     graph: () => copy(R()),
     svg: () => svgText(),
     link: (o = {}) => makeLink(o),
+    shareLink: () => shareLink().then(l => l.url),
     tabs,
     select(which) { const d = pick(which); if (!d) return false; activateDoc(d.id); return true; },
     async close(which) { const d = pick(which); if (!d) return false; await closeDoc(d.id); return true; },
