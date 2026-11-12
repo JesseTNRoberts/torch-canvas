@@ -307,12 +307,23 @@ class Evil(nn.Module):
     n0 = pg.evaluate("() => JSON.stringify(window.__tc.S.g)")
     node.dblclick(); pg.wait_for_timeout(300)
     check(pg.evaluate(view) == '2 1 1', f'a double-click opens its view: a Forward card with the step, a Backward card with the sigmoid ({pg.evaluate(view)!r})')
+    clear = pg.evaluate("""() => { const v = document.querySelector('[data-spikeview] .n-box').getBoundingClientRect(); let hit = [];
+      for (const el of document.querySelectorAll('#gNodes [data-node]')) { if (el.querySelector('[data-spikeview]')) continue; const r = el.getBoundingClientRect();
+        if (r.left < v.right && r.right > v.left && r.top < v.bottom && r.bottom > v.top) hit.push(el.dataset.node); }
+      return hit; }""")
+    check(not clear, f'the rest of the diagram is drawn moved apart, so the open Spike covers no other node {clear}')
+    check(pg.evaluate("() => JSON.stringify(window.__tc.S.g)") == n0, 'and the positions in the model are as they were')
     pg.locator('[data-spikeview] .sv-card').first.click(); pg.wait_for_timeout(150)
     check(pg.evaluate(view) != '', 'a click inside the view leaves it open')
     pg.locator('[data-spikeclose]').click(); pg.wait_for_timeout(150)
     check(pg.evaluate(view) == '', 'its arrow closes it')
     node.dblclick(); pg.wait_for_timeout(300); pg.keyboard.press('Escape'); pg.wait_for_timeout(150)
     check(pg.evaluate(view) == '', 'Esc closes it')
+    pg.locator(f'[data-openspike="{sid}"]').click(); pg.wait_for_timeout(300)
+    check(pg.evaluate(view) == '2 1 1', 'the open mark on its corner opens it with one click')
+    other = pg.evaluate("() => window.__tc.S.g.nodes.find(n => n.type === 'linear').id")
+    pg.locator(f'[data-node="{other}"]').click(); pg.wait_for_timeout(200)
+    check(pg.evaluate(view) == '' and pg.evaluate("() => JSON.stringify(window.__tc.S.g)") == n0, 'a press on another node closes it and moves nothing')
     check(pg.evaluate("() => JSON.stringify(window.__tc.S.g)") == n0 and not errs, 'opening and closing the view changes nothing in the model' + (f' {errs}' if errs else ''))
     ctx.close()
     browser.close()
