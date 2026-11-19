@@ -187,6 +187,22 @@ for (const [f, want] of [['23_residual_cnn_gap.json', 57098], ['24_residual_cnn_
   if (r.error || r.layers.length !== 8) { console.error('variance plot failed: ' + f + ' ' + (r.error || r.layers.length)); process.exit(1); }
   console.log(f + ' round trip OK, ' + n.toLocaleString('en-US') + ' parameters, variance plot OK');
 }
+// Autoencoder and VAE for 8×8 digits (the generative-AI lecture's pair): same layers except the VAE's code.
+// Both round trip, the AE's loss is BCE against its own input, and the parameter counts differ only by the extra head.
+{
+  for (const [f, want, losses] of [['31_autoencoder_digits.json', 33474, 1], ['32_vae_digits.json', 33604, 2]]) {
+    const g = JSON.parse(require('fs').readFileSync(__dirname + '/examples/networks/' + f, 'utf8')).graph;
+    for (const literalDims of [true, false]) {
+      const a = NN.generate(g, { literalDims }).code, imp = NN.importPython(a).graph, b = NN.generate(imp, { literalDims }).code;
+      if (a !== b || !/binary_cross_entropy_with_logits\(recon, x\.float\(\)\)/.test(a) || imp.nodes.filter(n => n.type === 'loss').length !== losses) { console.error(f + ' round trip failed, literalDims=' + literalDims); process.exit(1); }
+    }
+    let n = 0; for (const z of g.nodes) n += NN.paramCount(z, g.symbols) || 0;
+    if (n !== want) { console.error(f + ' has ' + n + ' parameters, expected ' + want); process.exit(1); }
+    const r = require('./engine.js').predict(g);
+    if (r.error || r.layers.some(l => !(l.fwdOut > 0 && l.bwdIn > 0))) { console.error('variance plot failed: ' + f + ' ' + r.error); process.exit(1); }
+    console.log(f + ' round trip OK, ' + n.toLocaleString('en-US') + ' parameters, variance plot OK');
+  }
+}
 // VAE (PyTorch's examples/vae): three outputs (reconstruction logits, μ, log σ²), a Noise node for the
 // reparameterization trick, and a loss of 784 × BCE plus the KL term (kl_normal), read back as the same losses.
 {
