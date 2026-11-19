@@ -1,0 +1,299 @@
+{
+ "title": "Autoencoder (8×8 digits)",
+ "description": "A plain autoencoder for scikit-learn's 8×8 handwritten digits, the model in the lecture \"Generative AI: learn the distribution, then sample\". The encoder (64 → 128 → 64 → 2, ReLU) squeezes each image into a 2-number code z; the decoder (2 → 64 → 128 → 64, ReLU) gives pixel logits. There are no labels: the target is the input itself, and the loss is binary cross-entropy summed over the 64 pixels (64 × the mean). predict() applies the sigmoid. Compare with VAE (8×8 digits), which differs only in its code. 33,474 parameters.",
+ "category": "Generative & self-supervised",
+ "graph": {
+  "name": "Autoencoder",
+  "symbols": {
+   "e": 8,
+   "d_in": 64,
+   "h1": 128,
+   "h2": 64,
+   "latent": 2
+  },
+  "nodes": [
+   {
+    "id": "n1zrjh",
+    "type": "input",
+    "x": 300,
+    "y": 1150,
+    "params": {
+     "name": "x",
+     "shape": "e, d_in",
+     "title": ""
+    }
+   },
+   {
+    "id": "n2yuj4",
+    "type": "linear",
+    "x": 300,
+    "y": 1070,
+    "params": {
+     "in": "d_in",
+     "out": "h1",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": false,
+     "bias_init": "",
+     "tie": "",
+     "name": "enc1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n40b7m",
+    "type": "act",
+    "x": 300,
+    "y": 1005,
+    "params": {
+     "fn": "relu",
+     "dim": "-1",
+     "title": "",
+     "var": "a"
+    }
+   },
+   {
+    "id": "n66n7t",
+    "type": "linear",
+    "x": 300,
+    "y": 940,
+    "params": {
+     "in": "h1",
+     "out": "h2",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": false,
+     "bias_init": "",
+     "tie": "",
+     "name": "enc2",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "n859uk",
+    "type": "act",
+    "x": 300,
+    "y": 875,
+    "params": {
+     "fn": "relu",
+     "dim": "-1",
+     "title": "",
+     "var": "a"
+    }
+   },
+   {
+    "id": "namvvz",
+    "type": "linear",
+    "x": 300,
+    "y": 800,
+    "params": {
+     "in": "h2",
+     "out": "latent",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": false,
+     "bias_init": "",
+     "tie": "",
+     "name": "enc3",
+     "title": "code z",
+     "var": "z"
+    }
+   },
+   {
+    "id": "ncr99b",
+    "type": "linear",
+    "x": 300,
+    "y": 480,
+    "params": {
+     "in": "latent",
+     "out": "h2",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": false,
+     "bias_init": "",
+     "tie": "",
+     "name": "dec1",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nevfo5",
+    "type": "act",
+    "x": 300,
+    "y": 415,
+    "params": {
+     "fn": "relu",
+     "dim": "-1",
+     "title": "",
+     "var": "a"
+    }
+   },
+   {
+    "id": "ngj0ni",
+    "type": "linear",
+    "x": 300,
+    "y": 350,
+    "params": {
+     "in": "h2",
+     "out": "h1",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": false,
+     "bias_init": "",
+     "tie": "",
+     "name": "dec2",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nioj73",
+    "type": "act",
+    "x": 300,
+    "y": 285,
+    "params": {
+     "fn": "relu",
+     "dim": "-1",
+     "title": "",
+     "var": "a"
+    }
+   },
+   {
+    "id": "nklsob",
+    "type": "linear",
+    "x": 300,
+    "y": 220,
+    "params": {
+     "in": "h1",
+     "out": "d_in",
+     "bias": true,
+     "init": "default",
+     "init_arg": "",
+     "zero_bias": false,
+     "bias_init": "",
+     "tie": "",
+     "name": "dec3",
+     "title": "",
+     "var": ""
+    }
+   },
+   {
+    "id": "nmu49z",
+    "type": "output",
+    "x": 300,
+    "y": 140,
+    "params": {
+     "name": "recon",
+     "title": ""
+    }
+   },
+   {
+    "id": "no9fp5",
+    "type": "loss",
+    "x": 600,
+    "y": 140,
+    "params": {
+     "fn": "bce",
+     "mode": "given",
+     "label_smoothing": "",
+     "ignore_index": "",
+     "delta": "1.0",
+     "weight": "64",
+     "mask_prob": "0.15",
+     "mask_id": "",
+     "title": ""
+    }
+   }
+  ],
+  "edges": [
+   {
+    "id": "e3wc0w",
+    "from": "n1zrjh",
+    "to": "n2yuj4",
+    "port": 0
+   },
+   {
+    "id": "e5kkva",
+    "from": "n2yuj4",
+    "to": "n40b7m",
+    "port": 0
+   },
+   {
+    "id": "e7tqd3",
+    "from": "n40b7m",
+    "to": "n66n7t",
+    "port": 0
+   },
+   {
+    "id": "e9mxxk",
+    "from": "n66n7t",
+    "to": "n859uk",
+    "port": 0
+   },
+   {
+    "id": "ebki9e",
+    "from": "n859uk",
+    "to": "namvvz",
+    "port": 0
+   },
+   {
+    "id": "edzzdo",
+    "from": "namvvz",
+    "to": "ncr99b",
+    "port": 0
+   },
+   {
+    "id": "efx5d5",
+    "from": "ncr99b",
+    "to": "nevfo5",
+    "port": 0
+   },
+   {
+    "id": "ehupdf",
+    "from": "nevfo5",
+    "to": "ngj0ni",
+    "port": 0
+   },
+   {
+    "id": "ejevln",
+    "from": "ngj0ni",
+    "to": "nioj73",
+    "port": 0
+   },
+   {
+    "id": "elqogh",
+    "from": "nioj73",
+    "to": "nklsob",
+    "port": 0
+   },
+   {
+    "id": "enl01u",
+    "from": "nklsob",
+    "to": "nmu49z",
+    "port": 0
+   },
+   {
+    "id": "ephbxy",
+    "from": "nklsob",
+    "to": "no9fp5",
+    "port": 0
+   },
+   {
+    "id": "eqgfp7",
+    "from": "n1zrjh",
+    "to": "no9fp5",
+    "port": 1
+   }
+  ],
+  "groups": [],
+  "category": "Generative & self-supervised"
+ }
+}
