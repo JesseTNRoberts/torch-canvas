@@ -16,7 +16,7 @@
     "id": "nrkqvj",
     "type": "input",
     "x": 300,
-    "y": 1150,
+    "y": 1190,
     "params": {
      "name": "x",
      "shape": "e, d_in",
@@ -27,7 +27,7 @@
     "id": "ns8vm6",
     "type": "linear",
     "x": 300,
-    "y": 1070,
+    "y": 1110,
     "params": {
      "in": "d_in",
      "out": "h1",
@@ -46,7 +46,7 @@
     "id": "nudgl6",
     "type": "act",
     "x": 300,
-    "y": 1005,
+    "y": 1045,
     "params": {
      "fn": "relu",
      "dim": "-1",
@@ -58,7 +58,7 @@
     "id": "nw1287",
     "type": "linear",
     "x": 300,
-    "y": 940,
+    "y": 980,
     "params": {
      "in": "h1",
      "out": "h2",
@@ -77,7 +77,7 @@
     "id": "nyitwz",
     "type": "act",
     "x": 300,
-    "y": 875,
+    "y": 915,
     "params": {
      "fn": "relu",
      "dim": "-1",
@@ -88,8 +88,8 @@
    {
     "id": "n10sk4a",
     "type": "linear",
-    "x": 160,
-    "y": 800,
+    "x": 300,
+    "y": 840,
     "params": {
      "in": "h2",
      "out": "latent",
@@ -107,8 +107,8 @@
    {
     "id": "n12m9yu",
     "type": "linear",
-    "x": 460,
-    "y": 800,
+    "x": 720,
+    "y": 840,
     "params": {
      "in": "h2",
      "out": "latent",
@@ -127,7 +127,7 @@
     "id": "n14aahg",
     "type": "binop",
     "x": 720,
-    "y": 715,
+    "y": 765,
     "params": {
      "op": "*",
      "const": "0.5",
@@ -140,7 +140,7 @@
     "id": "n16gvsg",
     "type": "func",
     "x": 720,
-    "y": 650,
+    "y": 690,
     "params": {
      "fn": "torch.exp",
      "extra": "",
@@ -155,7 +155,7 @@
     "id": "n1838x5",
     "type": "noise",
     "x": 900,
-    "y": 650,
+    "y": 690,
     "params": {
      "title": "",
      "var": ""
@@ -165,7 +165,7 @@
     "id": "n1axq87",
     "type": "binop",
     "x": 720,
-    "y": 560,
+    "y": 590,
     "params": {
      "op": "*",
      "const": "",
@@ -178,7 +178,7 @@
     "id": "n1drvbr",
     "type": "binop",
     "x": 300,
-    "y": 560,
+    "y": 590,
     "params": {
      "op": "+",
      "const": "",
@@ -281,8 +281,8 @@
    {
     "id": "n1scpcj",
     "type": "output",
-    "x": 40,
-    "y": 715,
+    "x": 400,
+    "y": 760,
     "params": {
      "name": "mu",
      "title": ""
@@ -292,7 +292,7 @@
     "id": "n1ueuah",
     "type": "output",
     "x": 580,
-    "y": 715,
+    "y": 760,
     "params": {
      "name": "logvar",
      "title": ""
@@ -301,7 +301,7 @@
    {
     "id": "n1wggwu",
     "type": "loss",
-    "x": 1080,
+    "x": 1000,
     "y": 140,
     "params": {
      "fn": "bce",
@@ -318,8 +318,8 @@
    {
     "id": "n1zhizq",
     "type": "loss",
-    "x": 310,
-    "y": 715,
+    "x": 490,
+    "y": 690,
     "params": {
      "fn": "kl",
      "mode": "given",
